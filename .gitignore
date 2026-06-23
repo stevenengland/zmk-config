@@ -1,2 +1,4 @@
 
 .zmk/
+firmware/
+.devcontainer/docker-compose.override.yml

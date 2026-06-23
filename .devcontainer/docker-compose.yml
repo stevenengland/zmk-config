@@ -1,0 +1,29 @@
+# Devcontainer service for local ZMK builds.
+#
+# The firmware build itself runs in a separate zmk-build-arm container launched
+# by build.sh against the host daemon (docker-outside-of-docker). Its west
+# dependency cache lives in a host-daemon-managed named volume
+# (zmk-config-west-cache) created on first build, so it is not declared here.
+services:
+  zmk:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - ..:/workspaces/zmk-config:cached
+      # Shared agent-tooling config persists across container rebuilds.
+      - claude-config:/home/vscode/.claude
+      - copilot-config:/home/vscode/.config/github-copilot
+      - vscode-server:/home/vscode/.vscode-server
+    command: sleep infinity
+
+# Shared across devcontainer projects via fixed global names (smartbroker
+# parity). Compose may warn that these volumes were "not created by Docker
+# Compose" / "created for project Y" — harmless; it reuses the existing volume.
+volumes:
+  claude-config:
+    name: claude-config
+  copilot-config:
+    name: copilot-config
+  vscode-server:
+    name: vscode-server
