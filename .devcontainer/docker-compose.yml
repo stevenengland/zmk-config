@@ -11,4 +11,19 @@ services:
       dockerfile: Dockerfile
     volumes:
       - ..:/workspaces/zmk-config:cached
+      # Shared agent-tooling config persists across container rebuilds.
+      - claude-config:/home/vscode/.claude
+      - copilot-config:/home/vscode/.config/github-copilot
+      - vscode-server:/home/vscode/.vscode-server
     command: sleep infinity
+
+# Shared across devcontainer projects via fixed global names (smartbroker
+# parity). Compose may warn that these volumes were "not created by Docker
+# Compose" / "created for project Y" — harmless; it reuses the existing volume.
+volumes:
+  claude-config:
+    name: claude-config
+  copilot-config:
+    name: copilot-config
+  vscode-server:
+    name: vscode-server
