@@ -1,0 +1,26 @@
+{
+  "name": "zmk-config",
+  "dockerComposeFile": "docker-compose.yml",
+  "service": "zmk",
+  "workspaceFolder": "/workspaces/zmk-config",
+  "features": {
+    "ghcr.io/devcontainers/features/docker-outside-of-docker:1": {
+      "moby": false
+    },
+    "ghcr.io/devcontainers/features/git:1": {},
+    "ghcr.io/devcontainers/features/github-cli:1": {},
+    "ghcr.io/devcontainers/features/node:1": {}
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "plorefice.devicetree",
+        "ms-vscode.cpptools"
+      ]
+    }
+  },
+  "remoteEnv": {
+    "LOCAL_WORKSPACE_FOLDER": "${localWorkspaceFolder}"
+  },
+  "postCreateCommand": "bash .devcontainer/post-create.sh"
+}
