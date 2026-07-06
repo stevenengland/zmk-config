@@ -2,6 +2,9 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, it, expect, vi } from "vitest";
 import { KeyEditorPanel } from "./KeyEditorPanel";
 import type { KeyLegend } from "../model/schema";
+import symbols from "../data/symbols.json";
+
+const firstGlyph = symbols.categories[0].symbols[0];
 
 const handlers = {
   onSetSlot: () => {},
@@ -75,6 +78,27 @@ describe("KeyEditorPanel", () => {
     fireEvent.blur(input);
 
     expect(onSetSlot).toHaveBeenCalledWith("primary", "");
+  });
+
+  it("inserts a picked symbol into the focused slot", () => {
+    const onSetSlot = vi.fn();
+    renderPanel("L-r0-c0", {}, { onSetSlot });
+
+    const shifted = screen.getByLabelText(/shifted legend/i);
+    fireEvent.focus(shifted);
+    fireEvent.click(screen.getByRole("button", { name: `Insert ${firstGlyph}` }));
+
+    expect(onSetSlot).toHaveBeenCalledWith("shifted", firstGlyph);
+    expect(shifted).toHaveValue(firstGlyph);
+  });
+
+  it("inserts a picked symbol into the primary slot before any field is focused", () => {
+    const onSetSlot = vi.fn();
+    renderPanel("L-r0-c0", {}, { onSetSlot });
+
+    fireEvent.click(screen.getByRole("button", { name: `Insert ${firstGlyph}` }));
+
+    expect(onSetSlot).toHaveBeenCalledWith("primary", firstGlyph);
   });
 
   it("recolors the primary legend", () => {

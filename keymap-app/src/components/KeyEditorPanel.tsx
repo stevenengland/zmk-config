@@ -2,6 +2,7 @@ import { useEffect, useState, type CSSProperties } from "react";
 import type { KeyLegend } from "../model/schema";
 import type { LegendSlot } from "../state/documentReducer";
 import { convertLegendInput } from "../model/codepoint";
+import { SymbolPicker } from "./SymbolPicker";
 
 // Colors drawn from the "Engineering Chic" colorset (docs/design/stitch.md).
 const SURFACE = "#131313";
@@ -86,6 +87,8 @@ export function KeyEditorPanel({
   onError,
 }: KeyEditorPanelProps) {
   const [fields, setFields] = useState<Fields>(() => fieldsFromLegend(legend));
+  // The slot a picked symbol lands in; follows field focus, primary by default.
+  const [activeSlot, setActiveSlot] = useState<LegendSlot>("primary");
 
   // Re-bind the fields whenever the selected key or its committed legend changes.
   useEffect(() => {
@@ -107,6 +110,7 @@ export function KeyEditorPanel({
       setFields(fieldsFromLegend(legend));
       return;
     }
+    setFields((prev) => ({ ...prev, [slot]: result.glyph }));
     onSetSlot(slot, result.glyph);
   };
 
@@ -121,6 +125,7 @@ export function KeyEditorPanel({
             aria-label={`${text} legend`}
             style={field}
             value={fields[slot]}
+            onFocus={() => setActiveSlot(slot)}
             onChange={(e) => setFields((prev) => ({ ...prev, [slot]: e.target.value }))}
             onBlur={(e) => commit(slot, e.target.value)}
             onKeyDown={(e) => {
@@ -129,6 +134,8 @@ export function KeyEditorPanel({
           />
         </label>
       ))}
+
+      <SymbolPicker onInsert={(glyph) => commit(activeSlot, glyph)} />
 
       <label style={label}>
         Primary color

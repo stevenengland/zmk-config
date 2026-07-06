@@ -6,6 +6,9 @@ import { viteSingleFile } from "vite-plugin-singlefile";
 // production build opens directly from the filesystem via file:// with no server.
 export default defineConfig({
   plugins: [react(), viteSingleFile()],
+  // Inline every asset (including the embedded woff2 font subset) as a base64
+  // data: URI so the single-file build carries no external asset references.
+  build: { assetsInlineLimit: Number.MAX_SAFE_INTEGER },
   test: {
     globals: true,
     environment: "jsdom",

@@ -1,0 +1,34 @@
+{
+  "categories": [
+    {
+      "id": "modifiers",
+      "name": "Modifiers",
+      "symbols": ["⌘", "⌥", "⌃", "⇧", "⇪", "⎋", "⏎", "⌫", "⌦", "⇥", "⏏", "⌨"]
+    },
+    {
+      "id": "arrows-navigation",
+      "name": "Arrows & Navigation",
+      "symbols": ["←", "→", "↑", "↓", "↖", "↗", "↘", "↙", "⇞", "⇟", "↩", "↪", "⇱", "⇲"]
+    },
+    {
+      "id": "german-extras",
+      "name": "German (DE) Extras",
+      "symbols": ["ä", "ö", "ü", "ß", "Ä", "Ö", "Ü", "€"]
+    },
+    {
+      "id": "punctuation-symbols",
+      "name": "Punctuation & Symbols",
+      "symbols": ["§", "¶", "†", "‡", "•", "…", "‰", "′", "″", "«", "»", "—", "–", "©", "®", "™"]
+    },
+    {
+      "id": "math",
+      "name": "Math",
+      "symbols": ["×", "÷", "±", "∑", "∏", "√", "∞", "≈", "≠", "≤", "≥", "∫", "∂", "π", "µ", "∅"]
+    },
+    {
+      "id": "media-system",
+      "name": "Media & System",
+      "symbols": ["⏯", "⏸", "⏹", "⏺", "⏭", "⏮", "⏩", "⏪", "⏫", "⏬", "⏻", "⌂", "⚙", "⚡"]
+    }
+  ]
+}
