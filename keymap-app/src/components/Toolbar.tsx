@@ -13,6 +13,10 @@ interface ToolbarProps {
   document: KeymapDocument;
   onLoad: (document: KeymapDocument) => void;
   onStatus: (message: StatusMessage | null) => void;
+  onUndo: () => void;
+  onRedo: () => void;
+  canUndo: boolean;
+  canRedo: boolean;
 }
 
 // 56px top bar for global actions per the layout spec (docs/design/stitch.md).
@@ -52,7 +56,15 @@ function describe(error: unknown): string {
  * write-back) is chosen inside the io layer; the toolbar just holds the
  * write-back handle across saves and routes results to the status bar.
  */
-export function Toolbar({ document, onLoad, onStatus }: ToolbarProps) {
+export function Toolbar({
+  document,
+  onLoad,
+  onStatus,
+  onUndo,
+  onRedo,
+  canUndo,
+  canRedo,
+}: ToolbarProps) {
   const [handle, setHandle] = useState<SaveTarget>(null);
 
   const handleOpen = async () => {
@@ -85,6 +97,12 @@ export function Toolbar({ document, onLoad, onStatus }: ToolbarProps) {
       </button>
       <button type="button" style={actionButton} onClick={handleSave}>
         Save
+      </button>
+      <button type="button" style={actionButton} onClick={onUndo} disabled={!canUndo}>
+        Undo
+      </button>
+      <button type="button" style={actionButton} onClick={onRedo} disabled={!canRedo}>
+        Redo
       </button>
     </div>
   );

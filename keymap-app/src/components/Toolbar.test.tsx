@@ -16,11 +16,23 @@ const LOADED: KeymapDocument = {
   layers: [{ name: "Imported", color: "#fec931", keys: {} }],
 };
 
-function renderToolbar() {
+function renderToolbar(overrides: Partial<{ canUndo: boolean; canRedo: boolean }> = {}) {
   const onLoad = vi.fn();
   const onStatus = vi.fn();
-  render(<Toolbar document={DOC} onLoad={onLoad} onStatus={onStatus} />);
-  return { onLoad, onStatus };
+  const onUndo = vi.fn();
+  const onRedo = vi.fn();
+  render(
+    <Toolbar
+      document={DOC}
+      onLoad={onLoad}
+      onStatus={onStatus}
+      onUndo={onUndo}
+      onRedo={onRedo}
+      canUndo={overrides.canUndo ?? false}
+      canRedo={overrides.canRedo ?? false}
+    />,
+  );
+  return { onLoad, onStatus, onUndo, onRedo };
 }
 
 afterEach(() => vi.clearAllMocks());
@@ -57,4 +69,26 @@ it("saves the current document and reports success", async () => {
 
   await waitFor(() => expect(saveDocument).toHaveBeenCalledWith(DOC, null));
   expect(onStatus).toHaveBeenLastCalledWith({ text: "Saved keymap", tone: "info" });
+});
+
+it("disables undo and redo when their stacks are empty", () => {
+  renderToolbar();
+
+  expect(screen.getByRole("button", { name: /undo/i })).toBeDisabled();
+  expect(screen.getByRole("button", { name: /redo/i })).toBeDisabled();
+});
+
+it("enables undo/redo per their flags and routes clicks to the handlers", () => {
+  const { onUndo, onRedo } = renderToolbar({ canUndo: true, canRedo: true });
+
+  const undoButton = screen.getByRole("button", { name: /undo/i });
+  const redoButton = screen.getByRole("button", { name: /redo/i });
+  expect(undoButton).toBeEnabled();
+  expect(redoButton).toBeEnabled();
+
+  fireEvent.click(undoButton);
+  fireEvent.click(redoButton);
+
+  expect(onUndo).toHaveBeenCalledTimes(1);
+  expect(onRedo).toHaveBeenCalledTimes(1);
 });

@@ -49,4 +49,62 @@ describe("App", () => {
 
     expect(screen.getByRole("status")).toHaveTextContent(/invalid codepoint/i);
   });
+
+  it("starts with undo/redo disabled and enables undo after an edit", () => {
+    render(<App />);
+
+    expect(screen.getByRole("button", { name: /undo/i })).toBeDisabled();
+    expect(screen.getByRole("button", { name: /redo/i })).toBeDisabled();
+
+    fireEvent.click(screen.getByRole("button", { name: /add layer/i }));
+
+    expect(screen.getByRole("button", { name: /undo/i })).toBeEnabled();
+    expect(screen.getByRole("button", { name: /redo/i })).toBeDisabled();
+  });
+
+  it("undoes and redoes a layer add via Ctrl+Z / Ctrl+Shift+Z", () => {
+    render(<App />);
+
+    fireEvent.click(screen.getByRole("button", { name: /add layer/i }));
+    expect(screen.getAllByRole("tab")).toHaveLength(2);
+
+    fireEvent.keyDown(window, { key: "z", ctrlKey: true });
+    expect(screen.getAllByRole("tab")).toHaveLength(1);
+
+    fireEvent.keyDown(window, { key: "z", ctrlKey: true, shiftKey: true });
+    expect(screen.getAllByRole("tab")).toHaveLength(2);
+  });
+
+  it("undoes the same edit via the toolbar button as via the keyboard shortcut", () => {
+    render(<App />);
+
+    fireEvent.click(screen.getByRole("button", { name: /add layer/i }));
+    fireEvent.click(screen.getByRole("button", { name: /^undo$/i }));
+
+    expect(screen.getAllByRole("tab")).toHaveLength(1);
+  });
+
+  it("clears the redo stack once a new edit follows an undo", () => {
+    render(<App />);
+
+    fireEvent.click(screen.getByRole("button", { name: /add layer/i }));
+    fireEvent.keyDown(window, { key: "z", ctrlKey: true });
+    fireEvent.click(screen.getByRole("button", { name: /add layer/i }));
+
+    expect(screen.getByRole("button", { name: /redo/i })).toBeDisabled();
+  });
+
+  it("leaves a focused text field's own undo alone instead of hijacking Ctrl+Z", () => {
+    const { container } = render(<App />);
+
+    fireEvent.click(screen.getByRole("button", { name: /add layer/i }));
+    fireEvent.click(container.querySelector('[data-key-id="L-r0-c0"]')!);
+    const input = screen.getByLabelText(/primary legend/i);
+
+    fireEvent.keyDown(input, { key: "z", ctrlKey: true });
+
+    // The layer add is still on the undo stack — the shortcut didn't fire
+    // while focus was inside a text field.
+    expect(screen.getAllByRole("tab")).toHaveLength(2);
+  });
 });
