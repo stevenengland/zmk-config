@@ -3,6 +3,7 @@ import { KeyboardCanvas } from "./components/KeyboardCanvas";
 import { KeyEditorPanel } from "./components/KeyEditorPanel";
 import { LayerTabs } from "./components/LayerTabs";
 import { StatusBar, type StatusMessage } from "./components/StatusBar";
+import { Toolbar } from "./components/Toolbar";
 import { DocumentContext } from "./state/documentContext";
 import { createInitialState, documentReducer } from "./state/documentReducer";
 
@@ -44,6 +45,14 @@ export function App() {
           margin: "0 auto",
         }}
       >
+        <Toolbar
+          document={state.document}
+          onLoad={(document) => {
+            setStatus(null);
+            dispatch({ type: "load", document });
+          }}
+          onStatus={setStatus}
+        />
         <LayerTabs
           layers={state.document.layers}
           activeIndex={state.activeIndex}
