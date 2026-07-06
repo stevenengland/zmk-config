@@ -10,6 +10,26 @@ describe("documentReducer", () => {
     expect(state.activeIndex).toBe(0);
   });
 
+  it("replaces the whole document on load and resets selection to the first layer", () => {
+    const dirty = documentReducer(
+      documentReducer(createInitialState(), { type: "add", name: "Symbols", color: "#d4bbff" }),
+      { type: "select-key", keyId: "L-r0-c0" },
+    );
+
+    const loaded = documentReducer(dirty, {
+      type: "load",
+      document: {
+        schemaVersion: 1,
+        layers: [{ name: "Imported", color: "#fec931", keys: { "L-r0-c0": { primary: "A" } } }],
+      },
+    });
+
+    expect(loaded.document.layers).toHaveLength(1);
+    expect(loaded.document.layers[0].name).toBe("Imported");
+    expect(loaded.activeIndex).toBe(0);
+    expect(loaded.selectedKeyId).toBeNull();
+  });
+
   it("adds a named+colored layer and switches to it", () => {
     const state = documentReducer(createInitialState(), {
       type: "add",

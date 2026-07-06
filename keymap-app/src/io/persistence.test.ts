@@ -27,30 +27,30 @@ function fileWith(content: string): File {
 
 afterEach(() => {
   vi.restoreAllMocks();
-  delete (window as Record<string, unknown>).showOpenFilePicker;
-  delete (window as Record<string, unknown>).showSaveFilePicker;
+  delete (window as unknown as Record<string, unknown>).showOpenFilePicker;
+  delete (window as unknown as Record<string, unknown>).showSaveFilePicker;
 });
 
 describe("capability detection", () => {
   afterEach(() => {
-    delete (window as Record<string, unknown>).showOpenFilePicker;
+    delete (window as unknown as Record<string, unknown>).showOpenFilePicker;
   });
 
   it("selects the File System Access path on a secure https origin with the API present", () => {
     setOrigin("https:", true);
-    (window as Record<string, unknown>).showOpenFilePicker = () => {};
+    (window as unknown as Record<string, unknown>).showOpenFilePicker = () => {};
     expect(hasFileSystemAccess()).toBe(true);
   });
 
   it("selects the File System Access path on secure http (localhost / npx serve)", () => {
     setOrigin("http:", true);
-    (window as Record<string, unknown>).showOpenFilePicker = () => {};
+    (window as unknown as Record<string, unknown>).showOpenFilePicker = () => {};
     expect(hasFileSystemAccess()).toBe(true);
   });
 
   it("falls back to baseline on file:// even when the API is present", () => {
     setOrigin("file:", true);
-    (window as Record<string, unknown>).showOpenFilePicker = () => {};
+    (window as unknown as Record<string, unknown>).showOpenFilePicker = () => {};
     expect(hasFileSystemAccess()).toBe(false);
   });
 
@@ -118,8 +118,8 @@ describe("File System Access open + in-place write-back", () => {
     };
     const openPicker = vi.fn(() => Promise.resolve([fileHandle]));
     const savePicker = vi.fn(() => Promise.resolve(fileHandle));
-    (window as Record<string, unknown>).showOpenFilePicker = openPicker;
-    (window as Record<string, unknown>).showSaveFilePicker = savePicker;
+    (window as unknown as Record<string, unknown>).showOpenFilePicker = openPicker;
+    (window as unknown as Record<string, unknown>).showSaveFilePicker = savePicker;
 
     const opened = await openDocument();
     expect(opened?.document).toEqual(DOC);
@@ -137,8 +137,8 @@ describe("File System Access open + in-place write-back", () => {
     const writable = { write: vi.fn(), close: () => Promise.resolve() };
     const fileHandle = { createWritable: () => Promise.resolve(writable) };
     const savePicker = vi.fn(() => Promise.resolve(fileHandle));
-    (window as Record<string, unknown>).showOpenFilePicker = () => {};
-    (window as Record<string, unknown>).showSaveFilePicker = savePicker;
+    (window as unknown as Record<string, unknown>).showOpenFilePicker = () => {};
+    (window as unknown as Record<string, unknown>).showSaveFilePicker = savePicker;
 
     await saveDocument(DOC, null);
 

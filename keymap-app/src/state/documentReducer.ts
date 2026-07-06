@@ -18,6 +18,7 @@ export interface DocumentState {
 }
 
 export type DocumentAction =
+  | { type: "load"; document: KeymapDocument }
   | { type: "add"; name: string; color: string }
   | { type: "rename"; index: number; name: string }
   | { type: "recolor"; index: number; color: string }
@@ -80,6 +81,8 @@ function withSlot(legend: KeyLegend, slot: LegendSlot, value: string): KeyLegend
 
 export function documentReducer(state: DocumentState, action: DocumentAction): DocumentState {
   switch (action.type) {
+    case "load":
+      return { document: action.document, activeIndex: 0, selectedKeyId: null };
     case "add": {
       const layers = [
         ...state.document.layers,
