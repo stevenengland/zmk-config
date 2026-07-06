@@ -172,6 +172,16 @@ describe("documentReducer", () => {
     expect(json.layers[0].keys["L-r0-c0"]).toEqual({ shifted: "!" });
   });
 
+  it("does not persist a legend that only carries a color with no glyph slots", () => {
+    const state = documentReducer(createInitialState(), {
+      type: "set-key-color",
+      keyId: "L-r0-c0",
+      color: "#fec931",
+    });
+
+    expect(state.document.layers[0].keys["L-r0-c0"]).toBeUndefined();
+  });
+
   it("edits legends only on the active layer", () => {
     const two = documentReducer(createInitialState(), { type: "add", name: "L2", color: "#fff" });
 
@@ -256,5 +266,11 @@ describe("documentHistoryReducer", () => {
     });
 
     expect(selected.past).toHaveLength(0);
+  });
+
+  it("does not record undo history when deleting the last remaining layer (no-op)", () => {
+    const state = documentHistoryReducer(createInitialHistoryState(), { type: "delete", index: 0 });
+
+    expect(state.past).toHaveLength(0);
   });
 });

@@ -14,6 +14,10 @@ export type HistoryDirective =
   | "reset" // clear both stacks (e.g. loading a new document)
   | "transparent"; // update present without touching either stack
 
+// Caps the past stack so a very long editing session can't grow snapshot
+// memory without bound; a keymap document is small, so this is generous.
+const MAX_PAST = 100;
+
 export function createHistory<S>(present: S): HistoryState<S> {
   return { past: [], present, future: [] };
 }
@@ -60,6 +64,13 @@ export function apply<S, A>(
     case "transparent":
       return { ...state, present };
     case "track":
-      return { past: [...state.past, state.present], present, future: [] };
+      // A reducer that returns its input unchanged (e.g. a refused delete)
+      // made no edit — don't record a no-op undo step for it.
+      if (present === state.present) return { ...state, present };
+      return {
+        past: [...state.past, state.present].slice(-MAX_PAST),
+        present,
+        future: [],
+      };
   }
 }

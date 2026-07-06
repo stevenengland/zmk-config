@@ -58,10 +58,16 @@ function replaceLayer(
   return { ...state, document: { ...state.document, layers } };
 }
 
+/** A legend with no glyph slots renders nothing, even if `color` is set. */
+function hasVisibleContent(legend: KeyLegend): boolean {
+  return Boolean(legend.primary || legend.shifted || legend.altgr);
+}
+
 /**
  * Apply `update` to a key's legend on the active layer. When the resulting
- * legend has no remaining slots the key is dropped entirely, so a fully cleared
- * key never lingers in the document (and thus never serializes).
+ * legend has no visible glyph slots the key is dropped entirely — a
+ * color-only legend would render nothing yet linger in the saved file, so it
+ * is pruned exactly like a fully cleared key.
  */
 function updateActiveKey(
   state: DocumentState,
@@ -71,7 +77,7 @@ function updateActiveKey(
   return replaceLayer(state, state.activeIndex, (layer) => {
     const next = update(layer.keys[keyId] ?? {});
     const keys = { ...layer.keys };
-    if (Object.keys(next).length === 0) {
+    if (!hasVisibleContent(next)) {
       delete keys[keyId];
     } else {
       keys[keyId] = next;

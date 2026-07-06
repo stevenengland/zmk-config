@@ -86,4 +86,24 @@ describe("history", () => {
     expect(state.past).toEqual([{ value: 0 }]);
     expect(canRedo(state)).toBe(false);
   });
+
+  it("does not push a snapshot when a tracked reducer returns the same reference (no-op)", () => {
+    const start = createHistory<Counter>({ value: 0 });
+    const noop = (state: Counter) => state;
+
+    const state = apply(start, undefined, noop, "track");
+
+    expect(state.past).toEqual([]);
+    expect(state.present).toBe(start.present);
+  });
+
+  it("caps the past stack so history memory does not grow unbounded", () => {
+    let state = createHistory<Counter>({ value: 0 });
+    for (let i = 0; i < 150; i++) {
+      state = apply(state, undefined, increment, "track");
+    }
+
+    expect(state.past.length).toBeLessThanOrEqual(100);
+    expect(state.present).toEqual({ value: 150 });
+  });
 });
