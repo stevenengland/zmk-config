@@ -39,4 +39,22 @@ describe("schema serialize/parse", () => {
 
     expect(() => parse(json)).toThrow(/schemaVersion/);
   });
+
+  it("rejects a document missing `layers` with an error", () => {
+    const json = JSON.stringify({ schemaVersion: 1 });
+
+    expect(() => parse(json)).toThrow(/layers/);
+  });
+
+  it("rejects a document whose `layers` is not an array with an error", () => {
+    const json = JSON.stringify({ schemaVersion: 1, layers: "not-an-array" });
+
+    expect(() => parse(json)).toThrow(/layers/);
+  });
+
+  it("rejects a document with a malformed layer object with an error", () => {
+    const json = JSON.stringify({ schemaVersion: 1, layers: [{ name: "Base" }] });
+
+    expect(() => parse(json)).toThrow(/layer/);
+  });
 });

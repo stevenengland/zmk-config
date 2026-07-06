@@ -59,12 +59,31 @@ export function serialize(doc: KeymapDocument): string {
   return JSON.stringify(normalized, null, 2);
 }
 
+function isLayer(value: unknown): value is Layer {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    typeof (value as Layer).name === "string" &&
+    typeof (value as Layer).color === "string" &&
+    typeof (value as Layer).keys === "object" &&
+    (value as Layer).keys !== null
+  );
+}
+
 export function parse(json: string): KeymapDocument {
-  const raw = JSON.parse(json) as { schemaVersion?: unknown };
+  const raw = JSON.parse(json) as { schemaVersion?: unknown; layers?: unknown };
   if (raw.schemaVersion !== SCHEMA_VERSION) {
     throw new Error(
       `unsupported schemaVersion: ${String(raw.schemaVersion)} (expected ${SCHEMA_VERSION})`,
     );
   }
+  if (!Array.isArray(raw.layers)) {
+    throw new Error("invalid keymap document: `layers` must be an array");
+  }
+  raw.layers.forEach((layer, index) => {
+    if (!isLayer(layer)) {
+      throw new Error(`invalid keymap document: layer ${index} is malformed`);
+    }
+  });
   return raw as KeymapDocument;
 }
