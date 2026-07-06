@@ -1,11 +1,6 @@
 name: keymap-app CI
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - "keymap-app/**"
-      - ".github/workflows/keymap-app.yml"
   pull_request:
     paths:
       - "keymap-app/**"

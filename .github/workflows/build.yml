@@ -1,5 +1,10 @@
 name: Build ZMK firmware
-on: [push, pull_request, workflow_dispatch]
+on:
+  pull_request:
+    paths-ignore:
+      - "keymap-app/**"
+      - "docs/**"
+      - "**/*.md"
 
 jobs:
   build:
