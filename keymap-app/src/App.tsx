@@ -1,21 +1,28 @@
-import { useMemo, useReducer, useState } from "react";
+import { useEffect, useMemo, useReducer, useState } from "react";
 import { KeyboardCanvas } from "./components/KeyboardCanvas";
 import { KeyEditorPanel } from "./components/KeyEditorPanel";
 import { LayerTabs } from "./components/LayerTabs";
 import { StatusBar, type StatusMessage } from "./components/StatusBar";
 import { Toolbar } from "./components/Toolbar";
 import { DocumentContext } from "./state/documentContext";
-import { createInitialState, documentReducer } from "./state/documentReducer";
+import { createInitialHistoryState, documentHistoryReducer } from "./state/documentReducer";
+import { canRedo, canUndo } from "./model/history";
 
 // Accent palette for freshly added layers (docs/design/stitch.md), cycled by
 // layer count so consecutive layers stay visually distinct.
 const LAYER_PALETTE = ["#00e5ff", "#d4bbff", "#fec931", "#ffb4ab"];
 
-export function App() {
-  const [state, dispatch] = useReducer(documentReducer, undefined, createInitialState);
-  const [status, setStatus] = useState<StatusMessage | null>(null);
-  const store = useMemo(() => ({ state, dispatch }), [state]);
+// Elements with native undo/redo of their own (text inputs) keep Ctrl+Z.
+function isTextEditable(target: EventTarget | null): boolean {
+  return target instanceof HTMLElement && (target.tagName === "INPUT" || target.tagName === "TEXTAREA");
+}
 
+export function App() {
+  const [historyState, dispatch] = useReducer(documentHistoryReducer, undefined, createInitialHistoryState);
+  const [status, setStatus] = useState<StatusMessage | null>(null);
+  const store = useMemo(() => ({ state: historyState, dispatch }), [historyState]);
+
+  const state = historyState.present;
   const activeLayer = state.document.layers[state.activeIndex];
   const selectedKeyId = state.selectedKeyId;
   const selectedLegend = selectedKeyId ? activeLayer.keys[selectedKeyId] ?? {} : {};
@@ -33,6 +40,16 @@ export function App() {
     setStatus(null);
     dispatch({ type: "select-key", keyId: id });
   };
+
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (!e.ctrlKey || e.key.toLowerCase() !== "z" || isTextEditable(e.target)) return;
+      e.preventDefault();
+      dispatch(e.shiftKey ? { type: "redo" } : { type: "undo" });
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, []);
 
   return (
     <DocumentContext.Provider value={store}>
@@ -52,6 +69,10 @@ export function App() {
             dispatch({ type: "load", document });
           }}
           onStatus={setStatus}
+          onUndo={() => dispatch({ type: "undo" })}
+          onRedo={() => dispatch({ type: "redo" })}
+          canUndo={canUndo(historyState)}
+          canRedo={canRedo(historyState)}
         />
         <LayerTabs
           layers={state.document.layers}

@@ -1,9 +1,9 @@
 import { createContext, type Dispatch } from "react";
-import type { DocumentAction, DocumentState } from "./documentReducer";
+import type { DocumentHistoryAction, DocumentHistoryState } from "./documentReducer";
 
 export interface DocumentStore {
-  state: DocumentState;
-  dispatch: Dispatch<DocumentAction>;
+  state: DocumentHistoryState;
+  dispatch: Dispatch<DocumentHistoryAction>;
 }
 
 /** Document state + dispatch shared with descendant components. */

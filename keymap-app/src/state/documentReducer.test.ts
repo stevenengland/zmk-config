@@ -1,4 +1,9 @@
-import { createInitialState, documentReducer } from "./documentReducer";
+import {
+  createInitialHistoryState,
+  createInitialState,
+  documentHistoryReducer,
+  documentReducer,
+} from "./documentReducer";
 import { serialize } from "../model/schema";
 
 describe("documentReducer", () => {
@@ -179,5 +184,77 @@ describe("documentReducer", () => {
 
     expect(state.document.layers[1].keys["L-r0-c0"]).toEqual({ shifted: "!" });
     expect(state.document.layers[0].keys["L-r0-c0"]).toBeUndefined();
+  });
+});
+
+describe("documentHistoryReducer", () => {
+  it("undoes a legend edit and redoes it back", () => {
+    const withEdit = documentHistoryReducer(createInitialHistoryState(), {
+      type: "set-slot",
+      keyId: "L-r0-c0",
+      slot: "primary",
+      value: "A",
+    });
+
+    const undone = documentHistoryReducer(withEdit, { type: "undo" });
+    expect(undone.present.document.layers[0].keys["L-r0-c0"]).toBeUndefined();
+
+    const redone = documentHistoryReducer(undone, { type: "redo" });
+    expect(redone.present.document.layers[0].keys["L-r0-c0"]).toEqual({ primary: "A" });
+  });
+
+  it("undoes a layer operation (add)", () => {
+    const withLayer = documentHistoryReducer(createInitialHistoryState(), {
+      type: "add",
+      name: "Symbols",
+      color: "#d4bbff",
+    });
+
+    const undone = documentHistoryReducer(withLayer, { type: "undo" });
+
+    expect(undone.present.document.layers).toHaveLength(1);
+  });
+
+  it("clears the redo stack once a new edit follows an undo", () => {
+    const renamed = documentHistoryReducer(createInitialHistoryState(), {
+      type: "rename",
+      index: 0,
+      name: "First",
+    });
+    const undone = documentHistoryReducer(renamed, { type: "undo" });
+
+    const renamedAgain = documentHistoryReducer(undone, {
+      type: "rename",
+      index: 0,
+      name: "Second",
+    });
+
+    expect(renamedAgain.future).toHaveLength(0);
+    expect(documentHistoryReducer(renamedAgain, { type: "redo" })).toBe(renamedAgain);
+  });
+
+  it("resets history when a file is loaded", () => {
+    const renamed = documentHistoryReducer(createInitialHistoryState(), {
+      type: "rename",
+      index: 0,
+      name: "First",
+    });
+
+    const loaded = documentHistoryReducer(renamed, {
+      type: "load",
+      document: { schemaVersion: 1, layers: [{ name: "Imported", color: "#fec931", keys: {} }] },
+    });
+
+    expect(loaded.past).toHaveLength(0);
+    expect(loaded.future).toHaveLength(0);
+  });
+
+  it("does not track key selection as undoable history", () => {
+    const selected = documentHistoryReducer(createInitialHistoryState(), {
+      type: "select-key",
+      keyId: "L-r0-c0",
+    });
+
+    expect(selected.past).toHaveLength(0);
   });
 });
