@@ -1,4 +1,5 @@
 import { createInitialState, documentReducer } from "./documentReducer";
+import { serialize } from "../model/schema";
 
 describe("documentReducer", () => {
   it("boots with a single empty default layer that is active", () => {
@@ -64,5 +65,99 @@ describe("documentReducer", () => {
     documentReducer(start, { type: "add", name: "L2", color: "#fff" });
 
     expect(start.document.layers).toHaveLength(1);
+  });
+
+  it("boots with no key selected", () => {
+    expect(createInitialState().selectedKeyId).toBeNull();
+  });
+
+  it("records the selected key", () => {
+    const state = documentReducer(createInitialState(), { type: "select-key", keyId: "L-r0-c0" });
+
+    expect(state.selectedKeyId).toBe("L-r0-c0");
+  });
+
+  it("clears the selection", () => {
+    const selected = documentReducer(createInitialState(), { type: "select-key", keyId: "L-enc" });
+
+    const state = documentReducer(selected, { type: "select-key", keyId: null });
+
+    expect(state.selectedKeyId).toBeNull();
+  });
+
+  it("sets a legend slot on the active layer's key", () => {
+    const state = documentReducer(createInitialState(), {
+      type: "set-slot",
+      keyId: "L-r0-c0",
+      slot: "primary",
+      value: "A",
+    });
+
+    expect(state.document.layers[0].keys["L-r0-c0"]).toEqual({ primary: "A" });
+  });
+
+  it("sets a per-key primary color", () => {
+    const withPrimary = documentReducer(createInitialState(), {
+      type: "set-slot",
+      keyId: "L-r0-c0",
+      slot: "primary",
+      value: "A",
+    });
+
+    const state = documentReducer(withPrimary, {
+      type: "set-key-color",
+      keyId: "L-r0-c0",
+      color: "#fec931",
+    });
+
+    expect(state.document.layers[0].keys["L-r0-c0"]).toEqual({ primary: "A", color: "#fec931" });
+  });
+
+  it("removes a slot when cleared and drops the key once fully empty", () => {
+    const withSlot = documentReducer(createInitialState(), {
+      type: "set-slot",
+      keyId: "L-r0-c0",
+      slot: "primary",
+      value: "A",
+    });
+
+    const state = documentReducer(withSlot, {
+      type: "set-slot",
+      keyId: "L-r0-c0",
+      slot: "primary",
+      value: "",
+    });
+
+    expect(state.document.layers[0].keys["L-r0-c0"]).toBeUndefined();
+  });
+
+  it("omits a cleared slot from the serialized document while keeping siblings", () => {
+    let state = documentReducer(createInitialState(), {
+      type: "set-slot",
+      keyId: "L-r0-c0",
+      slot: "primary",
+      value: "A",
+    });
+    state = documentReducer(state, { type: "set-slot", keyId: "L-r0-c0", slot: "shifted", value: "!" });
+
+    state = documentReducer(state, { type: "set-slot", keyId: "L-r0-c0", slot: "primary", value: "" });
+
+    expect(state.document.layers[0].keys["L-r0-c0"]).toEqual({ shifted: "!" });
+    const json = JSON.parse(serialize(state.document));
+    expect(json.layers[0].keys["L-r0-c0"]).toEqual({ shifted: "!" });
+  });
+
+  it("edits legends only on the active layer", () => {
+    const two = documentReducer(createInitialState(), { type: "add", name: "L2", color: "#fff" });
+
+    const state = documentReducer(two, {
+      type: "set-slot",
+      keyId: "L-r0-c0",
+      slot: "shifted",
+      value: "!",
+    });
+
+    expect(state.document.layers[1].keys["L-r0-c0"]).toEqual({ shifted: "!" });
+    expect(state.document.layers[0].keys["L-r0-c0"]).toBeUndefined();
   });
 });
