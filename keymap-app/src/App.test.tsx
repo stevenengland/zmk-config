@@ -24,4 +24,29 @@ describe("App", () => {
     expect(tabs).toHaveLength(2);
     expect(tabs[1]).toHaveAttribute("aria-selected", "true");
   });
+
+  it("binds the editor to a clicked key and renders a committed legend on the board", () => {
+    const { container } = render(<App />);
+
+    fireEvent.click(container.querySelector('[data-key-id="L-r0-c0"]')!);
+    expect(screen.getByRole("heading", { name: "L-r0-c0" })).toBeInTheDocument();
+
+    const input = screen.getByLabelText(/primary legend/i);
+    fireEvent.change(input, { target: { value: "U+2318" } });
+    fireEvent.blur(input);
+
+    const legend = Array.from(container.querySelectorAll("text")).map((t) => t.textContent);
+    expect(legend).toContain("⌘");
+  });
+
+  it("reports an invalid codepoint on the status bar", () => {
+    const { container } = render(<App />);
+
+    fireEvent.click(container.querySelector('[data-key-id="L-r0-c0"]')!);
+    const input = screen.getByLabelText(/primary legend/i);
+    fireEvent.change(input, { target: { value: "U+ZZZZ" } });
+    fireEvent.blur(input);
+
+    expect(screen.getByRole("status")).toHaveTextContent(/invalid codepoint/i);
+  });
 });

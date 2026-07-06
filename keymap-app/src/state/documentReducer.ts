@@ -85,7 +85,7 @@ export function documentReducer(state: DocumentState, action: DocumentAction): D
         ...state.document.layers,
         { name: action.name, color: action.color, keys: {} },
       ];
-      return { document: { ...state.document, layers }, activeIndex: layers.length - 1 };
+      return { ...state, document: { ...state.document, layers }, activeIndex: layers.length - 1 };
     }
     case "rename":
       return replaceLayer(state, action.index, (layer) => ({ ...layer, name: action.name }));
@@ -95,7 +95,7 @@ export function documentReducer(state: DocumentState, action: DocumentAction): D
       if (state.document.layers.length <= 1) return state;
       const layers = state.document.layers.filter((_, i) => i !== action.index);
       const activeIndex = Math.min(state.activeIndex, layers.length - 1);
-      return { document: { ...state.document, layers }, activeIndex };
+      return { ...state, document: { ...state.document, layers }, activeIndex };
     }
     case "select":
       return { ...state, activeIndex: action.index };

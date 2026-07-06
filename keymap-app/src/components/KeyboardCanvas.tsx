@@ -1,4 +1,5 @@
 import { boardGeometry, keys, encoders } from "../model/geometry";
+import type { KeyLegend } from "../model/schema";
 import { Keycap } from "./Keycap";
 
 const PADDING = 40;
@@ -16,8 +17,19 @@ function viewBox(): string {
   return `${x} ${y} ${width} ${height}`;
 }
 
-/** Read-only inline-SVG render of the full Sofle Choc board. */
-export function KeyboardCanvas() {
+interface KeyboardCanvasProps {
+  /** Committed legends for the active layer, keyed by element id. */
+  legends?: Record<string, KeyLegend>;
+  selectedKeyId?: string | null;
+  onSelectKey?: (id: string) => void;
+}
+
+/** Inline-SVG render of the full Sofle Choc board with selectable, legended keys. */
+export function KeyboardCanvas({
+  legends = {},
+  selectedKeyId = null,
+  onSelectKey,
+}: KeyboardCanvasProps = {}) {
   return (
     <svg
       role="img"
@@ -25,11 +37,14 @@ export function KeyboardCanvas() {
       viewBox={viewBox()}
       style={{ width: "100%", height: "auto", background: BACKGROUND }}
     >
-      {keys.map((element) => (
-        <Keycap key={element.id} element={element} />
-      ))}
-      {encoders.map((element) => (
-        <Keycap key={element.id} element={element} />
+      {[...keys, ...encoders].map((element) => (
+        <Keycap
+          key={element.id}
+          element={element}
+          legend={legends[element.id]}
+          selected={element.id === selectedKeyId}
+          onSelect={onSelectKey}
+        />
       ))}
     </svg>
   );
