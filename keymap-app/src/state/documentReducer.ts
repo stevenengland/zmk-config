@@ -4,6 +4,14 @@ import {
   type KeymapDocument,
   type Layer,
 } from "../model/schema";
+import {
+  apply,
+  createHistory,
+  redo as historyRedo,
+  undo as historyUndo,
+  type HistoryDirective,
+  type HistoryState,
+} from "../model/history";
 
 const DEFAULT_LAYER_NAME = "Base";
 const DEFAULT_LAYER_COLOR = "#00e5ff";
@@ -116,4 +124,35 @@ export function documentReducer(state: DocumentState, action: DocumentAction): D
         return next;
       });
   }
+}
+
+/** Document state with undo/redo snapshot stacks. */
+export type DocumentHistoryState = HistoryState<DocumentState>;
+
+export type DocumentHistoryAction = DocumentAction | { type: "undo" } | { type: "redo" };
+
+/** Selection changes aren't undoable edits; `load` starts a fresh history. */
+function directiveFor(action: DocumentAction): HistoryDirective {
+  switch (action.type) {
+    case "load":
+      return "reset";
+    case "select":
+    case "select-key":
+      return "transparent";
+    default:
+      return "track";
+  }
+}
+
+export function createInitialHistoryState(): DocumentHistoryState {
+  return createHistory(createInitialState());
+}
+
+export function documentHistoryReducer(
+  state: DocumentHistoryState,
+  action: DocumentHistoryAction,
+): DocumentHistoryState {
+  if (action.type === "undo") return historyUndo(state);
+  if (action.type === "redo") return historyRedo(state);
+  return apply(state, action, documentReducer, directiveFor(action));
 }
