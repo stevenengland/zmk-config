@@ -33,9 +33,14 @@ RUN apt-get update \
         curl \
         git \
         ripgrep \
-    && pip install --no-cache-dir pyyaml \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
+
+# Declarative python tooling (pyyaml for build matrix parsing; fonttools/brotli
+# for the keymap-app font-subset script). Kept in requirements.txt as the single
+# source of truth.
+COPY requirements.txt /tmp/requirements.txt
+RUN pip install --no-cache-dir -r /tmp/requirements.txt
 
 
 # Create workspace directory

@@ -3,3 +3,4 @@
 firmware/
 .devcontainer/docker-compose.override.yml
 tmp/
+node_modules/

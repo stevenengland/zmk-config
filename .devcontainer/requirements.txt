@@ -1,0 +1,4 @@
+# Python tooling for repo scripts. Installed into the dev image (see Dockerfile).
+pyyaml          # build.yaml matrix parsing (build.sh / slice 2)
+fonttools>=4.0  # keymap-app/scripts/gen-font-subset.sh — pyftsubset
+brotli          # woff2 flavor support for pyftsubset

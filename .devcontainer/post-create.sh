@@ -18,4 +18,11 @@ if ! command -v rg >/dev/null 2>&1; then
 fi
 python3 -c 'import yaml' 2>/dev/null || echo "warning: pyyaml not found" >&2
 
+# Install the keymap-app node deps so a freshly created container is ready to
+# work. Use npm ci to honour the committed lockfile, matching CI.
+if [ -f "${WORKSPACE}/keymap-app/package-lock.json" ]; then
+  echo "installing keymap-app node deps..."
+  (cd "${WORKSPACE}/keymap-app" && npm ci)
+fi
+
 echo "post-create complete"
