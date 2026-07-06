@@ -23,6 +23,13 @@ python3 -c 'import yaml' 2>/dev/null || echo "warning: pyyaml not found" >&2
 if [ -f "${WORKSPACE}/keymap-app/package-lock.json" ]; then
   echo "installing keymap-app node deps..."
   (cd "${WORKSPACE}/keymap-app" && npm ci)
+
+  # Playwright browser binaries live outside node_modules (~/.cache/ms-playwright)
+  # and aren't covered by npm ci, so fetch them explicitly. --with-deps also
+  # apt-installs the system libs (libnspr, libatk, ...) missing from the slim
+  # base image; playwright shells out via sudo since we run as non-root vscode.
+  echo "installing Playwright browsers..."
+  (cd "${WORKSPACE}/keymap-app" && npx playwright install --with-deps chromium)
 fi
 
 echo "post-create complete"
