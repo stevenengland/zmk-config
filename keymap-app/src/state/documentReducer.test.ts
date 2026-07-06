@@ -1,4 +1,5 @@
 import { createInitialState, documentReducer } from "./documentReducer";
+import { serialize } from "../model/schema";
 
 describe("documentReducer", () => {
   it("boots with a single empty default layer that is active", () => {
@@ -128,6 +129,22 @@ describe("documentReducer", () => {
     });
 
     expect(state.document.layers[0].keys["L-r0-c0"]).toBeUndefined();
+  });
+
+  it("omits a cleared slot from the serialized document while keeping siblings", () => {
+    let state = documentReducer(createInitialState(), {
+      type: "set-slot",
+      keyId: "L-r0-c0",
+      slot: "primary",
+      value: "A",
+    });
+    state = documentReducer(state, { type: "set-slot", keyId: "L-r0-c0", slot: "shifted", value: "!" });
+
+    state = documentReducer(state, { type: "set-slot", keyId: "L-r0-c0", slot: "primary", value: "" });
+
+    expect(state.document.layers[0].keys["L-r0-c0"]).toEqual({ shifted: "!" });
+    const json = JSON.parse(serialize(state.document));
+    expect(json.layers[0].keys["L-r0-c0"]).toEqual({ shifted: "!" });
   });
 
   it("edits legends only on the active layer", () => {
