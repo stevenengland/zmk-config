@@ -7,53 +7,25 @@
 
 import { boardGeometry, type BoardElement } from "../model/geometry";
 import { serialize, type KeyLegend, type KeymapDocument, type Layer } from "../model/schema";
-import fontUrl from "../assets/fonts/NotoSansSymbols2-Subset.woff2";
+import {
+  BACKGROUND,
+  boardViewBox,
+  type Box,
+  boxOf,
+  CORNER_RADIUS,
+  ENCODER_FILL,
+  ENCODER_STROKE,
+  FONT_FACE_CSS,
+  KEY_FILL,
+  KEY_STROKE,
+  LEGEND_COLOR,
+  LEGEND_FONT,
+  PAD,
+  PRIMARY_SIZE,
+  SUB_SIZE,
+} from "../model/renderStyle";
 
-const PADDING = 40;
-const BACKGROUND = "#14171c";
-const KEY_FILL = "#2b2f36";
-const KEY_STROKE = "#4a505a";
-const ENCODER_FILL = "#1f2329";
-const ENCODER_STROKE = "#5a6270";
-const CORNER_RADIUS = 6;
-
-// Legend text falls back through the embedded symbol subset first so glyphs
-// inserted from the SymbolPicker render correctly with no app dependency.
-const SYMBOL_FONT_FAMILY = "Noto Sans Symbols 2";
-const LEGEND_FONT = `"${SYMBOL_FONT_FAMILY}", "JetBrains Mono", monospace`;
-const LEGEND_COLOR = "#e5e2e1";
-const PRIMARY_SIZE = 18;
-const SUB_SIZE = 12;
-const PAD = 9;
-
-interface Box {
-  left: number;
-  top: number;
-  right: number;
-  bottom: number;
-}
-
-function boxOf(element: BoardElement): Box {
-  const { x, y, w, h } = element;
-  if (element.kind === "encoder") {
-    const r = w / 2;
-    return { left: x - r, top: y - r, right: x + r, bottom: y + r };
-  }
-  return { left: x, top: y, right: x + w, bottom: y + h };
-}
-
-function viewBox(): { x: number; y: number; width: number; height: number } {
-  const minX = Math.min(...boardGeometry.map((e) => e.x));
-  const minY = Math.min(...boardGeometry.map((e) => e.y));
-  const maxX = Math.max(...boardGeometry.map((e) => e.x + e.w));
-  const maxY = Math.max(...boardGeometry.map((e) => e.y + e.h));
-  return {
-    x: minX - PADDING,
-    y: minY - PADDING,
-    width: maxX - minX + 2 * PADDING,
-    height: maxY - minY + 2 * PADDING,
-  };
-}
+const viewBox = () => boardViewBox(boardGeometry);
 
 const XML_ESCAPES: Record<string, string> = {
   "&": "&amp;",
@@ -112,7 +84,7 @@ export function layerToSvg(layer: Layer): string {
   return (
     `<?xml version="1.0" encoding="UTF-8"?>\n` +
     `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${box.x} ${box.y} ${box.width} ${box.height}" width="${box.width}" height="${box.height}">` +
-    `<style>@font-face { font-family: "${SYMBOL_FONT_FAMILY}"; font-display: swap; src: url(${fontUrl}) format("woff2"); }</style>` +
+    `<style>${FONT_FACE_CSS}</style>` +
     `<rect x="${box.x}" y="${box.y}" width="${box.width}" height="${box.height}" fill="${BACKGROUND}" />` +
     elements +
     `</svg>`

@@ -1,42 +1,29 @@
 import type { BoardElement } from "../model/geometry";
 import type { KeyLegend } from "../model/schema";
+import {
+  boxOf,
+  type Box,
+  CORNER_RADIUS,
+  ENCODER_FILL,
+  ENCODER_STROKE,
+  KEY_FILL,
+  KEY_STROKE,
+  LEGEND_COLOR,
+  LEGEND_FONT,
+  PAD,
+  PRIMARY_SIZE,
+  SUB_SIZE,
+} from "../model/renderStyle";
 
-const KEY_FILL = "#2b2f36";
-const KEY_STROKE = "#4a505a";
-const ENCODER_FILL = "#1f2329";
-const ENCODER_STROKE = "#5a6270";
 // Active state uses the "Engineering Chic" primary teal (docs/design/stitch.md).
 const SELECTED_FILL = "#0b3a42";
 const SELECTED_STROKE = "#00e5ff";
-const CORNER_RADIUS = 6;
-
-const LEGEND_FONT = "JetBrains Mono, monospace";
-const LEGEND_COLOR = "#e5e2e1";
-const PRIMARY_SIZE = 18;
-const SUB_SIZE = 12;
-const PAD = 9;
-
-interface Box {
-  left: number;
-  top: number;
-  right: number;
-  bottom: number;
-}
 
 interface KeycapProps {
   element: BoardElement;
   legend?: KeyLegend;
   selected?: boolean;
   onSelect?: (id: string) => void;
-}
-
-function boxOf(element: BoardElement): Box {
-  const { x, y, w, h } = element;
-  if (element.kind === "encoder") {
-    const r = w / 2;
-    return { left: x - r, top: y - r, right: x + r, bottom: y + r };
-  }
-  return { left: x, top: y, right: x + w, bottom: y + h };
 }
 
 /**

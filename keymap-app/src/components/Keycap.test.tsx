@@ -2,6 +2,7 @@ import { render, fireEvent } from "@testing-library/react";
 import { describe, it, expect, vi } from "vitest";
 import { Keycap } from "./Keycap";
 import type { BoardElement } from "../model/geometry";
+import { SYMBOL_FONT_FAMILY } from "../model/renderStyle";
 
 const key: BoardElement = { id: "L-r0-c0", kind: "key", x: 0, y: 0, w: 54, h: 54 };
 const encoder: BoardElement = { id: "L-enc", kind: "encoder", x: 100, y: 100, w: 62, h: 62 };
@@ -44,6 +45,14 @@ describe("Keycap legends", () => {
     // altgr bottom-right: further right than primary, end-anchored
     expect(Number(altgr.getAttribute("x"))).toBeGreaterThan(Number(primary.getAttribute("x")));
     expect(altgr.getAttribute("text-anchor")).toBe("end");
+  });
+
+  it("renders legend text through the embedded symbol font, matching SVG export", () => {
+    const { container } = svg(<Keycap element={key} legend={{ primary: "A" }} />);
+
+    expect(container.querySelector("text")!.getAttribute("font-family")).toContain(
+      SYMBOL_FONT_FAMILY,
+    );
   });
 
   it("colors the primary legend with the per-key color", () => {

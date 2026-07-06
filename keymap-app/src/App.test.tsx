@@ -1,10 +1,20 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { App } from "./App";
+import { SYMBOL_FONT_FAMILY } from "./model/renderStyle";
 
 describe("App", () => {
   it("mounts the keyboard board", () => {
     const { container } = render(<App />);
     expect(container.querySelector('svg[aria-label="Sofle Choc keyboard"]')).not.toBeNull();
+  });
+
+  it("embeds the symbol font globally, independent of the picker's mount state", () => {
+    const { container } = render(<App />);
+
+    const styles = Array.from(container.querySelectorAll("style")).map((s) => s.textContent);
+    expect(styles.some((css) => css?.includes("@font-face") && css.includes(SYMBOL_FONT_FAMILY))).toBe(
+      true,
+    );
   });
 
   it("boots with one default layer shown as the active tab", () => {

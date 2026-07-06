@@ -7,6 +7,7 @@ import { Toolbar } from "./components/Toolbar";
 import { DocumentContext } from "./state/documentContext";
 import { createInitialHistoryState, documentHistoryReducer } from "./state/documentReducer";
 import { canRedo, canUndo } from "./model/history";
+import { FONT_FACE_CSS } from "./model/renderStyle";
 
 // Accent palette for freshly added layers (docs/design/stitch.md), cycled by
 // layer count so consecutive layers stay visually distinct.
@@ -62,6 +63,10 @@ export function App() {
           margin: "0 auto",
         }}
       >
+        {/* App-global so the embedded symbol font is available to the on-canvas
+            legends regardless of whether the picker (which also declares it) is
+            mounted — see model/renderStyle.ts. */}
+        <style>{FONT_FACE_CSS}</style>
         <Toolbar
           document={state.document}
           activeLayer={activeLayer}

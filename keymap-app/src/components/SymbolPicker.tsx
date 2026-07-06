@@ -1,6 +1,8 @@
 import type { CSSProperties } from "react";
 import symbols from "../data/symbols.json";
-import fontUrl from "../assets/fonts/NotoSansSymbols2-Subset.woff2";
+import { FONT_FACE_CSS, SYMBOL_FONT_FAMILY } from "../model/renderStyle";
+
+export { SYMBOL_FONT_FAMILY };
 
 // Colors drawn from the "Engineering Chic" colorset (docs/design/stitch.md).
 const OUTLINE_VARIANT = "#3b494c";
@@ -9,22 +11,10 @@ const ON_SURFACE_VARIANT = "#bac9cc";
 const FIELD_BG = "#0e0e0e";
 const TEAL = "#00e5ff";
 
-/**
- * Embedded subset family name. Curated symbol glyphs resolve against the
- * inlined Noto Sans Symbols 2 subset first, then fall back to the system font
- * for any glyph the subset does not carry (e.g. Latin German extras).
- */
-export const SYMBOL_FONT_FAMILY = "Noto Sans Symbols 2";
+// Curated symbol glyphs resolve against the inlined Noto Sans Symbols 2
+// subset first, then fall back to the system font for any glyph the subset
+// does not carry (e.g. Latin German extras).
 const GLYPH_FONT_STACK = `"${SYMBOL_FONT_FAMILY}", "JetBrains Mono", system-ui, sans-serif`;
-
-// The subset is inlined by the build as a base64 data: URI (see
-// assetsInlineLimit in vite.config.ts), so the single-file build is
-// self-contained and the glyphs render identically on any machine.
-const FONT_FACE = `@font-face {
-  font-family: "${SYMBOL_FONT_FAMILY}";
-  font-display: swap;
-  src: url(${fontUrl}) format("woff2");
-}`;
 
 interface SymbolPickerProps {
   onInsert: (glyph: string) => void;
@@ -70,7 +60,7 @@ const glyphButton: CSSProperties = {
 export function SymbolPicker({ onInsert }: SymbolPickerProps) {
   return (
     <section aria-label="Symbol picker">
-      <style>{FONT_FACE}</style>
+      <style>{FONT_FACE_CSS}</style>
       {symbols.categories.map((category) => (
         <div key={category.id}>
           <h3 style={heading}>{category.name}</h3>
