@@ -7,10 +7,22 @@ vi.mock("../io/persistence", () => ({
   openDocument: vi.fn(),
   saveDocument: vi.fn(),
 }));
+vi.mock("../io/export", () => ({
+  exportLayerSvg: vi.fn(),
+  exportAllLayersSvg: vi.fn(),
+  exportJson: vi.fn(),
+}));
 
 import { openDocument, saveDocument } from "../io/persistence";
+import { exportAllLayersSvg, exportJson, exportLayerSvg } from "../io/export";
 
-const DOC: KeymapDocument = { schemaVersion: 1, layers: [{ name: "Base", color: "#00e5ff", keys: {} }] };
+const DOC: KeymapDocument = {
+  schemaVersion: 1,
+  layers: [
+    { name: "Base", color: "#00e5ff", keys: {} },
+    { name: "Nav", color: "#fec931", keys: {} },
+  ],
+};
 const LOADED: KeymapDocument = {
   schemaVersion: 1,
   layers: [{ name: "Imported", color: "#fec931", keys: {} }],
@@ -24,6 +36,7 @@ function renderToolbar(overrides: Partial<{ canUndo: boolean; canRedo: boolean }
   render(
     <Toolbar
       document={DOC}
+      activeLayer={DOC.layers[0]}
       onLoad={onLoad}
       onStatus={onStatus}
       onUndo={onUndo}
@@ -91,4 +104,37 @@ it("enables undo/redo per their flags and routes clicks to the handlers", () => 
 
   expect(onUndo).toHaveBeenCalledTimes(1);
   expect(onRedo).toHaveBeenCalledTimes(1);
+});
+
+it("exports the active layer as SVG and reports success", () => {
+  const { onStatus } = renderToolbar();
+
+  fireEvent.click(screen.getByRole("button", { name: /^export svg$/i }));
+
+  expect(exportLayerSvg).toHaveBeenCalledWith(DOC.layers[0]);
+  expect(onStatus).toHaveBeenCalledWith(
+    expect.objectContaining({ tone: "info" }),
+  );
+});
+
+it("exports every layer as SVG and reports success", () => {
+  const { onStatus } = renderToolbar();
+
+  fireEvent.click(screen.getByRole("button", { name: /export all/i }));
+
+  expect(exportAllLayersSvg).toHaveBeenCalledWith(DOC.layers);
+  expect(onStatus).toHaveBeenCalledWith(
+    expect.objectContaining({ tone: "info" }),
+  );
+});
+
+it("exports the document as JSON and reports success", () => {
+  const { onStatus } = renderToolbar();
+
+  fireEvent.click(screen.getByRole("button", { name: /export json/i }));
+
+  expect(exportJson).toHaveBeenCalledWith(DOC);
+  expect(onStatus).toHaveBeenCalledWith(
+    expect.objectContaining({ tone: "info" }),
+  );
 });

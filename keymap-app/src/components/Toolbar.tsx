@@ -1,6 +1,7 @@
 import { useState, type CSSProperties } from "react";
-import type { KeymapDocument } from "../model/schema";
+import type { KeymapDocument, Layer } from "../model/schema";
 import { openDocument, saveDocument, type SaveTarget } from "../io/persistence";
+import { exportAllLayersSvg, exportJson, exportLayerSvg } from "../io/export";
 import type { StatusMessage } from "./StatusBar";
 
 // Colors drawn from the "Engineering Chic" colorset (docs/design/stitch.md).
@@ -11,6 +12,7 @@ const OUTLINE_VARIANT = "#3b494c";
 
 interface ToolbarProps {
   document: KeymapDocument;
+  activeLayer: Layer;
   onLoad: (document: KeymapDocument) => void;
   onStatus: (message: StatusMessage | null) => void;
   onUndo: () => void;
@@ -58,6 +60,7 @@ function describe(error: unknown): string {
  */
 export function Toolbar({
   document,
+  activeLayer,
   onLoad,
   onStatus,
   onUndo,
@@ -90,6 +93,33 @@ export function Toolbar({
     }
   };
 
+  const handleExportLayer = () => {
+    try {
+      exportLayerSvg(activeLayer);
+      onStatus({ text: `Exported ${activeLayer.name}.svg`, tone: "info" });
+    } catch (error) {
+      onStatus({ text: `Could not export layer: ${describe(error)}`, tone: "error" });
+    }
+  };
+
+  const handleExportAll = () => {
+    try {
+      exportAllLayersSvg(document.layers);
+      onStatus({ text: `Exported ${document.layers.length} layer(s) as SVG`, tone: "info" });
+    } catch (error) {
+      onStatus({ text: `Could not export layers: ${describe(error)}`, tone: "error" });
+    }
+  };
+
+  const handleExportJson = () => {
+    try {
+      exportJson(document);
+      onStatus({ text: "Exported keymap.json", tone: "info" });
+    } catch (error) {
+      onStatus({ text: `Could not export JSON: ${describe(error)}`, tone: "error" });
+    }
+  };
+
   return (
     <div style={bar}>
       <button type="button" style={actionButton} onClick={handleOpen}>
@@ -97,6 +127,15 @@ export function Toolbar({
       </button>
       <button type="button" style={actionButton} onClick={handleSave}>
         Save
+      </button>
+      <button type="button" style={actionButton} onClick={handleExportLayer}>
+        Export SVG
+      </button>
+      <button type="button" style={actionButton} onClick={handleExportAll}>
+        Export All SVG
+      </button>
+      <button type="button" style={actionButton} onClick={handleExportJson}>
+        Export JSON
       </button>
       <button type="button" style={actionButton} onClick={onUndo} disabled={!canUndo}>
         Undo

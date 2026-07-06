@@ -64,6 +64,7 @@ export function App() {
       >
         <Toolbar
           document={state.document}
+          activeLayer={activeLayer}
           onLoad={(document) => {
             setStatus(null);
             dispatch({ type: "load", document });
