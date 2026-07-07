@@ -1,0 +1,63 @@
+/* Global page chrome for the "Engineering Chic" dark theme (docs/design/stitch.md).
+   Without this the dark components float on the browser's default white; here we
+   paint the whole page the M3 background/on-background tokens and set the base UI
+   font to Inter. The @font-face declarations themselves live in one place —
+   model/renderStyle.ts (FONT_FACE_CSS), injected app-globally by App.tsx and
+   embedded in every exported SVG — so the canvas, the UI, and exports never drift. */
+
+:root {
+  color-scheme: dark;
+}
+
+html,
+body {
+  margin: 0;
+  background: #131313;
+  color: #e5e2e1;
+  font-family: "Inter", system-ui, sans-serif;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+/* Interaction affordances the inline component styles can't express (:hover /
+   :active / :focus-visible). Base look still comes from each button's inline
+   style; these rules add the hover lift, pressed state, and teal focus ring
+   from the "Engineering Chic" system (docs/design/stitch.md). */
+.km-btn {
+  transition: background-color 120ms ease, border-color 120ms ease;
+}
+.km-btn:hover:not(:disabled) {
+  background: #24282f;
+  border-color: #849396;
+}
+.km-btn:active:not(:disabled) {
+  background: #2b2f36;
+}
+.km-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+.km-btn:focus-visible,
+.km-tab:focus-visible {
+  outline: 2px solid #00e5ff;
+  outline-offset: 1px;
+}
+
+/* Primary actions (Open / Save): teal primary-container accent. */
+.km-btn--primary {
+  border-color: #00e5ff !important;
+  color: #00e5ff !important;
+}
+.km-btn--primary:hover:not(:disabled) {
+  background: rgba(0, 229, 255, 0.12);
+  border-color: #00e5ff;
+}
+
+.km-tab {
+  transition: color 120ms ease, border-color 120ms ease;
+}
+.km-tab:hover {
+  color: #e5e2e1;
+}

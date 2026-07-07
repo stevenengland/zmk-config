@@ -37,7 +37,9 @@ const STAGGER_LEFT = [8, 4, 0, 6, 20, 24];
 const STAGGER_RIGHT = [...STAGGER_LEFT].reverse();
 
 const LEFT_WIDTH = MAIN_COLS * STEP;
-const CENTER_GAP = 2 * STEP;
+// Widened center valley so the two rotary encoders sit side by side between the
+// halves, matching the physical Sofle Choc Pro BT rather than tucking inboard.
+const CENTER_GAP = 3 * STEP;
 const RIGHT_ORIGIN_X = LEFT_WIDTH + CENTER_GAP;
 
 // Thumb clusters: five keys each, the two innermost rotated toward the centre.
@@ -96,12 +98,22 @@ function thumbCluster(
 
 const ENCODER_DIAMETER = 62;
 
-// Rotary encoders sit inboard between the bottom matrix row and the thumbs.
+// Rotary encoders flank the center valley, side by side and split symmetrically
+// about the valley's centre line — the left encoder just right of the left inner
+// column (B/G), the right encoder just left of the right inner column (N/H), at
+// the same height. This is the physically accurate position on the user's Sofle
+// Choc Pro BT, not a divergence from it. For encoders `x`/`y` is the circle centre.
+const ENCODER_Y = 3.1 * STEP;
+// Valley centre: midpoint between the left inner column's right edge and the
+// right half's inner edge.
+const VALLEY_CENTER_X = (LEFT_WIDTH - GAP + RIGHT_ORIGIN_X) / 2;
+const ENCODER_HALF_SPACING = ENCODER_DIAMETER / 2 + 4; // 4px gap between the pair
+
 const encoderLeft: BoardElement = {
   id: "L-enc",
   kind: "encoder",
-  x: 4.6 * STEP,
-  y: 3.1 * STEP,
+  x: VALLEY_CENTER_X - ENCODER_HALF_SPACING,
+  y: ENCODER_Y,
   w: ENCODER_DIAMETER,
   h: ENCODER_DIAMETER,
 };
@@ -109,8 +121,8 @@ const encoderLeft: BoardElement = {
 const encoderRight: BoardElement = {
   id: "R-enc",
   kind: "encoder",
-  x: mirrorX(4.6 * STEP),
-  y: 3.1 * STEP,
+  x: VALLEY_CENTER_X + ENCODER_HALF_SPACING,
+  y: ENCODER_Y,
   w: ENCODER_DIAMETER,
   h: ENCODER_DIAMETER,
 };

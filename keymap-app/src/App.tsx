@@ -90,12 +90,34 @@ export function App() {
           onDelete={(index) => dispatch({ type: "delete", index })}
         />
         <div style={{ display: "flex", flex: 1, minHeight: 0 }}>
-          <div style={{ flex: 1, padding: 16 }}>
-            <KeyboardCanvas
-              legends={activeLayer.keys}
-              selectedKeyId={selectedKeyId}
-              onSelectKey={selectKey}
-            />
+          <div
+            style={{
+              flex: 1,
+              padding: 24,
+              display: "flex",
+              alignItems: "flex-start",
+              justifyContent: "center",
+            }}
+          >
+            {/* Surface-container card framing the board (ZSA-Oryx pattern):
+                lifts the canvas off the page background and centers it. */}
+            <div
+              style={{
+                width: "100%",
+                maxWidth: 1040,
+                padding: 20,
+                background: "#1b1e23",
+                border: "1px solid #3b494c",
+                borderRadius: 12,
+                boxSizing: "border-box",
+              }}
+            >
+              <KeyboardCanvas
+                legends={activeLayer.keys}
+                selectedKeyId={selectedKeyId}
+                onSelectKey={selectKey}
+              />
+            </div>
           </div>
           <KeyEditorPanel
             keyId={selectedKeyId}

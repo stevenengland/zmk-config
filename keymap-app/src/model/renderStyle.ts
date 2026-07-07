@@ -3,7 +3,11 @@
 // export. One copy means the two can never silently drift the way the legend
 // font once did (canvas legends omitted the embedded family export already used).
 
-import fontUrl from "../assets/fonts/NotoSansSymbols2-Subset.woff2";
+import symbolFontUrl from "../assets/fonts/NotoSansSymbols2-Subset.woff2";
+import interRegularUrl from "../assets/fonts/Inter-Regular.woff2";
+import interSemiBoldUrl from "../assets/fonts/Inter-SemiBold.woff2";
+import monoRegularUrl from "../assets/fonts/JetBrainsMono-Regular.woff2";
+import monoSemiBoldUrl from "../assets/fonts/JetBrainsMono-SemiBold.woff2";
 import type { BoardElement } from "./geometry";
 
 export const BACKGROUND = "#14171c";
@@ -14,19 +18,47 @@ export const ENCODER_STROKE = "#5a6270";
 export const CORNER_RADIUS = 6;
 
 export const SYMBOL_FONT_FAMILY = "Noto Sans Symbols 2";
+export const UI_FONT = `"Inter", system-ui, sans-serif`;
+export const MONO_FONT = `"JetBrains Mono", monospace`;
 export const LEGEND_FONT = `"${SYMBOL_FONT_FAMILY}", "JetBrains Mono", monospace`;
 export const LEGEND_COLOR = "#e5e2e1";
 export const PRIMARY_SIZE = 18;
 export const SUB_SIZE = 12;
 export const PAD = 9;
 
-// The subset is inlined by the build as a base64 data: URI (see
+// Every subset below is inlined by the build as a base64 data: URI (see
 // assetsInlineLimit in vite.config.ts), so the single-file build is
-// self-contained and the glyphs render identically on any machine.
+// self-contained and both the symbol glyphs and the brand fonts render
+// identically on any machine — on the live canvas, in the UI chrome, and in
+// exported SVGs. Regenerate the woff2 with scripts/gen-font-subset.sh.
 export const FONT_FACE_CSS = `@font-face {
   font-family: "${SYMBOL_FONT_FAMILY}";
   font-display: swap;
-  src: url(${fontUrl}) format("woff2");
+  src: url(${symbolFontUrl}) format("woff2");
+}
+@font-face {
+  font-family: "Inter";
+  font-weight: 400;
+  font-display: swap;
+  src: url(${interRegularUrl}) format("woff2");
+}
+@font-face {
+  font-family: "Inter";
+  font-weight: 600;
+  font-display: swap;
+  src: url(${interSemiBoldUrl}) format("woff2");
+}
+@font-face {
+  font-family: "JetBrains Mono";
+  font-weight: 400;
+  font-display: swap;
+  src: url(${monoRegularUrl}) format("woff2");
+}
+@font-face {
+  font-family: "JetBrains Mono";
+  font-weight: 600;
+  font-display: swap;
+  src: url(${monoSemiBoldUrl}) format("woff2");
 }`;
 
 export interface Box {

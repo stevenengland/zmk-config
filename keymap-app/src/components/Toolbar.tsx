@@ -7,7 +7,6 @@ import type { StatusMessage } from "./StatusBar";
 // Colors drawn from the "Engineering Chic" colorset (docs/design/stitch.md).
 const SURFACE = "#131313";
 const ON_SURFACE = "#e5e2e1";
-const OUTLINE = "#849396";
 const OUTLINE_VARIANT = "#3b494c";
 
 interface ToolbarProps {
@@ -33,10 +32,12 @@ const bar: CSSProperties = {
   fontFamily: "Inter, system-ui, sans-serif",
 };
 
+// Surface-container base so buttons read as controls, not flat text; hover /
+// active / focus states come from the `.km-btn` class (src/index.css).
 const actionButton: CSSProperties = {
   appearance: "none",
-  background: "transparent",
-  border: `1px solid ${OUTLINE}`,
+  background: "#1a1d22",
+  border: `1px solid ${OUTLINE_VARIANT}`,
   borderRadius: 4,
   color: ON_SURFACE,
   height: 32,
@@ -122,25 +123,25 @@ export function Toolbar({
 
   return (
     <div style={bar}>
-      <button type="button" style={actionButton} onClick={handleOpen}>
+      <button type="button" className="km-btn km-btn--primary" style={actionButton} onClick={handleOpen}>
         Open
       </button>
-      <button type="button" style={actionButton} onClick={handleSave}>
+      <button type="button" className="km-btn km-btn--primary" style={actionButton} onClick={handleSave}>
         Save
       </button>
-      <button type="button" style={actionButton} onClick={handleExportLayer}>
+      <button type="button" className="km-btn" style={actionButton} onClick={handleExportLayer}>
         Export SVG
       </button>
-      <button type="button" style={actionButton} onClick={handleExportAll}>
+      <button type="button" className="km-btn" style={actionButton} onClick={handleExportAll}>
         Export All SVG
       </button>
-      <button type="button" style={actionButton} onClick={handleExportJson}>
+      <button type="button" className="km-btn" style={actionButton} onClick={handleExportJson}>
         Export JSON
       </button>
-      <button type="button" style={actionButton} onClick={onUndo} disabled={!canUndo}>
+      <button type="button" className="km-btn" style={actionButton} onClick={onUndo} disabled={!canUndo}>
         Undo
       </button>
-      <button type="button" style={actionButton} onClick={onRedo} disabled={!canRedo}>
+      <button type="button" className="km-btn" style={actionButton} onClick={onRedo} disabled={!canRedo}>
         Redo
       </button>
     </div>

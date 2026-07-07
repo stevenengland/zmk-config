@@ -157,12 +157,13 @@ export function KeyEditorPanel({
       </label>
       <button
         type="button"
+        className="km-btn"
         onClick={() => onSetColor("")}
         style={{
           appearance: "none",
           marginTop: 8,
-          background: "transparent",
-          border: `1px solid ${OUTLINE}`,
+          background: "#1a1d22",
+          border: `1px solid ${OUTLINE_VARIANT}`,
           borderRadius: 4,
           color: legend.color ? ON_SURFACE : ON_SURFACE_VARIANT,
           height: 28,

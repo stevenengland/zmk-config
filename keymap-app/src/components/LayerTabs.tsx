@@ -44,8 +44,8 @@ function tabStyle(active: boolean): CSSProperties {
 
 const controlButton: CSSProperties = {
   appearance: "none",
-  background: "transparent",
-  border: `1px solid ${OUTLINE}`,
+  background: "#1a1d22",
+  border: `1px solid ${OUTLINE_VARIANT}`,
   borderRadius: 4,
   color: ON_SURFACE,
   height: 32,
@@ -82,6 +82,7 @@ export function LayerTabs({
             key={index}
             role="tab"
             type="button"
+            className="km-tab"
             aria-selected={index === activeIndex}
             style={tabStyle(index === activeIndex)}
             onClick={() => onSelect(index)}
@@ -124,10 +125,10 @@ export function LayerTabs({
         onChange={(e) => onRecolor(activeIndex, e.target.value)}
         style={{ width: 32, height: 32, border: "none", background: "transparent", cursor: "pointer" }}
       />
-      <button type="button" style={controlButton} onClick={onAdd}>
+      <button type="button" className="km-btn" style={controlButton} onClick={onAdd}>
         Add layer
       </button>
-      <button type="button" style={controlButton} onClick={requestDelete} disabled={isLastLayer}>
+      <button type="button" className="km-btn" style={controlButton} onClick={requestDelete} disabled={isLastLayer}>
         Delete layer
       </button>
     </div>
