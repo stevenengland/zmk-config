@@ -19,10 +19,14 @@ const DEFAULT_LAYER_COLOR = "#00e5ff";
 /** Editable legend text slots (excludes `color`, which has its own control). */
 export type LegendSlot = "primary" | "shifted" | "altgr";
 
+/** `overview` stacks every layer read/scan-style; kept outside `document` so it never reaches export. */
+export type ViewMode = "edit" | "overview";
+
 export interface DocumentState {
   document: KeymapDocument;
   activeIndex: number;
   selectedKeyId: string | null;
+  viewMode: ViewMode;
 }
 
 export type DocumentAction =
@@ -34,7 +38,8 @@ export type DocumentAction =
   | { type: "select"; index: number }
   | { type: "select-key"; keyId: string | null }
   | { type: "set-slot"; keyId: string; slot: LegendSlot; value: string }
-  | { type: "set-key-color"; keyId: string; color: string };
+  | { type: "set-key-color"; keyId: string; color: string }
+  | { type: "set-view"; mode: ViewMode };
 
 export function createInitialState(): DocumentState {
   return {
@@ -44,6 +49,7 @@ export function createInitialState(): DocumentState {
     },
     activeIndex: 0,
     selectedKeyId: null,
+    viewMode: "edit",
   };
 }
 
@@ -96,7 +102,7 @@ function withSlot(legend: KeyLegend, slot: LegendSlot, value: string): KeyLegend
 export function documentReducer(state: DocumentState, action: DocumentAction): DocumentState {
   switch (action.type) {
     case "load":
-      return { document: action.document, activeIndex: 0, selectedKeyId: null };
+      return { document: action.document, activeIndex: 0, selectedKeyId: null, viewMode: "edit" };
     case "add": {
       const layers = [
         ...state.document.layers,
@@ -129,6 +135,8 @@ export function documentReducer(state: DocumentState, action: DocumentAction): D
         else delete next.color;
         return next;
       });
+    case "set-view":
+      return { ...state, viewMode: action.mode };
   }
 }
 
@@ -144,6 +152,7 @@ function directiveFor(action: DocumentAction): HistoryDirective {
       return "reset";
     case "select":
     case "select-key":
+    case "set-view":
       return "transparent";
     default:
       return "track";

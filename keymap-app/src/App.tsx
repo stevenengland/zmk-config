@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useReducer, useState } from "react";
 import { KeyboardCanvas } from "./components/KeyboardCanvas";
 import { KeyEditorPanel } from "./components/KeyEditorPanel";
+import { LayerOverview } from "./components/LayerOverview";
 import { LayerTabs } from "./components/LayerTabs";
 import { StatusBar, type StatusMessage } from "./components/StatusBar";
 import { Toolbar } from "./components/Toolbar";
@@ -83,42 +84,55 @@ export function App() {
         <LayerTabs
           layers={state.document.layers}
           activeIndex={state.activeIndex}
-          onSelect={(index) => dispatch({ type: "select", index })}
+          viewMode={state.viewMode}
+          onSelect={(index) => {
+            // A layer tab is a single-selection choice alongside "All" — picking
+            // one always means "edit this layer," so it exits overview too.
+            dispatch({ type: "select", index });
+            dispatch({ type: "set-view", mode: "edit" });
+          }}
+          onSelectOverview={() => dispatch({ type: "set-view", mode: "overview" })}
           onAdd={addLayer}
           onRename={(index, name) => dispatch({ type: "rename", index, name })}
           onRecolor={(index, color) => dispatch({ type: "recolor", index, color })}
           onDelete={(index) => dispatch({ type: "delete", index })}
         />
         <div style={{ display: "flex", flex: 1, minHeight: 0 }}>
-          <div
-            style={{
-              flex: 1,
-              padding: 24,
-              display: "flex",
-              alignItems: "flex-start",
-              justifyContent: "center",
-            }}
-          >
-            {/* Surface-container card framing the board (ZSA-Oryx pattern):
-                lifts the canvas off the page background and centers it. */}
+          {state.viewMode === "overview" ? (
+            <div style={{ flex: 1, minHeight: 0 }}>
+              <LayerOverview layers={state.document.layers} activeIndex={state.activeIndex} />
+            </div>
+          ) : (
             <div
               style={{
-                width: "100%",
-                maxWidth: 1040,
-                padding: 20,
-                background: "#1b1e23",
-                border: "1px solid #3b494c",
-                borderRadius: 12,
-                boxSizing: "border-box",
+                flex: 1,
+                padding: 24,
+                display: "flex",
+                alignItems: "flex-start",
+                justifyContent: "center",
               }}
             >
-              <KeyboardCanvas
-                legends={activeLayer.keys}
-                selectedKeyId={selectedKeyId}
-                onSelectKey={selectKey}
-              />
+              {/* Surface-container card framing the board (ZSA-Oryx pattern):
+                  lifts the canvas off the page background and centers it. */}
+              <div
+                style={{
+                  width: "100%",
+                  maxWidth: 1040,
+                  padding: 20,
+                  background: "#1b1e23",
+                  border: "1px solid #3b494c",
+                  borderRadius: 12,
+                  boxSizing: "border-box",
+                }}
+              >
+                <KeyboardCanvas
+                  legends={activeLayer.keys}
+                  selectedKeyId={selectedKeyId}
+                  onSelectKey={selectKey}
+                />
+              </div>
             </div>
-          </div>
+          )}
           <KeyEditorPanel
             keyId={selectedKeyId}
             legend={selectedLegend}

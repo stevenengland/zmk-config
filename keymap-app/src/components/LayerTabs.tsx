@@ -1,5 +1,6 @@
 import type { CSSProperties } from "react";
 import type { Layer } from "../model/schema";
+import type { ViewMode } from "../state/documentReducer";
 
 // Colors drawn from the "Engineering Chic" colorset (docs/design/stitch.md).
 const TEAL = "#00e5ff"; // primary-container — active accent
@@ -12,7 +13,9 @@ const OUTLINE_VARIANT = "#3b494c";
 interface LayerTabsProps {
   layers: Layer[];
   activeIndex: number;
+  viewMode: ViewMode;
   onSelect: (index: number) => void;
+  onSelectOverview: () => void;
   onAdd: () => void;
   onRename: (index: number, name: string) => void;
   onRecolor: (index: number, color: string) => void;
@@ -61,7 +64,9 @@ const controlButton: CSSProperties = {
 export function LayerTabs({
   layers,
   activeIndex,
+  viewMode,
   onSelect,
+  onSelectOverview,
   onAdd,
   onRename,
   onRecolor,
@@ -77,14 +82,24 @@ export function LayerTabs({
   return (
     <div style={strip}>
       <div role="tablist" style={{ display: "flex", flex: 1, overflowX: "auto" }}>
+        <button
+          role="tab"
+          type="button"
+          className="km-tab"
+          aria-selected={viewMode === "overview"}
+          style={tabStyle(viewMode === "overview")}
+          onClick={onSelectOverview}
+        >
+          All
+        </button>
         {layers.map((layer, index) => (
           <button
             key={index}
             role="tab"
             type="button"
             className="km-tab"
-            aria-selected={index === activeIndex}
-            style={tabStyle(index === activeIndex)}
+            aria-selected={viewMode === "edit" && index === activeIndex}
+            style={tabStyle(viewMode === "edit" && index === activeIndex)}
             onClick={() => onSelect(index)}
           >
             <span

@@ -11,10 +11,12 @@ const noop = () => {};
 
 const handlers = {
   onSelect: noop,
+  onSelectOverview: noop,
   onAdd: noop,
   onRename: noop,
   onRecolor: noop,
   onDelete: noop,
+  viewMode: "edit" as const,
 };
 
 afterEach(() => {
@@ -26,9 +28,44 @@ describe("LayerTabs", () => {
     render(<LayerTabs {...handlers} layers={layers("Base", "Symbols")} activeIndex={1} />);
 
     const tabs = screen.getAllByRole("tab");
-    expect(tabs).toHaveLength(2);
-    expect(tabs[1]).toHaveAttribute("aria-selected", "true");
-    expect(tabs[0]).toHaveAttribute("aria-selected", "false");
+    // "All" is the first tab; the two layer tabs follow.
+    expect(tabs).toHaveLength(3);
+    expect(tabs[2]).toHaveAttribute("aria-selected", "true");
+    expect(tabs[1]).toHaveAttribute("aria-selected", "false");
+  });
+
+  it("renders the All entry as the first item in the strip", () => {
+    render(<LayerTabs {...handlers} layers={layers("Base", "Symbols")} activeIndex={0} />);
+
+    const tabs = screen.getAllByRole("tab");
+    expect(tabs[0]).toHaveTextContent("All");
+  });
+
+  it("enters overview mode when All is clicked", () => {
+    const onSelectOverview = vi.fn();
+    render(
+      <LayerTabs
+        {...handlers}
+        onSelectOverview={onSelectOverview}
+        layers={layers("Base", "Symbols")}
+        activeIndex={0}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("tab", { name: /all/i }));
+
+    expect(onSelectOverview).toHaveBeenCalled();
+  });
+
+  it("marks All selected in overview mode and no layer tab selected", () => {
+    render(
+      <LayerTabs {...handlers} viewMode="overview" layers={layers("Base", "Symbols")} activeIndex={0} />,
+    );
+
+    const tabs = screen.getAllByRole("tab");
+    expect(tabs[0]).toHaveAttribute("aria-selected", "true");
+    expect(tabs[1]).toHaveAttribute("aria-selected", "false");
+    expect(tabs[2]).toHaveAttribute("aria-selected", "false");
   });
 
   it("selects a layer when its tab is clicked", () => {

@@ -110,6 +110,29 @@ describe("documentReducer", () => {
     expect(state.selectedKeyId).toBeNull();
   });
 
+  it("boots in edit view mode", () => {
+    expect(createInitialState().viewMode).toBe("edit");
+  });
+
+  it("toggles view mode via set-view", () => {
+    const overview = documentReducer(createInitialState(), { type: "set-view", mode: "overview" });
+    expect(overview.viewMode).toBe("overview");
+
+    const edit = documentReducer(overview, { type: "set-view", mode: "edit" });
+    expect(edit.viewMode).toBe("edit");
+  });
+
+  it("resets view mode to edit on load", () => {
+    const overview = documentReducer(createInitialState(), { type: "set-view", mode: "overview" });
+
+    const loaded = documentReducer(overview, {
+      type: "load",
+      document: { schemaVersion: 1, layers: [{ name: "Imported", color: "#fec931", keys: {} }] },
+    });
+
+    expect(loaded.viewMode).toBe("edit");
+  });
+
   it("sets a legend slot on the active layer's key", () => {
     const state = documentReducer(createInitialState(), {
       type: "set-slot",
@@ -266,6 +289,29 @@ describe("documentHistoryReducer", () => {
     });
 
     expect(selected.past).toHaveLength(0);
+  });
+
+  it("does not track a view-mode switch as undoable history", () => {
+    const overview = documentHistoryReducer(createInitialHistoryState(), {
+      type: "set-view",
+      mode: "overview",
+    });
+
+    expect(overview.past).toHaveLength(0);
+  });
+
+  it("leaves the exported document byte-identical across a view-mode switch", () => {
+    const before = documentReducer(createInitialState(), {
+      type: "set-slot",
+      keyId: "L-r0-c0",
+      slot: "primary",
+      value: "A",
+    });
+    const beforeJson = serialize(before.document);
+
+    const after = documentReducer(before, { type: "set-view", mode: "overview" });
+
+    expect(serialize(after.document)).toBe(beforeJson);
   });
 
   it("does not record undo history when deleting the last remaining layer (no-op)", () => {
