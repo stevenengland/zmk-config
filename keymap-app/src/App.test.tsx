@@ -17,12 +17,13 @@ describe("App", () => {
     );
   });
 
-  it("boots with one default layer shown as the active tab", () => {
+  it("boots with one default layer shown as the active tab, after the All entry", () => {
     render(<App />);
 
     const tabs = screen.getAllByRole("tab");
-    expect(tabs).toHaveLength(1);
-    expect(tabs[0]).toHaveAttribute("aria-selected", "true");
+    expect(tabs).toHaveLength(2);
+    expect(tabs[0]).toHaveTextContent("All");
+    expect(tabs[1]).toHaveAttribute("aria-selected", "true");
   });
 
   it("adds a new active layer when the add control is used", () => {
@@ -31,8 +32,23 @@ describe("App", () => {
     fireEvent.click(screen.getByRole("button", { name: /add layer/i }));
 
     const tabs = screen.getAllByRole("tab");
-    expect(tabs).toHaveLength(2);
-    expect(tabs[1]).toHaveAttribute("aria-selected", "true");
+    expect(tabs).toHaveLength(3);
+    expect(tabs[2]).toHaveAttribute("aria-selected", "true");
+  });
+
+  it("enters overview mode with one block per layer when All is clicked, and returns to edit on a layer tab", () => {
+    const { container } = render(<App />);
+    fireEvent.click(screen.getByRole("button", { name: /add layer/i }));
+
+    fireEvent.click(screen.getByRole("tab", { name: /all/i }));
+
+    expect(screen.getAllByRole("listitem")).toHaveLength(2);
+    expect(container.querySelectorAll('svg[aria-label="Sofle Choc keyboard"]')).toHaveLength(2);
+
+    fireEvent.click(screen.getByRole("tab", { name: "Base" }));
+
+    expect(screen.queryAllByRole("listitem")).toHaveLength(0);
+    expect(container.querySelectorAll('svg[aria-label="Sofle Choc keyboard"]')).toHaveLength(1);
   });
 
   it("binds the editor to a clicked key and renders a committed legend on the board", () => {
@@ -76,13 +92,13 @@ describe("App", () => {
     render(<App />);
 
     fireEvent.click(screen.getByRole("button", { name: /add layer/i }));
-    expect(screen.getAllByRole("tab")).toHaveLength(2);
+    expect(screen.getAllByRole("tab")).toHaveLength(3);
 
     fireEvent.keyDown(window, { key: "z", ctrlKey: true });
-    expect(screen.getAllByRole("tab")).toHaveLength(1);
+    expect(screen.getAllByRole("tab")).toHaveLength(2);
 
     fireEvent.keyDown(window, { key: "z", ctrlKey: true, shiftKey: true });
-    expect(screen.getAllByRole("tab")).toHaveLength(2);
+    expect(screen.getAllByRole("tab")).toHaveLength(3);
   });
 
   it("undoes the same edit via the toolbar button as via the keyboard shortcut", () => {
@@ -91,7 +107,7 @@ describe("App", () => {
     fireEvent.click(screen.getByRole("button", { name: /add layer/i }));
     fireEvent.click(screen.getByRole("button", { name: /^undo$/i }));
 
-    expect(screen.getAllByRole("tab")).toHaveLength(1);
+    expect(screen.getAllByRole("tab")).toHaveLength(2);
   });
 
   it("clears the redo stack once a new edit follows an undo", () => {
@@ -115,6 +131,6 @@ describe("App", () => {
 
     // The layer add is still on the undo stack — the shortcut didn't fire
     // while focus was inside a text field.
-    expect(screen.getAllByRole("tab")).toHaveLength(2);
+    expect(screen.getAllByRole("tab")).toHaveLength(3);
   });
 });
