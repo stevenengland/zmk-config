@@ -16,7 +16,7 @@ function mockContainerWidth(width: number) {
 }
 
 afterEach(() => {
-  delete (HTMLDivElement.prototype as Partial<HTMLDivElement>).clientWidth;
+  delete (HTMLDivElement.prototype as unknown as Record<string, unknown>).clientWidth;
 });
 
 function scaleOf(el: Element): number {
