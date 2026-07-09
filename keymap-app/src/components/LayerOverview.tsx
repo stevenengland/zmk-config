@@ -23,7 +23,8 @@ function clampZoom(zoom: number): number {
 }
 
 const list: CSSProperties = {
-  height: "100%",
+  flex: 1,
+  minHeight: 0,
   boxSizing: "border-box",
   overflowY: "auto",
   overflowX: "auto",
@@ -94,17 +95,27 @@ export function LayerOverview({ layers, activeIndex }: LayerOverviewProps) {
   }, []);
 
   return (
-    <div ref={containerRef} role="list" aria-label="All layers" style={list}>
-      <div style={stack(zoom)}>
-        {layers.map((layer, index) => (
-          <div key={index} role="listitem" style={blockStyle(index === activeIndex)}>
-            <div style={header}>
-              <span aria-hidden style={{ ...swatch, background: layer.color }} />
-              {layer.name}
+    <div style={{ height: "100%", display: "flex", flexDirection: "column" }}>
+      <input
+        type="range"
+        aria-label="Zoom"
+        min={MIN_ZOOM}
+        max={MAX_ZOOM}
+        value={zoom}
+        onChange={(e) => setZoom(clampZoom(Number(e.target.value)))}
+      />
+      <div ref={containerRef} role="list" aria-label="All layers" style={list}>
+        <div style={stack(zoom)}>
+          {layers.map((layer, index) => (
+            <div key={index} role="listitem" style={blockStyle(index === activeIndex)}>
+              <div style={header}>
+                <span aria-hidden style={{ ...swatch, background: layer.color }} />
+                {layer.name}
+              </div>
+              <KeyboardCanvas legends={layer.keys} />
             </div>
-            <KeyboardCanvas legends={layer.keys} />
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
     </div>
   );

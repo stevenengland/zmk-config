@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, fireEvent } from "@testing-library/react";
 import { LayerOverview } from "./LayerOverview";
 import type { Layer } from "../model/schema";
 
@@ -8,12 +8,20 @@ const layers: Layer[] = [
   { name: "Nav", color: "#fec931", keys: {} },
 ];
 
+const originalClientWidth = Object.getOwnPropertyDescriptor(HTMLElement.prototype, "clientWidth");
+
 function mockContainerWidth(width: number) {
   Object.defineProperty(HTMLDivElement.prototype, "clientWidth", {
     configurable: true,
     value: width,
   });
 }
+
+afterEach(() => {
+  if (originalClientWidth) {
+    Object.defineProperty(HTMLElement.prototype, "clientWidth", originalClientWidth);
+  }
+});
 
 function scaleOf(el: Element): number {
   const match = /scale\(([^)]+)\)/.exec((el as HTMLElement).style.transform);
@@ -55,6 +63,27 @@ describe("LayerOverview", () => {
 
     const list = screen.getByRole("list", { name: /all layers/i });
     expect(scaleOf(list.firstElementChild!)).toBeCloseTo(0.25);
+  });
+
+  it("fits the opening zoom to a very wide container by clamping to the 200% ceiling", () => {
+    mockContainerWidth(100000);
+    render(<LayerOverview layers={layers} activeIndex={0} />);
+
+    const list = screen.getByRole("list", { name: /all layers/i });
+    expect(scaleOf(list.firstElementChild!)).toBeCloseTo(2);
+  });
+
+  it("offers a zoom slider clamped to 25-200 that scales the stacked layers", () => {
+    render(<LayerOverview layers={layers} activeIndex={0} />);
+
+    const slider = screen.getByRole("slider", { name: /zoom/i }) as HTMLInputElement;
+    expect(slider.min).toBe("25");
+    expect(slider.max).toBe("200");
+
+    fireEvent.change(slider, { target: { value: "150" } });
+
+    const list = screen.getByRole("list", { name: /all layers/i });
+    expect(scaleOf(list.firstElementChild!)).toBeCloseTo(1.5);
   });
 
   it("scrolls vertically instead of clipping when layers exceed the viewport height", () => {
