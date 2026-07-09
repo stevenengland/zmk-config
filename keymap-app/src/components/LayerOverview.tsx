@@ -73,6 +73,7 @@ const swatch: CSSProperties = {
 interface LayerOverviewProps {
   layers: Layer[];
   activeIndex: number;
+  onPickKey?: (layerIndex: number, keyId: string) => void;
 }
 
 /**
@@ -80,7 +81,7 @@ interface LayerOverviewProps {
  * keyboard block. Vertically scrollable so the stack never clips against the
  * viewport; the active layer's block carries a highlight border.
  */
-export function LayerOverview({ layers, activeIndex }: LayerOverviewProps) {
+export function LayerOverview({ layers, activeIndex, onPickKey }: LayerOverviewProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [zoom, setZoom] = useState(100);
 
@@ -129,7 +130,10 @@ export function LayerOverview({ layers, activeIndex }: LayerOverviewProps) {
                 <span aria-hidden style={{ ...swatch, background: layer.color }} />
                 {layer.name}
               </div>
-              <KeyboardCanvas legends={layer.keys} />
+              <KeyboardCanvas
+                legends={layer.keys}
+                onSelectKey={(keyId) => onPickKey?.(index, keyId)}
+              />
             </div>
           ))}
         </div>
