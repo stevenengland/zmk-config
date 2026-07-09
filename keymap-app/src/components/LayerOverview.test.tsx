@@ -8,6 +8,18 @@ const layers: Layer[] = [
   { name: "Nav", color: "#fec931", keys: {} },
 ];
 
+function mockContainerWidth(width: number) {
+  Object.defineProperty(HTMLDivElement.prototype, "clientWidth", {
+    configurable: true,
+    value: width,
+  });
+}
+
+function scaleOf(el: Element): number {
+  const match = /scale\(([^)]+)\)/.exec((el as HTMLElement).style.transform);
+  return match ? Number(match[1]) : NaN;
+}
+
 describe("LayerOverview", () => {
   it("renders one block per layer, in layer order, each with a keyboard canvas", () => {
     const { container } = render(<LayerOverview layers={layers} activeIndex={0} />);
@@ -35,6 +47,14 @@ describe("LayerOverview", () => {
 
     const items = screen.getAllByRole("listitem");
     expect(items[1].style.borderColor).not.toBe(items[0].style.borderColor);
+  });
+
+  it("fits the opening zoom to a very narrow container by clamping to the 25% floor", () => {
+    mockContainerWidth(10);
+    render(<LayerOverview layers={layers} activeIndex={0} />);
+
+    const list = screen.getByRole("list", { name: /all layers/i });
+    expect(scaleOf(list.firstElementChild!)).toBeCloseTo(0.25);
   });
 
   it("scrolls vertically instead of clipping when layers exceed the viewport height", () => {
