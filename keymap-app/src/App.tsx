@@ -100,7 +100,14 @@ export function App() {
         <div style={{ display: "flex", flex: 1, minHeight: 0 }}>
           {state.viewMode === "overview" ? (
             <div style={{ flex: 1, minHeight: 0 }}>
-              <LayerOverview layers={state.document.layers} activeIndex={state.activeIndex} />
+              <LayerOverview
+                layers={state.document.layers}
+                activeIndex={state.activeIndex}
+                onPickKey={(layerIndex, keyId) => {
+                  dispatch({ type: "select", index: layerIndex });
+                  selectKey(keyId);
+                }}
+              />
             </div>
           ) : (
             <div

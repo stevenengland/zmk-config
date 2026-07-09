@@ -65,6 +65,30 @@ describe("App", () => {
     expect(legend).toContain("⌘");
   });
 
+  it("clicking a key in the overview selects it, switches the active layer to its owner, keeps overview docked, and focuses the field", () => {
+    render(<App />);
+    fireEvent.click(screen.getByRole("button", { name: /add layer/i }));
+    fireEvent.click(screen.getByRole("tab", { name: /all/i }));
+
+    const before = screen.getAllByRole("listitem");
+    const beforeColors = before.map((item) => item.style.borderColor);
+
+    fireEvent.click(before[0].querySelector('[data-key-id="L-r0-c0"]')!);
+
+    // overview stays open, editor docked
+    const after = screen.getAllByRole("listitem");
+    expect(after).toHaveLength(2);
+    expect(screen.getByRole("heading", { name: "L-r0-c0" })).toBeInTheDocument();
+
+    // active-layer highlight moved onto the clicked block
+    expect(after[0].style.borderColor).toBe(beforeColors[1]);
+    expect(after[1].style.borderColor).toBe(beforeColors[0]);
+
+    // clicked key's primary field is focused with its text selected
+    const input = screen.getByLabelText(/primary legend/i);
+    expect(document.activeElement).toBe(input);
+  });
+
   it("reports an invalid codepoint on the status bar", () => {
     const { container } = render(<App />);
 

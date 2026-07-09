@@ -1,4 +1,5 @@
 import { render, screen, fireEvent, createEvent } from "@testing-library/react";
+import { vi } from "vitest";
 import { LayerOverview } from "./LayerOverview";
 import type { Layer } from "../model/schema";
 
@@ -134,5 +135,15 @@ describe("LayerOverview", () => {
 
     const list = screen.getByRole("list", { name: /all layers/i });
     expect(list.style.overflowY).toBe("auto");
+  });
+
+  it("calls onPickKey with the owning layer's index and the key id when a key is clicked", () => {
+    const onPickKey = vi.fn();
+    render(<LayerOverview layers={layers} activeIndex={0} onPickKey={onPickKey} />);
+
+    const items = screen.getAllByRole("listitem");
+    fireEvent.click(items[1].querySelector('[data-key-id="L-r0-c0"]')!);
+
+    expect(onPickKey).toHaveBeenCalledWith(1, "L-r0-c0");
   });
 });
