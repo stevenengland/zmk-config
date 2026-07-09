@@ -116,6 +116,19 @@ describe("LayerOverview", () => {
     expect(event.defaultPrevented).toBe(false);
   });
 
+  it("re-fits the zoom to width when the overview container is resized", () => {
+    mockContainerWidth(10);
+    render(<LayerOverview layers={layers} activeIndex={0} />);
+
+    const list = screen.getByRole("list", { name: /all layers/i });
+    expect(scaleOf(list.firstElementChild!)).toBeCloseTo(0.25);
+
+    mockContainerWidth(100000);
+    fireEvent(window, new Event("resize"));
+
+    expect(scaleOf(list.firstElementChild!)).toBeCloseTo(2);
+  });
+
   it("scrolls vertically instead of clipping when layers exceed the viewport height", () => {
     render(<LayerOverview layers={layers} activeIndex={0} />);
 

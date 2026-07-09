@@ -92,6 +92,8 @@ export function LayerOverview({ layers, activeIndex }: LayerOverviewProps) {
 
   useEffect(() => {
     fitToWidth();
+    window.addEventListener("resize", fitToWidth);
+    return () => window.removeEventListener("resize", fitToWidth);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
