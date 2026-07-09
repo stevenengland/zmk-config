@@ -1,4 +1,4 @@
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen, fireEvent, createEvent } from "@testing-library/react";
 import { LayerOverview } from "./LayerOverview";
 import type { Layer } from "../model/schema";
 
@@ -8,8 +8,6 @@ const layers: Layer[] = [
   { name: "Nav", color: "#fec931", keys: {} },
 ];
 
-const originalClientWidth = Object.getOwnPropertyDescriptor(HTMLElement.prototype, "clientWidth");
-
 function mockContainerWidth(width: number) {
   Object.defineProperty(HTMLDivElement.prototype, "clientWidth", {
     configurable: true,
@@ -18,9 +16,7 @@ function mockContainerWidth(width: number) {
 }
 
 afterEach(() => {
-  if (originalClientWidth) {
-    Object.defineProperty(HTMLElement.prototype, "clientWidth", originalClientWidth);
-  }
+  delete (HTMLDivElement.prototype as Partial<HTMLDivElement>).clientWidth;
 });
 
 function scaleOf(el: Element): number {
@@ -84,6 +80,40 @@ describe("LayerOverview", () => {
 
     const list = screen.getByRole("list", { name: /all layers/i });
     expect(scaleOf(list.firstElementChild!)).toBeCloseTo(1.5);
+  });
+
+  it("adjusts zoom on Ctrl+wheel and suppresses the browser's page zoom", () => {
+    render(<LayerOverview layers={layers} activeIndex={0} />);
+
+    const list = screen.getByRole("list", { name: /all layers/i });
+    const before = scaleOf(list.firstElementChild!);
+    const event = createEvent.wheel(list, { deltaY: -100, ctrlKey: true });
+    fireEvent(list, event);
+
+    expect(scaleOf(list.firstElementChild!)).toBeGreaterThan(before);
+    expect(event.defaultPrevented).toBe(true);
+  });
+
+  it("adjusts zoom on Cmd(meta)+wheel too", () => {
+    render(<LayerOverview layers={layers} activeIndex={0} />);
+
+    const list = screen.getByRole("list", { name: /all layers/i });
+    const before = scaleOf(list.firstElementChild!);
+    fireEvent.wheel(list, { deltaY: 100, metaKey: true });
+
+    expect(scaleOf(list.firstElementChild!)).toBeLessThan(before);
+  });
+
+  it("ignores plain wheel scrolling — no zoom change, no default suppression", () => {
+    render(<LayerOverview layers={layers} activeIndex={0} />);
+
+    const list = screen.getByRole("list", { name: /all layers/i });
+    const before = scaleOf(list.firstElementChild!);
+    const event = createEvent.wheel(list, { deltaY: -100 });
+    fireEvent(list, event);
+
+    expect(scaleOf(list.firstElementChild!)).toBeCloseTo(before);
+    expect(event.defaultPrevented).toBe(false);
   });
 
   it("scrolls vertically instead of clipping when layers exceed the viewport height", () => {

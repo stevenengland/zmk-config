@@ -12,6 +12,7 @@ const OUTLINE_VARIANT = "#3b494c";
 
 const MIN_ZOOM = 25;
 const MAX_ZOOM = 200;
+const WHEEL_ZOOM_STEP = 0.5; // zoom percentage points per wheel deltaY unit
 
 // Reference width a stacked layer block renders at when unscaled — the board's
 // intrinsic pixel size plus its block chrome (padding + border, see blockStyle).
@@ -92,6 +93,21 @@ export function LayerOverview({ layers, activeIndex }: LayerOverviewProps) {
   useEffect(() => {
     fitToWidth();
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+    // React attaches its delegated wheel listener as passive, which silently
+    // ignores preventDefault — a native, non-passive listener is required to
+    // actually suppress the browser's page zoom.
+    const onWheel = (e: globalThis.WheelEvent) => {
+      if (!e.ctrlKey && !e.metaKey) return;
+      e.preventDefault();
+      setZoom((z) => clampZoom(z - e.deltaY * WHEEL_ZOOM_STEP));
+    };
+    container.addEventListener("wheel", onWheel, { passive: false });
+    return () => container.removeEventListener("wheel", onWheel);
   }, []);
 
   return (
