@@ -1,4 +1,4 @@
-import { useEffect, useState, type CSSProperties } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 import type { KeyLegend } from "../model/schema";
 import type { LegendSlot } from "../state/documentReducer";
 import { convertLegendInput } from "../model/codepoint";
@@ -89,11 +89,30 @@ export function KeyEditorPanel({
   const [fields, setFields] = useState<Fields>(() => fieldsFromLegend(legend));
   // The slot a picked symbol lands in; follows field focus, primary by default.
   const [activeSlot, setActiveSlot] = useState<LegendSlot>("primary");
+  const primaryInputRef = useRef<HTMLInputElement | null>(null);
+  // Mirrors the latest legend without being a focus-effect dependency, so
+  // focus-on-select re-fires only on an actual key change, never on a
+  // same-key legend update.
+  const legendRef = useRef(legend);
+  legendRef.current = legend;
 
   // Re-bind the fields whenever the selected key or its committed legend changes.
   useEffect(() => {
     setFields(fieldsFromLegend(legend));
   }, [keyId, legend]);
+
+  // Focus-on-select: move focus into the primary field and select its text
+  // each time the selected key changes, so typing overwrites immediately. The
+  // value is pre-synced imperatively because the fields-sync effect above
+  // commits the new legend text one render later than this effect runs.
+  useEffect(() => {
+    if (keyId === null) return;
+    const input = primaryInputRef.current;
+    if (!input) return;
+    input.value = legendRef.current.primary ?? "";
+    input.focus();
+    input.select();
+  }, [keyId]);
 
   if (keyId === null) {
     return (
@@ -122,6 +141,7 @@ export function KeyEditorPanel({
         <label key={slot} style={label}>
           {text}
           <input
+            ref={slot === "primary" ? primaryInputRef : undefined}
             aria-label={`${text} legend`}
             style={field}
             value={fields[slot]}

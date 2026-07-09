@@ -111,4 +111,30 @@ describe("KeyEditorPanel", () => {
 
     expect(onSetColor).toHaveBeenCalledWith("#fec931");
   });
+
+  it("focuses the primary legend input and selects its text when a key is selected", () => {
+    renderPanel("L-r0-c0", { primary: "ABC" });
+
+    const input = screen.getByLabelText(/primary legend/i) as HTMLInputElement;
+    expect(input).toHaveFocus();
+    expect(input.selectionStart).toBe(0);
+    expect(input.selectionEnd).toBe(3);
+  });
+
+  it("re-focuses and re-selects the primary legend input when selection moves to a different key", () => {
+    const { rerender } = renderPanel("L-r0-c0", { primary: "ABC" });
+
+    const first = screen.getByLabelText(/primary legend/i) as HTMLInputElement;
+    first.blur();
+    expect(first).not.toHaveFocus();
+
+    rerender(
+      <KeyEditorPanel {...handlers} keyId="L-r0-c1" legend={{ primary: "XY" }} />,
+    );
+
+    const second = screen.getByLabelText(/primary legend/i) as HTMLInputElement;
+    expect(second).toHaveFocus();
+    expect(second.selectionStart).toBe(0);
+    expect(second.selectionEnd).toBe(2);
+  });
 });
