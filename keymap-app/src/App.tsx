@@ -142,6 +142,7 @@ export function App() {
           )}
           <KeyEditorPanel
             keyId={selectedKeyId}
+            activeIndex={state.activeIndex}
             legend={selectedLegend}
             onSetSlot={(slot, glyph) => {
               if (!selectedKeyId) return;

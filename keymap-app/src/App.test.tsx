@@ -89,6 +89,31 @@ describe("App", () => {
     expect(document.activeElement).toBe(input);
   });
 
+  it("re-focuses the primary field when the same key position is picked on a different layer", () => {
+    render(<App />);
+    fireEvent.click(screen.getByRole("button", { name: /add layer/i }));
+    fireEvent.click(screen.getByRole("tab", { name: /all/i }));
+
+    const blocks = screen.getAllByRole("listitem");
+    // First pick: position L-r0-c0 on the first layer's block focuses the field.
+    fireEvent.click(blocks[0].querySelector('[data-key-id="L-r0-c0"]')!);
+    const first = screen.getByLabelText(/primary legend/i) as HTMLInputElement;
+    expect(document.activeElement).toBe(first);
+
+    // A real browser click blurs the field; jsdom does not, so blur explicitly
+    // to prove the follow-up pick is what re-focuses.
+    first.blur();
+    expect(document.activeElement).not.toBe(first);
+
+    // Second pick: the SAME position on the other layer's block. selectedKeyId
+    // is unchanged (ids are position-based), so focus must re-fire off the
+    // active-layer switch, not off keyId.
+    fireEvent.click(screen.getAllByRole("listitem")[1].querySelector('[data-key-id="L-r0-c0"]')!);
+    const second = screen.getByLabelText(/primary legend/i) as HTMLInputElement;
+    expect(document.activeElement).toBe(second);
+    expect(second.selectionStart).toBe(0);
+  });
+
   it("reports an invalid codepoint on the status bar", () => {
     const { container } = render(<App />);
 
