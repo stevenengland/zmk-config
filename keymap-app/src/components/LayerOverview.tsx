@@ -22,9 +22,16 @@ const MIN_ZOOM = 25;
 const MAX_ZOOM = 200;
 const WHEEL_ZOOM_STEP = 0.5; // zoom percentage points per wheel deltaY unit
 
+// Block box metrics shared by blockStyle and the fit-to-width baseline, so a
+// change to either propagates to both instead of silently drifting the opening
+// zoom out of sync (blockStyle is the single source of truth for the values).
+const BLOCK_PADDING = 16;
+const BLOCK_BORDER = 1; // inactive block border width
+const BLOCK_BORDER_ACTIVE = 2; // heavier cue on the active block
+
 // Reference width a stacked layer block renders at when unscaled — the board's
-// intrinsic pixel size plus its block chrome (padding + border, see blockStyle).
-const BLOCK_CHROME = 2 * (16 + 1);
+// intrinsic pixel size plus its block chrome (both sides' padding + border).
+const BLOCK_CHROME = 2 * (BLOCK_PADDING + BLOCK_BORDER);
 const NATURAL_CONTENT_WIDTH = boardViewBox(boardGeometry).width + BLOCK_CHROME;
 
 function clampZoom(zoom: number): number {
@@ -66,10 +73,10 @@ function blockStyle(active: boolean): CSSProperties {
     // Active block carries a heavier teal border plus an inset teal ring so the
     // "which layer do my edits land on" cue survives a scan down a tall stack —
     // a 1px tint swap alone was too quiet against the dark surface.
-    border: `${active ? 2 : 1}px solid ${active ? TEAL : OUTLINE_VARIANT}`,
+    border: `${active ? BLOCK_BORDER_ACTIVE : BLOCK_BORDER}px solid ${active ? TEAL : OUTLINE_VARIANT}`,
     boxShadow: active ? `inset 0 0 0 2px ${TEAL}` : undefined,
     borderRadius: 8,
-    padding: 16,
+    padding: BLOCK_PADDING,
     boxSizing: "border-box",
   };
 }
