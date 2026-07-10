@@ -103,6 +103,7 @@ export function App() {
               <LayerOverview
                 layers={state.document.layers}
                 activeIndex={state.activeIndex}
+                selectedKeyId={selectedKeyId}
                 onPickKey={(layerIndex, keyId) => {
                   dispatch({ type: "select", index: layerIndex });
                   selectKey(keyId);
