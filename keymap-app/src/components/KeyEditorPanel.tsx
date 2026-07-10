@@ -23,6 +23,13 @@ const SLOTS: ReadonlyArray<{ slot: LegendSlot; label: string; corner: string }> 
 
 interface KeyEditorPanelProps {
   keyId: string | null;
+  /**
+   * Index of the layer the editor targets. Board key ids are position-based and
+   * shared across every layer, so picking the same physical key on a different
+   * layer in the All view leaves `keyId` unchanged; keying focus-on-select on
+   * `activeIndex` too makes it re-fire on that cross-layer switch.
+   */
+  activeIndex: number;
   legend: KeyLegend;
   onSetSlot: (slot: LegendSlot, glyph: string) => void;
   onSetColor: (color: string) => void;
@@ -81,6 +88,7 @@ function fieldsFromLegend(legend: KeyLegend): Fields {
  */
 export function KeyEditorPanel({
   keyId,
+  activeIndex,
   legend,
   onSetSlot,
   onSetColor,
@@ -112,7 +120,7 @@ export function KeyEditorPanel({
     input.value = legendRef.current.primary ?? "";
     input.focus();
     input.select();
-  }, [keyId]);
+  }, [keyId, activeIndex]);
 
   if (keyId === null) {
     return (

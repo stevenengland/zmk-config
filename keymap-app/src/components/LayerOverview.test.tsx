@@ -1,6 +1,7 @@
 import { render, screen, fireEvent, createEvent } from "@testing-library/react";
 import { vi } from "vitest";
 import { LayerOverview } from "./LayerOverview";
+import { anchoredScroll } from "./layerOverviewZoom";
 import type { Layer } from "../model/schema";
 
 const layers: Layer[] = [
@@ -145,5 +146,59 @@ describe("LayerOverview", () => {
     fireEvent.click(items[1].querySelector('[data-key-id="L-r0-c0"]')!);
 
     expect(onPickKey).toHaveBeenCalledWith(1, "L-r0-c0");
+  });
+
+  it("marks the selected key only on the active layer's block", () => {
+    render(<LayerOverview layers={layers} activeIndex={0} selectedKeyId="L-r0-c0" />);
+
+    const items = screen.getAllByRole("listitem");
+    expect(items[0].querySelector('[data-key-id="L-r0-c0"]')).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+    // The same position on a non-active layer must not read as selected.
+    expect(items[1].querySelector('[data-key-id="L-r0-c0"]')).toHaveAttribute(
+      "aria-pressed",
+      "false",
+    );
+  });
+
+  it("scrolls the active layer's block into view on open", () => {
+    const scrollIntoView = vi.fn();
+    Object.defineProperty(HTMLElement.prototype, "scrollIntoView", {
+      configurable: true,
+      value: scrollIntoView,
+    });
+
+    render(<LayerOverview layers={layers} activeIndex={2} />);
+
+    expect(scrollIntoView).toHaveBeenCalled();
+    delete (HTMLElement.prototype as unknown as Record<string, unknown>).scrollIntoView;
+  });
+
+  it("keeps the content point under the cursor fixed across a zoom change", () => {
+    // Content x = (scroll 40 + pointer 60) / scale 1 = 100. After zooming to
+    // scale 2 that point must stay under the same 60px offset: 100*2 - 60 = 140.
+    expect(anchoredScroll(1, 2, 40, 60)).toBe(140);
+    // Zooming back out is the exact inverse.
+    expect(anchoredScroll(2, 1, 140, 60)).toBe(40);
+  });
+
+  it("shows the current zoom percentage and exposes it via aria-valuetext", () => {
+    render(<LayerOverview layers={layers} activeIndex={0} />);
+
+    const slider = screen.getByRole("slider", { name: /zoom/i });
+    fireEvent.change(slider, { target: { value: "150" } });
+
+    expect(slider).toHaveAttribute("aria-valuetext", "150%");
+    expect(screen.getByText("150%")).toBeInTheDocument();
+  });
+
+  it("badges only the active layer's block", () => {
+    render(<LayerOverview layers={layers} activeIndex={1} />);
+
+    const items = screen.getAllByRole("listitem");
+    expect(items[1]).toHaveTextContent("Active");
+    expect(items[0]).not.toHaveTextContent("Active");
   });
 });

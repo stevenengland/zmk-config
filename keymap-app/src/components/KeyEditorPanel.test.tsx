@@ -7,6 +7,7 @@ import symbols from "../data/symbols.json";
 const firstGlyph = symbols.categories[0].symbols[0];
 
 const handlers = {
+  activeIndex: 0,
   onSetSlot: () => {},
   onSetColor: () => {},
   onError: () => {},
