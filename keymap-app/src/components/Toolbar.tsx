@@ -7,6 +7,7 @@ import type { StatusMessage } from "./StatusBar";
 // Colors drawn from the "Engineering Chic" colorset (docs/design/stitch.md).
 const SURFACE = "#131313";
 const ON_SURFACE = "#e5e2e1";
+const ON_SURFACE_VARIANT = "#bac9cc";
 const OUTLINE_VARIANT = "#3b494c";
 
 interface ToolbarProps {
@@ -43,6 +44,27 @@ const actionButton: CSSProperties = {
   height: 32,
   padding: "0 12px",
   cursor: "pointer",
+};
+
+const wordmark: CSSProperties = {
+  display: "flex",
+  alignItems: "baseline",
+  gap: 6,
+  marginRight: 8,
+  paddingRight: 12,
+  borderRight: `1px solid ${OUTLINE_VARIANT}`,
+};
+
+const cluster: CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  gap: 8,
+};
+
+const divider: CSSProperties = {
+  width: 1,
+  height: 24,
+  background: OUTLINE_VARIANT,
 };
 
 /** `AbortError` is the picker-dismissed signal — not something to surface. */
@@ -123,27 +145,54 @@ export function Toolbar({
 
   return (
     <div style={bar}>
-      <button type="button" className="km-btn km-btn--primary" style={actionButton} onClick={handleOpen}>
-        Open
-      </button>
-      <button type="button" className="km-btn km-btn--primary" style={actionButton} onClick={handleSave}>
-        Save
-      </button>
-      <button type="button" className="km-btn" style={actionButton} onClick={handleExportLayer}>
-        Export SVG
-      </button>
-      <button type="button" className="km-btn" style={actionButton} onClick={handleExportAll}>
-        Export All SVG
-      </button>
-      <button type="button" className="km-btn" style={actionButton} onClick={handleExportJson}>
-        Export JSON
-      </button>
-      <button type="button" className="km-btn" style={actionButton} onClick={onUndo} disabled={!canUndo}>
-        Undo
-      </button>
-      <button type="button" className="km-btn" style={actionButton} onClick={onRedo} disabled={!canRedo}>
-        Redo
-      </button>
+      <div style={wordmark}>
+        <span style={{ fontWeight: 700, fontSize: 15, color: ON_SURFACE }}>Sofle Choc</span>
+        <span
+          style={{
+            fontFamily: "JetBrains Mono, monospace",
+            fontSize: 10,
+            letterSpacing: "0.08em",
+            textTransform: "uppercase",
+            color: ON_SURFACE_VARIANT,
+          }}
+        >
+          Keymap
+        </span>
+      </div>
+
+      <div style={cluster}>
+        <button type="button" className="km-btn km-btn--primary" style={actionButton} onClick={handleOpen}>
+          Open
+        </button>
+        <button type="button" className="km-btn km-btn--primary" style={actionButton} onClick={handleSave}>
+          Save
+        </button>
+      </div>
+
+      <div aria-hidden style={divider} />
+
+      <div style={cluster}>
+        <button type="button" className="km-btn" style={actionButton} onClick={handleExportLayer}>
+          Export SVG
+        </button>
+        <button type="button" className="km-btn" style={actionButton} onClick={handleExportAll}>
+          Export All SVG
+        </button>
+        <button type="button" className="km-btn" style={actionButton} onClick={handleExportJson}>
+          Export JSON
+        </button>
+      </div>
+
+      <div aria-hidden style={divider} />
+
+      <div style={cluster}>
+        <button type="button" className="km-btn" style={actionButton} onClick={onUndo} disabled={!canUndo}>
+          Undo
+        </button>
+        <button type="button" className="km-btn" style={actionButton} onClick={onRedo} disabled={!canRedo}>
+          Redo
+        </button>
+      </div>
     </div>
   );
 }

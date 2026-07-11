@@ -6,8 +6,13 @@ import {
   CORNER_RADIUS,
   ENCODER_FILL,
   ENCODER_STROKE,
+  KEY_EDGE_ACCENT,
+  KEY_EDGE_ACCENT_WIDTH,
   KEY_FILL,
   KEY_STROKE,
+  keyEdgeAccentPath,
+  LED_INSET,
+  LED_RADIUS,
   LEGEND_COLOR,
   LEGEND_FONT,
   PAD,
@@ -24,6 +29,8 @@ interface KeycapProps {
   legend?: KeyLegend;
   selected?: boolean;
   onSelect?: (id: string) => void;
+  /** Active layer's color, painted as a small corner LED (docs/design/stitch.md). */
+  layerColor?: string;
 }
 
 /**
@@ -82,7 +89,7 @@ function Legends({ legend, box }: { legend: KeyLegend; box: Box }) {
  * selects it; the selected element is highlighted with the primary teal.
  * Rotation, when present, is applied about the element centre.
  */
-export function Keycap({ element, legend, selected, onSelect }: KeycapProps) {
+export function Keycap({ element, legend, selected, onSelect, layerColor }: KeycapProps) {
   const { x, y, w, h, rotation } = element;
   const box = boxOf(element);
   const idAttr =
@@ -120,6 +127,8 @@ export function Keycap({ element, legend, selected, onSelect }: KeycapProps) {
       ? undefined
       : `rotate(${rotation} ${cx} ${cy})`;
 
+  const isKey = element.kind === "key";
+
   return (
     <g
       {...idAttr}
@@ -131,6 +140,19 @@ export function Keycap({ element, legend, selected, onSelect }: KeycapProps) {
       onClick={() => onSelect?.(element.id)}
     >
       {shape}
+      {isKey && !selected ? (
+        <path
+          d={keyEdgeAccentPath(box)}
+          fill="none"
+          stroke={KEY_EDGE_ACCENT}
+          strokeWidth={KEY_EDGE_ACCENT_WIDTH}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      ) : null}
+      {isKey && layerColor ? (
+        <circle cx={box.right - LED_INSET} cy={box.top + LED_INSET} r={LED_RADIUS} fill={layerColor} />
+      ) : null}
       {legend ? <Legends legend={legend} box={box} /> : null}
     </g>
   );

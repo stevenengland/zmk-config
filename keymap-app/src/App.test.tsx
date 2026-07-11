@@ -55,7 +55,8 @@ describe("App", () => {
     const { container } = render(<App />);
 
     fireEvent.click(container.querySelector('[data-key-id="L-r0-c0"]')!);
-    expect(screen.getByRole("heading", { name: "L-r0-c0" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: /empty key/i })).toBeInTheDocument();
+    expect(screen.getByText(/L-r0-c0/)).toBeInTheDocument();
 
     const input = screen.getByLabelText(/primary legend/i);
     fireEvent.change(input, { target: { value: "U+2318" } });
@@ -78,7 +79,8 @@ describe("App", () => {
     // overview stays open, editor docked
     const after = screen.getAllByRole("listitem");
     expect(after).toHaveLength(2);
-    expect(screen.getByRole("heading", { name: "L-r0-c0" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: /empty key/i })).toBeInTheDocument();
+    expect(screen.getByText(/L-r0-c0/)).toBeInTheDocument();
 
     // active-layer highlight moved onto the clicked block
     expect(after[0].style.borderColor).toBe(beforeColors[1]);

@@ -143,3 +143,24 @@ export const boardGeometry: readonly BoardElement[] = Object.freeze([
   ...keys,
   ...encoders,
 ]);
+
+const ELEMENT_ID_PATTERN = /^([LR])-r(\d+)-c(\d+)$/;
+
+/**
+ * Human-readable position for a board element id, for UI surfaces where the
+ * raw `L-r2-c3` id (meaningful to firmware/matrix mapping, not at a glance)
+ * shouldn't be the only label — e.g. the key editor's headline.
+ */
+export function describeElementId(id: string): string {
+  const match = ELEMENT_ID_PATTERN.exec(id);
+  if (match) {
+    const [, side, row, col] = match;
+    const sideLabel = side === "L" ? "Left" : "Right";
+    if (Number(row) === MAIN_ROWS) return `${sideLabel} thumb`;
+    return `${sideLabel} · row ${Number(row) + 1} · col ${Number(col) + 1}`;
+  }
+  if (id.endsWith("-enc")) {
+    return id.startsWith("L") ? "Left encoder" : "Right encoder";
+  }
+  return id;
+}

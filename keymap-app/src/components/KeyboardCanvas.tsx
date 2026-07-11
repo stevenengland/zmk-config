@@ -13,6 +13,8 @@ interface KeyboardCanvasProps {
   legends?: Record<string, KeyLegend>;
   selectedKeyId?: string | null;
   onSelectKey?: (id: string) => void;
+  /** This board's layer color, painted as a per-key corner LED. */
+  layerColor?: string;
 }
 
 /** Inline-SVG render of the full Sofle Choc board with selectable, legended keys. */
@@ -20,6 +22,7 @@ export function KeyboardCanvas({
   legends = {},
   selectedKeyId = null,
   onSelectKey,
+  layerColor,
 }: KeyboardCanvasProps = {}) {
   return (
     <svg
@@ -35,6 +38,7 @@ export function KeyboardCanvas({
           legend={legends[element.id]}
           selected={element.id === selectedKeyId}
           onSelect={onSelectKey}
+          layerColor={layerColor}
         />
       ))}
     </svg>
