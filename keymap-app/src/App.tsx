@@ -137,6 +137,7 @@ export function App() {
                   legends={activeLayer.keys}
                   selectedKeyId={selectedKeyId}
                   onSelectKey={selectKey}
+                  layerColor={activeLayer.color}
                 />
               </div>
             </div>
@@ -145,6 +146,7 @@ export function App() {
             keyId={selectedKeyId}
             activeIndex={state.activeIndex}
             legend={selectedLegend}
+            layerCount={state.document.layers.length}
             onSetSlot={(slot, glyph) => {
               if (!selectedKeyId) return;
               setStatus(null);

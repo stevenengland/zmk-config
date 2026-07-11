@@ -17,6 +17,18 @@ export const ENCODER_FILL = "#1f2329";
 export const ENCODER_STROKE = "#5a6270";
 export const CORNER_RADIUS = 6;
 
+// Bottom/right-only accent overlaid on a key's own stroke to read as a
+// "bottom-heavy" physical bevel (docs/design/stitch.md Shapes: "2px
+// bottom-heavy border ... without complex skeuomorphism") — outline-variant,
+// the same token the UI chrome borders already use.
+export const KEY_EDGE_ACCENT = "#3b494c";
+export const KEY_EDGE_ACCENT_WIDTH = 2.5;
+
+// Per-key "layer LED": a small dot in the active layer's color, in the corner
+// the legend layout otherwise always leaves blank (see Keycap's `Legends`).
+export const LED_RADIUS = 3.5;
+export const LED_INSET = 8;
+
 export const SYMBOL_FONT_FAMILY = "Noto Sans Symbols 2";
 export const UI_FONT = `"Inter", system-ui, sans-serif`;
 export const MONO_FONT = `"JetBrains Mono", monospace`;
@@ -76,6 +88,16 @@ export function boxOf(element: BoardElement): Box {
     return { left: x - r, top: y - r, right: x + r, bottom: y + r };
   }
   return { left: x, top: y, right: x + w, bottom: y + h };
+}
+
+/**
+ * Traces just the bottom and right sides of a key's rounded rect (including
+ * those two corners), for the bottom-heavy depth accent. Shared by the live
+ * canvas (Keycap) and the standalone SVG export so the two never drift.
+ */
+export function keyEdgeAccentPath(box: Box, r: number = CORNER_RADIUS): string {
+  const { left, top, right, bottom } = box;
+  return `M ${right} ${top + r} L ${right} ${bottom - r} A ${r} ${r} 0 0 1 ${right - r} ${bottom} L ${left + r} ${bottom} A ${r} ${r} 0 0 1 ${left} ${bottom - r}`;
 }
 
 const VIEWBOX_PADDING = 40;

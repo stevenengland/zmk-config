@@ -16,8 +16,13 @@ import {
   ENCODER_FILL,
   ENCODER_STROKE,
   FONT_FACE_CSS,
+  KEY_EDGE_ACCENT,
+  KEY_EDGE_ACCENT_WIDTH,
   KEY_FILL,
   KEY_STROKE,
+  keyEdgeAccentPath,
+  LED_INSET,
+  LED_RADIUS,
   LEGEND_COLOR,
   LEGEND_FONT,
   PAD,
@@ -60,26 +65,35 @@ function legendMarkup(legend: KeyLegend, box: Box): string {
   return parts.join("");
 }
 
-function elementMarkup(element: BoardElement, legend: KeyLegend | undefined): string {
+/** Mirrors Keycap's bottom-heavy accent + per-key layer LED so exports never drift from the canvas. */
+function elementMarkup(element: BoardElement, legend: KeyLegend | undefined, layerColor: string): string {
   const box = boxOf(element);
   const shape =
     element.kind === "encoder"
       ? `<circle cx="${element.x}" cy="${element.y}" r="${element.w / 2}" fill="${ENCODER_FILL}" stroke="${ENCODER_STROKE}" stroke-width="2" />`
       : `<rect x="${element.x}" y="${element.y}" width="${element.w}" height="${element.h}" rx="${CORNER_RADIUS}" fill="${KEY_FILL}" stroke="${KEY_STROKE}" stroke-width="2" />`;
+  const accent =
+    element.kind === "key"
+      ? `<path d="${keyEdgeAccentPath(box)}" fill="none" stroke="${KEY_EDGE_ACCENT}" stroke-width="${KEY_EDGE_ACCENT_WIDTH}" stroke-linecap="round" stroke-linejoin="round" />`
+      : "";
+  const led =
+    element.kind === "key"
+      ? `<circle cx="${box.right - LED_INSET}" cy="${box.top + LED_INSET}" r="${LED_RADIUS}" fill="${layerColor}" />`
+      : "";
   const cx = element.x + element.w / 2;
   const cy = element.y + element.h / 2;
   const transform =
     element.kind === "encoder" || element.rotation === undefined
       ? ""
       : ` transform="rotate(${element.rotation} ${cx} ${cy})"`;
-  return `<g${transform}>${shape}${legend ? legendMarkup(legend, box) : ""}</g>`;
+  return `<g${transform}>${shape}${accent}${led}${legend ? legendMarkup(legend, box) : ""}</g>`;
 }
 
 /** Standalone SVG document for one layer: full board, legends, embedded font. */
 export function layerToSvg(layer: Layer): string {
   const box = viewBox();
   const elements = boardGeometry
-    .map((element) => elementMarkup(element, layer.keys[element.id]))
+    .map((element) => elementMarkup(element, layer.keys[element.id], layer.color))
     .join("");
   return (
     `<?xml version="1.0" encoding="UTF-8"?>\n` +

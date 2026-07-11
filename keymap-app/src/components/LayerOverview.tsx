@@ -15,6 +15,7 @@ import { anchoredScroll } from "./layerOverviewZoom";
 const TEAL = "#00e5ff"; // primary-container — active-layer highlight
 const SURFACE_CONTAINER = "#20201f";
 const ON_SURFACE = "#e5e2e1";
+const ON_SURFACE_VARIANT = "#bac9cc";
 const OUTLINE_VARIANT = "#3b494c";
 const ON_TEAL = "#003641"; // on-primary-container — badge text on teal
 
@@ -70,11 +71,13 @@ function stack(zoom: number): CSSProperties {
 function blockStyle(active: boolean): CSSProperties {
   return {
     background: SURFACE_CONTAINER,
-    // Active block carries a heavier teal border plus an inset teal ring so the
-    // "which layer do my edits land on" cue survives a scan down a tall stack —
-    // a 1px tint swap alone was too quiet against the dark surface.
+    // Active block carries a heavier teal border so the "which layer do my
+    // edits land on" cue survives a scan down a tall stack — a 1px tint swap
+    // alone was too quiet against the dark surface. Depth reads as a soft
+    // primary-colored glow per the Level 2 elevation spec (docs/design/stitch.md
+    // Elevation & Depth), not a doubled ring.
     border: `${active ? BLOCK_BORDER_ACTIVE : BLOCK_BORDER}px solid ${active ? TEAL : OUTLINE_VARIANT}`,
-    boxShadow: active ? `inset 0 0 0 2px ${TEAL}` : undefined,
+    boxShadow: active ? `0 4px 20px rgba(0, 229, 255, 0.18)` : undefined,
     borderRadius: 8,
     padding: BLOCK_PADDING,
     boxSizing: "border-box",
@@ -197,6 +200,9 @@ export function LayerOverview({
   return (
     <div style={{ height: "100%", display: "flex", flexDirection: "column" }}>
       <div style={controls}>
+        <span aria-hidden style={{ color: ON_SURFACE_VARIANT }}>
+          Zoom
+        </span>
         <input
           type="range"
           aria-label="Zoom"
@@ -228,6 +234,7 @@ export function LayerOverview({
                   legends={layer.keys}
                   selectedKeyId={active ? selectedKeyId : null}
                   onSelectKey={(keyId) => onPickKey?.(index, keyId)}
+                  layerColor={layer.color}
                 />
               </div>
             );

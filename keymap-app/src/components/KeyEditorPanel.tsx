@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type CSSProperties } from "react";
 import type { KeyLegend } from "../model/schema";
 import type { LegendSlot } from "../state/documentReducer";
 import { convertLegendInput } from "../model/codepoint";
+import { boardGeometry, describeElementId } from "../model/geometry";
 import { SymbolPicker } from "./SymbolPicker";
 
 // Colors drawn from the "Engineering Chic" colorset (docs/design/stitch.md).
@@ -34,6 +35,8 @@ interface KeyEditorPanelProps {
   onSetSlot: (slot: LegendSlot, glyph: string) => void;
   onSetColor: (color: string) => void;
   onError: (message: string) => void;
+  /** Layer count, surfaced in the empty state so the idle panel still orients. */
+  layerCount?: number;
 }
 
 const panel: CSSProperties = {
@@ -93,6 +96,7 @@ export function KeyEditorPanel({
   onSetSlot,
   onSetColor,
   onError,
+  layerCount = 1,
 }: KeyEditorPanelProps) {
   const [fields, setFields] = useState<Fields>(() => fieldsFromLegend(legend));
   // The slot a picked symbol lands in; follows field focus, primary by default.
@@ -125,6 +129,18 @@ export function KeyEditorPanel({
   if (keyId === null) {
     return (
       <aside style={panel} aria-label="Key editor">
+        <h2 style={{ fontSize: 18, fontWeight: 600, margin: "0 0 4px" }}>Sofle Choc</h2>
+        <p
+          style={{
+            margin: "0 0 16px",
+            fontFamily: "JetBrains Mono, monospace",
+            fontSize: 11,
+            letterSpacing: "0.04em",
+            color: ON_SURFACE_VARIANT,
+          }}
+        >
+          {boardGeometry.length} keys · {layerCount} layer{layerCount === 1 ? "" : "s"}
+        </p>
         <p style={{ color: ON_SURFACE_VARIANT, fontSize: 14 }}>Select a key to edit its legends.</p>
       </aside>
     );
@@ -143,7 +159,22 @@ export function KeyEditorPanel({
 
   return (
     <aside style={panel} aria-label="Key editor">
-      <h2 style={{ fontSize: 20, fontWeight: 600, margin: "0 0 16px" }}>{keyId}</h2>
+      <h2 style={{ fontSize: 20, fontWeight: 600, margin: "0 0 2px" }}>
+        {legend.primary ? `“${legend.primary}”` : "Empty key"}
+      </h2>
+      {/* Raw id kept visible (not the headline) — this audience cross-references
+          it against firmware/matrix maps, per docs/design/stitch.md's brief. */}
+      <p
+        style={{
+          margin: "0 0 16px",
+          fontFamily: "JetBrains Mono, monospace",
+          fontSize: 11,
+          letterSpacing: "0.04em",
+          color: ON_SURFACE_VARIANT,
+        }}
+      >
+        {describeElementId(keyId)} · {keyId}
+      </p>
 
       {SLOTS.map(({ slot, label: text }) => (
         <label key={slot} style={label}>
