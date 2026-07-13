@@ -201,4 +201,17 @@ describe("LayerOverview", () => {
     expect(items[1]).toHaveTextContent("Active");
     expect(items[0]).not.toHaveTextContent("Active");
   });
+
+  it("paints each mini-board's corner ticks in that block's own layer color", () => {
+    render(<LayerOverview layers={layers} activeIndex={0} />);
+    const items = screen.getAllByRole("listitem");
+
+    layers.forEach((layer, i) => {
+      const keyGroup = items[i].querySelector('[data-key-id="L-r0-c0"]')!;
+      const tick = Array.from(keyGroup.querySelectorAll("path")).find(
+        (p) => p.getAttribute("stroke") === layer.color,
+      );
+      expect(tick).toBeTruthy();
+    });
+  });
 });

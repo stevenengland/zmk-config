@@ -21,8 +21,7 @@ import {
   KEY_FILL,
   KEY_STROKE,
   keyEdgeAccentPath,
-  LED_INSET,
-  LED_RADIUS,
+  layerTickPath,
   LEGEND_COLOR,
   LEGEND_FONT,
   PAD,
@@ -65,7 +64,7 @@ function legendMarkup(legend: KeyLegend, box: Box): string {
   return parts.join("");
 }
 
-/** Mirrors Keycap's bottom-heavy accent + per-key layer LED so exports never drift from the canvas. */
+/** Mirrors Keycap's bottom-heavy accent + per-key layer corner tick so exports never drift from the canvas. */
 function elementMarkup(element: BoardElement, legend: KeyLegend | undefined, layerColor: string): string {
   const box = boxOf(element);
   const shape =
@@ -76,9 +75,9 @@ function elementMarkup(element: BoardElement, legend: KeyLegend | undefined, lay
     element.kind === "key"
       ? `<path d="${keyEdgeAccentPath(box)}" fill="none" stroke="${KEY_EDGE_ACCENT}" stroke-width="${KEY_EDGE_ACCENT_WIDTH}" stroke-linecap="round" stroke-linejoin="round" />`
       : "";
-  const led =
+  const tick =
     element.kind === "key"
-      ? `<circle cx="${box.right - LED_INSET}" cy="${box.top + LED_INSET}" r="${LED_RADIUS}" fill="${layerColor}" />`
+      ? `<path d="${layerTickPath(box)}" fill="none" stroke="${layerColor}" stroke-width="${KEY_EDGE_ACCENT_WIDTH}" stroke-linecap="round" />`
       : "";
   const cx = element.x + element.w / 2;
   const cy = element.y + element.h / 2;
@@ -86,7 +85,7 @@ function elementMarkup(element: BoardElement, legend: KeyLegend | undefined, lay
     element.kind === "encoder" || element.rotation === undefined
       ? ""
       : ` transform="rotate(${element.rotation} ${cx} ${cy})"`;
-  return `<g${transform}>${shape}${accent}${led}${legend ? legendMarkup(legend, box) : ""}</g>`;
+  return `<g${transform}>${shape}${accent}${tick}${legend ? legendMarkup(legend, box) : ""}</g>`;
 }
 
 /** Standalone SVG document for one layer: full board, legends, embedded font. */

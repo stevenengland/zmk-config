@@ -1,5 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { boardGeometry } from "../model/geometry";
 import type { KeymapDocument, Layer } from "../model/schema";
+import { boxOf, layerTickPath } from "../model/renderStyle";
 import { exportAllLayersSvg, exportJson, exportLayerSvg, layerToSvg } from "./export";
 
 vi.mock("../model/schema", async (importOriginal) => {
@@ -45,6 +47,13 @@ describe("layerToSvg", () => {
     expect(svg).toContain("Q");
     expect(svg).toContain("!");
     expect(svg).toContain("@");
+  });
+
+  it("paints the identical layer-colored corner tick as the live canvas, and no LED dot", () => {
+    const svg = layerToSvg(LAYER);
+    const box = boxOf(boardGeometry.find((e) => e.id === "L-r0-c0")!);
+
+    expect(svg).toContain(`d="${layerTickPath(box)}" fill="none" stroke="${LAYER.color}"`);
   });
 });
 

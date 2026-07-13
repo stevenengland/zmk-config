@@ -24,10 +24,10 @@ export const CORNER_RADIUS = 6;
 export const KEY_EDGE_ACCENT = "#3b494c";
 export const KEY_EDGE_ACCENT_WIDTH = 2.5;
 
-// Per-key "layer LED": a small dot in the active layer's color, in the corner
-// the legend layout otherwise always leaves blank (see Keycap's `Legends`).
-export const LED_RADIUS = 3.5;
-export const LED_INSET = 8;
+// Layer corner tick: the active layer's color stroked over the top-right
+// border corner arc, leaving the cap's interior corner free for the
+// behavior stack (see Keycap's `Legends`).
+export const TICK_ARM_LENGTH = 7;
 
 export const SYMBOL_FONT_FAMILY = "Noto Sans Symbols 2";
 export const UI_FONT = `"Inter", system-ui, sans-serif`;
@@ -98,6 +98,16 @@ export function boxOf(element: BoardElement): Box {
 export function keyEdgeAccentPath(box: Box, r: number = CORNER_RADIUS): string {
   const { left, top, right, bottom } = box;
   return `M ${right} ${top + r} L ${right} ${bottom - r} A ${r} ${r} 0 0 1 ${right - r} ${bottom} L ${left + r} ${bottom} A ${r} ${r} 0 0 1 ${left} ${bottom - r}`;
+}
+
+/**
+ * Traces the top-right border corner arc, with straight arms extending along
+ * each adjoining edge — the layer indicator's corner tick. Shared by the live
+ * canvas (Keycap) and the standalone SVG export so the two never drift.
+ */
+export function layerTickPath(box: Box, r: number = CORNER_RADIUS): string {
+  const { top, right } = box;
+  return `M ${right - r - TICK_ARM_LENGTH} ${top} L ${right - r} ${top} A ${r} ${r} 0 0 1 ${right} ${top + r} L ${right} ${top + r + TICK_ARM_LENGTH}`;
 }
 
 const VIEWBOX_PADDING = 40;
