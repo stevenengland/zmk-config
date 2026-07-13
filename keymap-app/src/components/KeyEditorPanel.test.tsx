@@ -11,6 +11,8 @@ const handlers = {
   onSetSlot: () => {},
   onSetColor: () => {},
   onError: () => {},
+  homing: false,
+  onToggleHoming: () => {},
 };
 
 function renderPanel(keyId: string | null, legend: KeyLegend = {}, overrides = {}) {
@@ -100,6 +102,21 @@ describe("KeyEditorPanel", () => {
     fireEvent.click(screen.getByRole("button", { name: `Insert ${firstGlyph}` }));
 
     expect(onSetSlot).toHaveBeenCalledWith("primary", firstGlyph);
+  });
+
+  it("reflects the homing state in the checkbox", () => {
+    renderPanel("L-r0-c0", {}, { homing: true });
+
+    expect(screen.getByLabelText(/homing key/i)).toBeChecked();
+  });
+
+  it("toggles homing on checkbox click", () => {
+    const onToggleHoming = vi.fn();
+    renderPanel("L-r0-c0", {}, { onToggleHoming });
+
+    fireEvent.click(screen.getByLabelText(/homing key/i));
+
+    expect(onToggleHoming).toHaveBeenCalledTimes(1);
   });
 
   it("recolors the primary legend", () => {

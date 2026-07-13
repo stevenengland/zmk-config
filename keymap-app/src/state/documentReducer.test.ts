@@ -205,6 +205,32 @@ describe("documentReducer", () => {
     expect(state.document.layers[0].keys["L-r0-c0"]).toBeUndefined();
   });
 
+  it("marks a key homing on toggle, board-wide", () => {
+    const state = documentReducer(createInitialState(), { type: "toggle-homing", keyId: "L-r2-c4" });
+
+    expect(state.document.board).toEqual({ homing: ["L-r2-c4"] });
+  });
+
+  it("unmarks a homing key on a second toggle and prunes the empty board section", () => {
+    const marked = documentReducer(createInitialState(), { type: "toggle-homing", keyId: "L-r2-c4" });
+
+    const state = documentReducer(marked, { type: "toggle-homing", keyId: "L-r2-c4" });
+
+    expect(state.document.board).toBeUndefined();
+    expect(JSON.parse(serialize(state.document))).not.toHaveProperty("board");
+  });
+
+  it("keeps other homing keys when unmarking one of several", () => {
+    const twoMarked = documentReducer(
+      documentReducer(createInitialState(), { type: "toggle-homing", keyId: "L-r2-c4" }),
+      { type: "toggle-homing", keyId: "R-r2-c1" },
+    );
+
+    const state = documentReducer(twoMarked, { type: "toggle-homing", keyId: "L-r2-c4" });
+
+    expect(state.document.board).toEqual({ homing: ["R-r2-c1"] });
+  });
+
   it("edits legends only on the active layer", () => {
     const two = documentReducer(createInitialState(), { type: "add", name: "L2", color: "#fff" });
 

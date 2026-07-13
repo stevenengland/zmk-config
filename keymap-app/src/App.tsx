@@ -28,6 +28,10 @@ export function App() {
   const activeLayer = state.document.layers[state.activeIndex];
   const selectedKeyId = state.selectedKeyId;
   const selectedLegend = selectedKeyId ? activeLayer.keys[selectedKeyId] ?? {} : {};
+  const homingKeys = useMemo(
+    () => new Set(state.document.board?.homing ?? []),
+    [state.document.board],
+  );
 
   const addLayer = () => {
     const count = state.document.layers.length;
@@ -104,6 +108,7 @@ export function App() {
                 layers={state.document.layers}
                 activeIndex={state.activeIndex}
                 selectedKeyId={selectedKeyId}
+                homingKeys={homingKeys}
                 onPickKey={(layerIndex, keyId) => {
                   dispatch({ type: "select", index: layerIndex });
                   selectKey(keyId);
@@ -138,6 +143,7 @@ export function App() {
                   selectedKeyId={selectedKeyId}
                   onSelectKey={selectKey}
                   layerColor={activeLayer.color}
+                  homingKeys={homingKeys}
                 />
               </div>
             </div>
@@ -157,6 +163,11 @@ export function App() {
               dispatch({ type: "set-key-color", keyId: selectedKeyId, color });
             }}
             onError={(text) => setStatus({ text, tone: "error" })}
+            homing={selectedKeyId ? homingKeys.has(selectedKeyId) : false}
+            onToggleHoming={() => {
+              if (!selectedKeyId) return;
+              dispatch({ type: "toggle-homing", keyId: selectedKeyId });
+            }}
           />
         </div>
         <StatusBar message={status} />

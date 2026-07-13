@@ -1,6 +1,6 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { App } from "./App";
-import { SYMBOL_FONT_FAMILY } from "./model/renderStyle";
+import { KEY_STROKE, SYMBOL_FONT_FAMILY } from "./model/renderStyle";
 
 describe("App", () => {
   it("mounts the keyboard board", () => {
@@ -114,6 +114,34 @@ describe("App", () => {
     const second = screen.getByLabelText(/primary legend/i) as HTMLInputElement;
     expect(document.activeElement).toBe(second);
     expect(second.selectionStart).toBe(0);
+  });
+
+  it("marks a key homing board-wide: renders on every layer and persists the id", () => {
+    const { container } = render(<App />);
+    fireEvent.click(screen.getByRole("button", { name: /add layer/i }));
+    fireEvent.click(container.querySelector('[data-key-id="L-r0-c0"]')!);
+
+    fireEvent.click(screen.getByLabelText(/homing key/i));
+
+    fireEvent.click(screen.getByRole("tab", { name: /all/i }));
+    const items = screen.getAllByRole("listitem");
+    items.forEach((item) => {
+      const keyGroup = item.querySelector('[data-key-id="L-r0-c0"]')!;
+      expect(keyGroup.querySelector(`rect[fill="${KEY_STROKE}"]`)).toBeTruthy();
+    });
+  });
+
+  it("unchecking homing removes the bar and the checkbox stays in sync per key", () => {
+    const { container } = render(<App />);
+    fireEvent.click(container.querySelector('[data-key-id="L-r0-c0"]')!);
+    fireEvent.click(screen.getByLabelText(/homing key/i));
+    expect(screen.getByLabelText(/homing key/i)).toBeChecked();
+
+    fireEvent.click(screen.getByLabelText(/homing key/i));
+
+    expect(screen.getByLabelText(/homing key/i)).not.toBeChecked();
+    const keyGroup = container.querySelector('[data-key-id="L-r0-c0"]')!;
+    expect(keyGroup.querySelector(`rect[fill="${KEY_STROKE}"]`)).toBeNull();
   });
 
   it("reports an invalid codepoint on the status bar", () => {

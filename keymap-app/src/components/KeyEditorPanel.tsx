@@ -35,6 +35,9 @@ interface KeyEditorPanelProps {
   onSetSlot: (slot: LegendSlot, glyph: string) => void;
   onSetColor: (color: string) => void;
   onError: (message: string) => void;
+  /** Board-wide: whether this key is a homing key (renders on every layer). */
+  homing: boolean;
+  onToggleHoming: () => void;
   /** Layer count, surfaced in the empty state so the idle panel still orients. */
   layerCount?: number;
 }
@@ -96,6 +99,8 @@ export function KeyEditorPanel({
   onSetSlot,
   onSetColor,
   onError,
+  homing,
+  onToggleHoming,
   layerCount = 1,
 }: KeyEditorPanelProps) {
   const [fields, setFields] = useState<Fields>(() => fieldsFromLegend(legend));
@@ -175,6 +180,16 @@ export function KeyEditorPanel({
       >
         {describeElementId(keyId)} · {keyId}
       </p>
+
+      <label style={{ ...label, display: "flex", alignItems: "center", gap: 8 }}>
+        <input
+          type="checkbox"
+          aria-label="Homing key"
+          checked={homing}
+          onChange={onToggleHoming}
+        />
+        Homing key
+      </label>
 
       {SLOTS.map(({ slot, label: text }) => (
         <label key={slot} style={label}>
