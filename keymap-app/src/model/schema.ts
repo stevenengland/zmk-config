@@ -1,8 +1,12 @@
 // Persisted keymap document model (PRD decision: top-level
-// `{ schemaVersion: 1, layers }`). Unset legend slots are never persisted as
-// empty strings — they are omitted from the JSON entirely.
+// `{ schemaVersion: 2, board, layers }`). Unset legend slots are never
+// persisted as empty strings — they are omitted from the JSON entirely.
+// `parse` accepts schemaVersion 1 and 2 and upgrades v1 in memory;
+// `serialize` always emits the current version.
 
-export const SCHEMA_VERSION = 1;
+export const SCHEMA_VERSION = 2;
+
+const SUPPORTED_SCHEMA_VERSIONS = [1, SCHEMA_VERSION] as const;
 
 /**
  * Legends for a single key. `primary` renders larger (bottom-left) and may
@@ -22,8 +26,14 @@ export interface Layer {
   keys: Record<string, KeyLegend>;
 }
 
+/** Board-wide physical properties, outside `layers` since they apply to every layer. */
+export interface Board {
+  homing?: string[];
+}
+
 export interface KeymapDocument {
   schemaVersion: typeof SCHEMA_VERSION;
+  board?: Board;
   layers: Layer[];
 }
 
@@ -48,8 +58,10 @@ function pruneKeys(keys: Record<string, KeyLegend>): Record<string, KeyLegend> {
 }
 
 export function serialize(doc: KeymapDocument): string {
+  const homing = doc.board?.homing ?? [];
   const normalized: KeymapDocument = {
     schemaVersion: SCHEMA_VERSION,
+    ...(homing.length ? { board: { homing } } : {}),
     layers: doc.layers.map((layer) => ({
       name: layer.name,
       color: layer.color,
@@ -70,11 +82,17 @@ function isLayer(value: unknown): value is Layer {
   );
 }
 
+function isBoard(value: unknown): value is Board {
+  if (typeof value !== "object" || value === null) return false;
+  const homing = (value as Board).homing;
+  return homing === undefined || (Array.isArray(homing) && homing.every((id) => typeof id === "string"));
+}
+
 export function parse(json: string): KeymapDocument {
-  const raw = JSON.parse(json) as { schemaVersion?: unknown; layers?: unknown };
-  if (raw.schemaVersion !== SCHEMA_VERSION) {
+  const raw = JSON.parse(json) as { schemaVersion?: unknown; board?: unknown; layers?: unknown };
+  if (!SUPPORTED_SCHEMA_VERSIONS.includes(raw.schemaVersion as number)) {
     throw new Error(
-      `unsupported schemaVersion: ${String(raw.schemaVersion)} (expected ${SCHEMA_VERSION})`,
+      `unsupported schemaVersion: ${String(raw.schemaVersion)} (expected one of ${SUPPORTED_SCHEMA_VERSIONS.join(", ")})`,
     );
   }
   if (!Array.isArray(raw.layers)) {
@@ -85,5 +103,12 @@ export function parse(json: string): KeymapDocument {
       throw new Error(`invalid keymap document: layer ${index} is malformed`);
     }
   });
-  return raw as KeymapDocument;
+  if (raw.board !== undefined && !isBoard(raw.board)) {
+    throw new Error("invalid keymap document: `board` is malformed");
+  }
+  return {
+    schemaVersion: SCHEMA_VERSION,
+    ...(raw.board !== undefined ? { board: raw.board as Board } : {}),
+    layers: raw.layers as Layer[],
+  };
 }
