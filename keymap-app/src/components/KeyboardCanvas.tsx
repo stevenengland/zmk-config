@@ -13,7 +13,7 @@ interface KeyboardCanvasProps {
   legends?: Record<string, KeyLegend>;
   selectedKeyId?: string | null;
   onSelectKey?: (id: string) => void;
-  /** This board's layer color, painted as a per-key corner LED. */
+  /** This board's layer color, painted as a per-key corner tick. */
   layerColor?: string;
 }
 
