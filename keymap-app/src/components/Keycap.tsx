@@ -11,8 +11,7 @@ import {
   KEY_FILL,
   KEY_STROKE,
   keyEdgeAccentPath,
-  LED_INSET,
-  LED_RADIUS,
+  layerTickPath,
   LEGEND_COLOR,
   LEGEND_FONT,
   PAD,
@@ -29,15 +28,15 @@ interface KeycapProps {
   legend?: KeyLegend;
   selected?: boolean;
   onSelect?: (id: string) => void;
-  /** Active layer's color, painted as a small corner LED (docs/design/stitch.md). */
+  /** Active layer's color, painted as a corner tick over the top-right border. */
   layerColor?: string;
 }
 
 /**
  * Corner legends per the PRD layout: primary bottom-left (larger, may carry a
- * per-key color), shifted top-left, altgr bottom-right. The top-right corner is
- * reserved for a future layer reference and always renders blank. Empty slots
- * render nothing.
+ * per-key color), shifted top-left, altgr bottom-right. The top-right corner
+ * carries the layer tick on the border, leaving the interior free for the
+ * behavior stack. Empty slots render nothing.
  */
 function Legends({ legend, box }: { legend: KeyLegend; box: Box }) {
   return (
@@ -151,7 +150,13 @@ export function Keycap({ element, legend, selected, onSelect, layerColor }: Keyc
         />
       ) : null}
       {isKey && layerColor ? (
-        <circle cx={box.right - LED_INSET} cy={box.top + LED_INSET} r={LED_RADIUS} fill={layerColor} />
+        <path
+          d={layerTickPath(box)}
+          fill="none"
+          stroke={layerColor}
+          strokeWidth={KEY_EDGE_ACCENT_WIDTH}
+          strokeLinecap="round"
+        />
       ) : null}
       {legend ? <Legends legend={legend} box={box} /> : null}
     </g>

@@ -2,7 +2,12 @@ import { render, fireEvent } from "@testing-library/react";
 import { describe, it, expect, vi } from "vitest";
 import { Keycap } from "./Keycap";
 import type { BoardElement } from "../model/geometry";
-import { SYMBOL_FONT_FAMILY } from "../model/renderStyle";
+import {
+  boxOf,
+  KEY_EDGE_ACCENT_WIDTH,
+  layerTickPath,
+  SYMBOL_FONT_FAMILY,
+} from "../model/renderStyle";
 
 const key: BoardElement = { id: "L-r0-c0", kind: "key", x: 0, y: 0, w: 54, h: 54 };
 const encoder: BoardElement = { id: "L-enc", kind: "encoder", x: 100, y: 100, w: 62, h: 62 };
@@ -84,5 +89,37 @@ describe("Keycap legends", () => {
 
     expect(onSelect).toHaveBeenCalledWith("L-enc");
     expect(container.querySelector("text")!.textContent).toBe("V");
+  });
+
+  it("paints the layer color as a corner tick over the top-right border, with no in-cap dot", () => {
+    const { container } = svg(<Keycap element={key} layerColor="#00e5ff" />);
+    const group = container.querySelector("[data-key-id]")!;
+
+    expect(group.querySelector("circle")).toBeNull();
+
+    const tick = Array.from(group.querySelectorAll("path")).find(
+      (p) => p.getAttribute("stroke") === "#00e5ff",
+    )!;
+    expect(tick).toBeTruthy();
+    expect(tick.getAttribute("d")).toBe(layerTickPath(boxOf(key)));
+    expect(tick.getAttribute("fill")).toBe("none");
+    expect(tick.getAttribute("stroke-width")).toBe(String(KEY_EDGE_ACCENT_WIDTH));
+  });
+
+  it("renders no corner tick when no layer color is given", () => {
+    const { container } = svg(<Keycap element={key} />);
+    const group = container.querySelector("[data-key-id]")!;
+
+    const tickPath = layerTickPath(boxOf(key));
+    expect(Array.from(group.querySelectorAll("path")).some((p) => p.getAttribute("d") === tickPath)).toBe(
+      false,
+    );
+  });
+
+  it("never renders a corner tick on encoders, even with a layer color", () => {
+    const { container } = svg(<Keycap element={encoder} layerColor="#00e5ff" />);
+    const group = container.querySelector("[data-encoder-id]")!;
+
+    expect(group.querySelectorAll("path")).toHaveLength(0);
   });
 });
