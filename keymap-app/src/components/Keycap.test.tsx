@@ -4,7 +4,9 @@ import { Keycap } from "./Keycap";
 import type { BoardElement } from "../model/geometry";
 import {
   boxOf,
+  homingBarRect,
   KEY_EDGE_ACCENT_WIDTH,
+  KEY_STROKE,
   layerTickPath,
   SYMBOL_FONT_FAMILY,
 } from "../model/renderStyle";
@@ -121,5 +123,32 @@ describe("Keycap legends", () => {
     const group = container.querySelector("[data-encoder-id]")!;
 
     expect(group.querySelectorAll("path")).toHaveLength(0);
+  });
+
+  it("renders the homing bar on the bottom edge in the key-stroke steel tone when homing", () => {
+    const { container } = svg(<Keycap element={key} homing />);
+    const group = container.querySelector("[data-key-id]")!;
+    const rect = group.querySelector(`rect[fill="${KEY_STROKE}"]`)!;
+    const expected = homingBarRect(boxOf(key));
+
+    expect(rect).toBeTruthy();
+    expect(rect.getAttribute("x")).toBe(String(expected.x));
+    expect(rect.getAttribute("y")).toBe(String(expected.y));
+    expect(rect.getAttribute("width")).toBe(String(expected.width));
+    expect(rect.getAttribute("height")).toBe(String(expected.height));
+  });
+
+  it("renders no homing bar when not homing", () => {
+    const { container } = svg(<Keycap element={key} />);
+    const group = container.querySelector("[data-key-id]")!;
+
+    expect(group.querySelector(`rect[fill="${KEY_STROKE}"]`)).toBeNull();
+  });
+
+  it("never renders a homing bar on encoders, even when marked homing", () => {
+    const { container } = svg(<Keycap element={encoder} homing />);
+    const group = container.querySelector("[data-encoder-id]")!;
+
+    expect(group.querySelector(`rect[fill="${KEY_STROKE}"]`)).toBeNull();
   });
 });

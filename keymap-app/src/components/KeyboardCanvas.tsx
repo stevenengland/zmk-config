@@ -15,6 +15,8 @@ interface KeyboardCanvasProps {
   onSelectKey?: (id: string) => void;
   /** This board's layer color, painted as a per-key corner tick. */
   layerColor?: string;
+  /** Board-wide homing key ids — same set rendered on every layer. */
+  homingKeys?: ReadonlySet<string>;
 }
 
 /** Inline-SVG render of the full Sofle Choc board with selectable, legended keys. */
@@ -23,6 +25,7 @@ export function KeyboardCanvas({
   selectedKeyId = null,
   onSelectKey,
   layerColor,
+  homingKeys,
 }: KeyboardCanvasProps = {}) {
   return (
     <svg
@@ -39,6 +42,7 @@ export function KeyboardCanvas({
           selected={element.id === selectedKeyId}
           onSelect={onSelectKey}
           layerColor={layerColor}
+          homing={homingKeys?.has(element.id)}
         />
       ))}
     </svg>

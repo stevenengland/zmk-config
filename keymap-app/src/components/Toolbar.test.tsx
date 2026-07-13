@@ -1,6 +1,6 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { vi } from "vitest";
-import type { KeymapDocument } from "../model/schema";
+import { SCHEMA_VERSION, type KeymapDocument } from "../model/schema";
 import { Toolbar } from "./Toolbar";
 
 vi.mock("../io/persistence", () => ({
@@ -17,14 +17,14 @@ import { openDocument, saveDocument } from "../io/persistence";
 import { exportAllLayersSvg, exportJson, exportLayerSvg } from "../io/export";
 
 const DOC: KeymapDocument = {
-  schemaVersion: 1,
+  schemaVersion: SCHEMA_VERSION,
   layers: [
     { name: "Base", color: "#00e5ff", keys: {} },
     { name: "Nav", color: "#fec931", keys: {} },
   ],
 };
 const LOADED: KeymapDocument = {
-  schemaVersion: 1,
+  schemaVersion: SCHEMA_VERSION,
   layers: [{ name: "Imported", color: "#fec931", keys: {} }],
 };
 
@@ -111,7 +111,7 @@ it("exports the active layer as SVG and reports success", () => {
 
   fireEvent.click(screen.getByRole("button", { name: /^export svg$/i }));
 
-  expect(exportLayerSvg).toHaveBeenCalledWith(DOC.layers[0]);
+  expect(exportLayerSvg).toHaveBeenCalledWith(DOC.layers[0], []);
   expect(onStatus).toHaveBeenCalledWith(
     expect.objectContaining({ tone: "info" }),
   );
@@ -122,7 +122,7 @@ it("exports every layer as SVG and reports success", () => {
 
   fireEvent.click(screen.getByRole("button", { name: /export all/i }));
 
-  expect(exportAllLayersSvg).toHaveBeenCalledWith(DOC.layers);
+  expect(exportAllLayersSvg).toHaveBeenCalledWith(DOC.layers, []);
   expect(onStatus).toHaveBeenCalledWith(
     expect.objectContaining({ tone: "info" }),
   );

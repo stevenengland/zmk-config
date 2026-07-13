@@ -4,7 +4,7 @@ import {
   documentHistoryReducer,
   documentReducer,
 } from "./documentReducer";
-import { serialize } from "../model/schema";
+import { SCHEMA_VERSION, serialize } from "../model/schema";
 
 describe("documentReducer", () => {
   it("boots with a single empty default layer that is active", () => {
@@ -24,7 +24,7 @@ describe("documentReducer", () => {
     const loaded = documentReducer(dirty, {
       type: "load",
       document: {
-        schemaVersion: 1,
+        schemaVersion: SCHEMA_VERSION,
         layers: [{ name: "Imported", color: "#fec931", keys: { "L-r0-c0": { primary: "A" } } }],
       },
     });
@@ -127,7 +127,7 @@ describe("documentReducer", () => {
 
     const loaded = documentReducer(overview, {
       type: "load",
-      document: { schemaVersion: 1, layers: [{ name: "Imported", color: "#fec931", keys: {} }] },
+      document: { schemaVersion: SCHEMA_VERSION, layers: [{ name: "Imported", color: "#fec931", keys: {} }] },
     });
 
     expect(loaded.viewMode).toBe("edit");
@@ -275,7 +275,7 @@ describe("documentHistoryReducer", () => {
 
     const loaded = documentHistoryReducer(renamed, {
       type: "load",
-      document: { schemaVersion: 1, layers: [{ name: "Imported", color: "#fec931", keys: {} }] },
+      document: { schemaVersion: SCHEMA_VERSION, layers: [{ name: "Imported", color: "#fec931", keys: {} }] },
     });
 
     expect(loaded.past).toHaveLength(0);

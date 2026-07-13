@@ -16,6 +16,7 @@ import {
   ENCODER_FILL,
   ENCODER_STROKE,
   FONT_FACE_CSS,
+  homingBarRect,
   KEY_EDGE_ACCENT,
   KEY_EDGE_ACCENT_WIDTH,
   KEY_FILL,
@@ -64,8 +65,13 @@ function legendMarkup(legend: KeyLegend, box: Box): string {
   return parts.join("");
 }
 
-/** Mirrors Keycap's bottom-heavy accent + per-key layer corner tick so exports never drift from the canvas. */
-function elementMarkup(element: BoardElement, legend: KeyLegend | undefined, layerColor: string): string {
+/** Mirrors Keycap's bottom-heavy accent + per-key layer corner tick + homing bar so exports never drift from the canvas. */
+function elementMarkup(
+  element: BoardElement,
+  legend: KeyLegend | undefined,
+  layerColor: string,
+  homing: boolean,
+): string {
   const box = boxOf(element);
   const shape =
     element.kind === "encoder"
@@ -79,20 +85,30 @@ function elementMarkup(element: BoardElement, legend: KeyLegend | undefined, lay
     element.kind === "key"
       ? `<path d="${layerTickPath(box)}" fill="none" stroke="${layerColor}" stroke-width="${KEY_EDGE_ACCENT_WIDTH}" stroke-linecap="round" />`
       : "";
+  const homingBar =
+    element.kind === "key" && homing
+      ? (() => {
+          const r = homingBarRect(box);
+          return `<rect x="${r.x}" y="${r.y}" width="${r.width}" height="${r.height}" rx="${r.rx}" fill="${KEY_STROKE}" />`;
+        })()
+      : "";
   const cx = element.x + element.w / 2;
   const cy = element.y + element.h / 2;
   const transform =
     element.kind === "encoder" || element.rotation === undefined
       ? ""
       : ` transform="rotate(${element.rotation} ${cx} ${cy})"`;
-  return `<g${transform}>${shape}${accent}${tick}${legend ? legendMarkup(legend, box) : ""}</g>`;
+  return `<g${transform}>${shape}${accent}${tick}${homingBar}${legend ? legendMarkup(legend, box) : ""}</g>`;
 }
 
 /** Standalone SVG document for one layer: full board, legends, embedded font. */
-export function layerToSvg(layer: Layer): string {
+export function layerToSvg(layer: Layer, homing: readonly string[] = []): string {
   const box = viewBox();
+  const homingSet = new Set(homing);
   const elements = boardGeometry
-    .map((element) => elementMarkup(element, layer.keys[element.id], layer.color))
+    .map((element) =>
+      elementMarkup(element, layer.keys[element.id], layer.color, homingSet.has(element.id)),
+    )
     .join("");
   return (
     `<?xml version="1.0" encoding="UTF-8"?>\n` +
@@ -115,14 +131,14 @@ function downloadFile(content: string, filename: string, mime: string): void {
 }
 
 /** Downloads the current layer as a standalone `<layer-name>.svg`. */
-export function exportLayerSvg(layer: Layer): void {
-  downloadFile(layerToSvg(layer), `${layer.name}.svg`, "image/svg+xml");
+export function exportLayerSvg(layer: Layer, homing: readonly string[] = []): void {
+  downloadFile(layerToSvg(layer, homing), `${layer.name}.svg`, "image/svg+xml");
 }
 
 /** Sequential per-layer downloads, one `<layer-name>.svg` per layer — no zip dependency. */
-export function exportAllLayersSvg(layers: readonly Layer[]): void {
+export function exportAllLayersSvg(layers: readonly Layer[], homing: readonly string[] = []): void {
   for (const layer of layers) {
-    exportLayerSvg(layer);
+    exportLayerSvg(layer, homing);
   }
 }
 

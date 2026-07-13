@@ -6,7 +6,7 @@
 
 export const SCHEMA_VERSION = 2;
 
-const SUPPORTED_SCHEMA_VERSIONS = [1, SCHEMA_VERSION] as const;
+const SUPPORTED_SCHEMA_VERSIONS: readonly number[] = [1, SCHEMA_VERSION];
 
 /**
  * Legends for a single key. `primary` renders larger (bottom-left) and may

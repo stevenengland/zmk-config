@@ -6,6 +6,7 @@ import {
   CORNER_RADIUS,
   ENCODER_FILL,
   ENCODER_STROKE,
+  homingBarRect,
   KEY_EDGE_ACCENT,
   KEY_EDGE_ACCENT_WIDTH,
   KEY_FILL,
@@ -30,6 +31,8 @@ interface KeycapProps {
   onSelect?: (id: string) => void;
   /** Active layer's color, painted as a corner tick over the top-right border. */
   layerColor?: string;
+  /** Board-wide physical property: renders a bottom-edge bar, same on every layer. */
+  homing?: boolean;
 }
 
 /**
@@ -88,7 +91,7 @@ function Legends({ legend, box }: { legend: KeyLegend; box: Box }) {
  * selects it; the selected element is highlighted with the primary teal.
  * Rotation, when present, is applied about the element centre.
  */
-export function Keycap({ element, legend, selected, onSelect, layerColor }: KeycapProps) {
+export function Keycap({ element, legend, selected, onSelect, layerColor, homing }: KeycapProps) {
   const { x, y, w, h, rotation } = element;
   const box = boxOf(element);
   const idAttr =
@@ -158,6 +161,7 @@ export function Keycap({ element, legend, selected, onSelect, layerColor }: Keyc
           strokeLinecap="round"
         />
       ) : null}
+      {isKey && homing ? <rect {...homingBarRect(box)} fill={KEY_STROKE} /> : null}
       {legend ? <Legends legend={legend} box={box} /> : null}
     </g>
   );

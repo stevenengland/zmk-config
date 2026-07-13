@@ -110,6 +110,34 @@ export function layerTickPath(box: Box, r: number = CORNER_RADIUS): string {
   return `M ${right - r - TICK_ARM_LENGTH} ${top} L ${right - r} ${top} A ${r} ${r} 0 0 1 ${right} ${top + r} L ${right} ${top + r + TICK_ARM_LENGTH}`;
 }
 
+// Homing bar: a short bar on a key's bottom edge in the same steel tone as
+// the key stroke — a physical property, never a legend or layer color (see
+// docs/design/behavior-legends.html "Homing marker"). Shared by the live
+// canvas (Keycap) and the standalone SVG export so the two never drift.
+export const HOMING_BAR_WIDTH = 12;
+export const HOMING_BAR_HEIGHT = 2.5;
+export const HOMING_BAR_RADIUS = 1.25;
+export const HOMING_BAR_BOTTOM_INSET = 7;
+
+export interface HomingBarRect {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  rx: number;
+}
+
+export function homingBarRect(box: Box): HomingBarRect {
+  const { left, right, bottom } = box;
+  return {
+    x: (left + right) / 2 - HOMING_BAR_WIDTH / 2,
+    y: bottom - HOMING_BAR_BOTTOM_INSET,
+    width: HOMING_BAR_WIDTH,
+    height: HOMING_BAR_HEIGHT,
+    rx: HOMING_BAR_RADIUS,
+  };
+}
+
 const VIEWBOX_PADDING = 40;
 
 /** Tight bounding box around every board element, plus padding. */
