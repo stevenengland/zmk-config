@@ -176,7 +176,11 @@ export function resolveTooltipRows(
 
   const sortedTaps = legend.taps ? [...legend.taps].sort((a, b) => a.count - b.count) : [];
   for (const tap of sortedTaps) {
-    rows.push({ label: `${tap.count}× tap`, value: tap.glyph });
+    rows.push({
+      label: `${tap.count}× tap`,
+      value: tap.glyph,
+      ...(tap.toggle ? { note: "stays on until pressed again" } : {}),
+    });
   }
 
   return rows;

@@ -355,4 +355,12 @@ describe("resolveTooltipRows", () => {
       { label: "3× tap", value: "⇧" },
     ]);
   });
+
+  it("shows the latch note on a toggle-flagged tap row", () => {
+    const rows = resolveTooltipRows({ taps: [{ count: 2, glyph: "⇧", toggle: true }] }, {}, []);
+
+    expect(rows).toEqual([
+      { label: "2× tap", value: "⇧", note: "stays on until pressed again" },
+    ]);
+  });
 });
