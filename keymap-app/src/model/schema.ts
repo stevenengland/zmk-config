@@ -148,8 +148,9 @@ export interface TooltipRow {
 
 /**
  * Resolves a key's full state matrix for the hover tooltip / editor detail
- * view: one row per set slot (tap, Shift+tap, AltGr), shared by the live
- * canvas tooltip so content never drifts from the schema.
+ * view: one row per set slot (tap, Shift+tap, AltGr, hold, Shift+hold, one
+ * per tap-dance count), in that order. A bound macro takes over the tap row
+ * with its label and steps; a toggle-flagged tap row carries a latch note.
  */
 export function resolveTooltipRows(
   legend: KeyLegend,
