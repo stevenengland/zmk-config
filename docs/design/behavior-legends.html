@@ -1,0 +1,654 @@
+<title>Behavior legends — keymap-app design proposal</title>
+<style>
+  :root {
+    --bg: #14171c;
+    --panel: #1b2027;
+    --panel-2: #20262f;
+    --line: #3b494c;
+    --line-soft: #2c333c;
+    --key-fill: #2b2f36;
+    --key-stroke: #4a505a;
+    --text: #e5e2e1;
+    --muted: #98a2ad;
+    --faint: #6b7480;
+    --accent: #00e5ff;
+    --nav: #d4bbff;
+    --mouse: #7ee787;
+    --mono: "JetBrains Mono", ui-monospace, "Cascadia Mono", "SF Mono", Menlo, monospace;
+    --sans: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+    color-scheme: dark;
+  }
+  html { background: var(--bg); }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    line-height: 1.6;
+    padding: 3.5rem 1.25rem 5rem;
+  }
+  .wrap { max-width: 880px; margin: 0 auto; }
+  .prose { max-width: 65ch; }
+
+  .eyebrow {
+    font-family: var(--mono);
+    font-size: 0.72rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin: 0 0 0.75rem;
+  }
+  h1 {
+    font-size: clamp(1.6rem, 4vw, 2.2rem);
+    font-weight: 650;
+    letter-spacing: -0.015em;
+    line-height: 1.2;
+    margin: 0 0 0.75rem;
+    text-wrap: balance;
+  }
+  .lede { color: var(--muted); max-width: 62ch; margin: 0; }
+
+  section { margin-top: 4rem; }
+  .sec-eyebrow {
+    font-family: var(--mono);
+    font-size: 0.7rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--faint);
+    margin: 0 0 0.35rem;
+  }
+  h2 {
+    font-size: 1.25rem;
+    font-weight: 650;
+    letter-spacing: -0.01em;
+    margin: 0 0 0.9rem;
+    text-wrap: balance;
+  }
+  h3 {
+    font-size: 0.95rem;
+    font-weight: 600;
+    margin: 1.8rem 0 0.5rem;
+  }
+  p { margin: 0 0 0.9rem; }
+  p, li { color: var(--text); }
+  .note { color: var(--muted); font-size: 0.92rem; }
+
+  /* Canvas strip: mockups sit on the app's exact board background */
+  .canvas {
+    background: var(--bg);
+    border: 1px solid var(--line-soft);
+    border-radius: 10px;
+    padding: 1.5rem 1.25rem 1.1rem;
+    margin: 1.25rem 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 2rem 2.5rem;
+    align-items: flex-start;
+    justify-content: flex-start;
+  }
+  .capfig { display: flex; flex-direction: column; align-items: center; gap: 0.55rem; }
+  .capfig svg { display: block; }
+  .caplabel {
+    font-family: var(--mono);
+    font-size: 0.7rem;
+    color: var(--muted);
+    text-align: center;
+    max-width: 15ch;
+    line-height: 1.45;
+  }
+
+  /* Vocabulary table */
+  .vocab { overflow-x: auto; margin: 1.25rem 0; }
+  table {
+    border-collapse: collapse;
+    font-size: 0.9rem;
+    min-width: 560px;
+    width: 100%;
+  }
+  th, td {
+    text-align: left;
+    padding: 0.55rem 0.9rem 0.55rem 0;
+    border-bottom: 1px solid var(--line-soft);
+    vertical-align: top;
+  }
+  th {
+    font-family: var(--mono);
+    font-size: 0.68rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    font-weight: 500;
+    color: var(--faint);
+  }
+  td.mark { font-family: var(--mono); white-space: nowrap; }
+  td .muted, .muted { color: var(--muted); }
+
+  /* Code blocks */
+  pre {
+    background: var(--panel);
+    border: 1px solid var(--line-soft);
+    border-radius: 8px;
+    padding: 0.9rem 1.1rem;
+    overflow-x: auto;
+    font-family: var(--mono);
+    font-size: 0.8rem;
+    line-height: 1.65;
+    margin: 1rem 0;
+  }
+  code {
+    font-family: var(--mono);
+    font-size: 0.85em;
+    background: var(--panel-2);
+    border-radius: 4px;
+    padding: 0.1em 0.35em;
+  }
+  pre code { background: none; padding: 0; font-size: inherit; }
+  .c-key { color: #8ab4f8; }
+  .c-str { color: #a5d6a7; }
+  .c-com { color: var(--faint); font-style: italic; }
+
+  /* Recommendation callout */
+  .rec {
+    border: 1px solid var(--line-soft);
+    border-left: 3px solid var(--accent);
+    border-radius: 0 8px 8px 0;
+    background: var(--panel);
+    padding: 0.8rem 1.1rem;
+    margin: 1.25rem 0;
+    font-size: 0.92rem;
+  }
+  .rec b:first-child {
+    font-family: var(--mono);
+    font-size: 0.68rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--accent);
+    display: block;
+    margin-bottom: 0.3rem;
+    font-weight: 600;
+  }
+
+  /* Decision list */
+  .decision { margin: 1.5rem 0; padding-bottom: 1.5rem; border-bottom: 1px solid var(--line-soft); }
+  .decision:last-child { border-bottom: none; }
+  .decision h3 { margin-top: 0; }
+  .decision ul { margin: 0.4rem 0 0.8rem; padding-left: 1.2rem; }
+  .decision li { margin: 0.25rem 0; font-size: 0.93rem; }
+  .pick {
+    display: inline-block;
+    font-family: var(--mono);
+    font-size: 0.68rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--bg);
+    background: var(--accent);
+    border-radius: 999px;
+    padding: 0.1rem 0.55rem;
+    margin-right: 0.5rem;
+    font-weight: 600;
+  }
+
+  a { color: var(--accent); }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+  @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+</style>
+
+<div class="wrap">
+  <header>
+    <p class="eyebrow">keymap-app · design proposal · not yet implemented</p>
+    <h1>Behavior legends: showing what a key does beyond tap</h1>
+    <p class="lede">
+      Today a keycap shows three tap states — primary, shifted, AltGr — in its corners.
+      ZMK keys also hold, double-tap, toggle, switch layers, and run macros.
+      This proposal adds those to the same cap without inventing a second visual language:
+      every mockup below uses the app's existing colors, fonts, and geometry.
+    </p>
+  </header>
+
+  <!-- ============================================================ -->
+  <section>
+    <p class="sec-eyebrow">The system</p>
+    <h2>Position says when, mark says what</h2>
+    <div class="prose">
+      <p>
+        Two orthogonal rules cover every scenario. <b>Where</b> a legend sits on the cap encodes the
+        trigger (tap, hold, double-tap). <b>How</b> the glyph is marked encodes the action type
+        (plain key, layer move, toggle, macro). New behaviors compose from these two axes instead of
+        each getting a bespoke icon.
+      </p>
+    </div>
+
+    <div class="canvas" id="vocab-canvas"></div>
+
+    <div class="vocab">
+      <table>
+        <thead><tr><th>Trigger — position</th><th></th><th>Action — mark</th><th></th></tr></thead>
+        <tbody>
+          <tr>
+            <td class="mark">tap</td><td>existing corners: primary, shifted, AltGr</td>
+            <td class="mark">plain key</td><td>unmarked glyph, legend gray</td>
+          </tr>
+          <tr>
+            <td class="mark">hold</td><td>top-right slot, solid underline (weight “under” the key)</td>
+            <td class="mark">layer move</td><td>glyph tinted in the <b>target layer's color</b> — same language as the layer corner tick</td>
+          </tr>
+          <tr>
+            <td class="mark">double-tap</td><td>top-right stack; dots = tap count (<code>··</code> two taps, <code>···</code> three), one row per count</td>
+            <td class="mark">toggle / latch</td><td>small hollow ring after the glyph: <span style="font-family:var(--mono)">⇧◦</span> — “stays on until pressed again”</td>
+          </tr>
+          <tr>
+            <td class="mark">physical</td><td>homing bar on the bottom edge, bevel-colored — not a legend</td>
+            <td class="mark">macro</td><td>glyph in a dashed chip — “one unit that expands to a sequence”</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p class="note prose">
+      The top-right corner is free by design — <code>Keycap.tsx</code> already reserves it
+      “for a future layer reference”. The in-cap layer LED dot of the first draft is gone: the layer
+      color now paints the top-right <b>border corner arc</b> as a tick, so the whole interior corner
+      belongs to the behavior stack. Physical features (homing bar) use the bevel steel tones;
+      logical actions use legend white plus layer colors. The two vocabularies never share a color.
+    </p>
+  </section>
+
+  <!-- ============================================================ -->
+  <section>
+    <p class="sec-eyebrow">Scenario 1 · static</p>
+    <h2>Homing marker</h2>
+    <div class="prose">
+      <p>
+        A homing key is a property of the physical board, not of any layer — so it renders on every
+        layer and lives outside <code>layers</code> in the document. Visually it borrows from real
+        keycaps: a short bar on the bottom edge, drawn in the same steel tone as the bottom bevel.
+        Quiet on purpose; it's tactile information, not a binding.
+      </p>
+    </div>
+
+    <div class="canvas" id="homing-canvas"></div>
+
+    <pre><code><span class="c-com">// document level — new sibling of "layers"</span>
+<span class="c-key">"board"</span>: { <span class="c-key">"homing"</span>: [<span class="c-str">"L-r2-c4"</span>, <span class="c-str">"R-r2-c1"</span>] }</code></pre>
+
+    <div class="rec">
+      <b>Recommendation</b>
+      Bar, not dot: an in-cap dot could read as a legend or as the toggle ring.
+      Editor: a “Homing key” checkbox in the key editor, labeled as board-wide so it's clear
+      it isn't per-layer.
+    </div>
+  </section>
+
+  <!-- ============================================================ -->
+  <section>
+    <p class="sec-eyebrow">Scenario 2 · static cap + dynamic detail</p>
+    <h2>Hold-tap, mod-tap, layer-tap</h2>
+    <div class="prose">
+      <p>
+        All three are one ZMK concept — a key with a tap action and a hold action
+        (<code>&amp;mt</code>, <code>&amp;lt</code>, custom <code>zmk,behavior-hold-tap</code>).
+        So they get one representation: a <b>hold slot</b> at top-right with a solid underline.
+        When the hold action is a layer move, the glyph is the layer name tinted in that layer's
+        color — the color the user already knows from the layer tabs and LED dots.
+      </p>
+    </div>
+
+    <div class="canvas" id="holdtap-canvas"></div>
+
+    <div class="prose">
+      <p>
+        <b>Where does Shift+hold&nbsp;=&nbsp;Ä go?</b> Not on the cap. The cap shows one hold glyph
+        (<span style="font-family:var(--mono)">ä</span>); the full matrix lives in the key editor and
+        in a hover tooltip — the dynamic layer of this proposal:
+      </p>
+    </div>
+
+    <div class="canvas" style="display:block">
+      <div style="font-family:var(--mono); font-size:0.78rem; line-height:2; color:var(--muted); max-width:26rem; margin:0 auto;">
+        <div style="color:var(--faint); font-size:0.65rem; letter-spacing:0.12em; text-transform:uppercase; margin-bottom:0.4rem;">key L-r2-c1 · tooltip / editor detail</div>
+        <div style="display:grid; grid-template-columns:auto 1fr; gap:0 1.5rem;">
+          <span>tap</span><span style="color:var(--text)">a</span>
+          <span>⇧ + tap</span><span style="color:var(--text)">A</span>
+          <span>hold</span><span style="color:var(--text)">ä <span style="border-bottom:1.5px solid var(--text); display:inline-block; width:0.7em; height:0.9em; margin-left:-0.72em;"></span></span>
+          <span>⇧ + hold</span><span style="color:var(--text)">Ä</span>
+        </div>
+      </div>
+    </div>
+
+    <pre><code><span class="c-com">// hold prints a character (mod-tap-style hold-tap)</span>
+<span class="c-key">"L-r2-c1"</span>: {
+  <span class="c-key">"primary"</span>: <span class="c-str">"a"</span>, <span class="c-key">"shifted"</span>: <span class="c-str">"A"</span>,
+  <span class="c-key">"hold"</span>: { <span class="c-key">"glyph"</span>: <span class="c-str">"ä"</span>, <span class="c-key">"shifted"</span>: <span class="c-str">"Ä"</span> }
+}
+
+<span class="c-com">// hold moves to a layer (layer-tap) — glyph and tint derived, always in sync</span>
+<span class="c-key">"L-r4-c4"</span>: {
+  <span class="c-key">"primary"</span>: <span class="c-str">"␣"</span>,
+  <span class="c-key">"hold"</span>: { <span class="c-key">"layer"</span>: <span class="c-str">"Nav"</span> }
+}</code></pre>
+
+    <div class="rec">
+      <b>Recommendation</b>
+      Layer-hold legends become clickable: clicking “Nav” on the cap switches the canvas to the Nav
+      layer. That single interaction makes the whole layer graph navigable from the board itself.
+    </div>
+  </section>
+
+  <!-- ============================================================ -->
+  <section>
+    <p class="sec-eyebrow">Scenario 3 · static</p>
+    <h2>Tap dance — and what “Caps” actually is</h2>
+    <div class="prose">
+      <p>
+        A tap-dance binds different actions to tap counts. On the cap: each tap count gets its own
+        row in the top-right stack, prefixed by its count in dots — <code>··</code> means two taps,
+        <code>···</code> three. The glyph after the dots is what that count produces. A trailing
+        hollow ring <code>◦</code> is the action mark for “toggles / stays latched”, not a tap count:
+        solid dots always sit left of the glyph, the ring always right.
+      </p>
+      <p>
+        To your question — “double-tap Shift → CAPS” has three possible firmware meanings, and the
+        vocabulary distinguishes all three without new machinery:
+      </p>
+    </div>
+
+    <div class="canvas" id="tapdance-canvas"></div>
+
+    <pre><code><span class="c-com">// double-tap Shift → Caps Lock (dedicated keycode &kp CAPS)</span>
+<span class="c-key">"L-r3-c0"</span>: {
+  <span class="c-key">"primary"</span>: <span class="c-str">"⇧"</span>,
+  <span class="c-key">"taps"</span>: [ { <span class="c-key">"count"</span>: 2, <span class="c-key">"glyph"</span>: <span class="c-str">"⇪"</span> } ]
+}
+
+<span class="c-com">// variant: shift-lock via key toggle (&kt LSHFT) — toggle ring on the same glyph</span>
+  <span class="c-key">"taps"</span>: [ { <span class="c-key">"count"</span>: 2, <span class="c-key">"glyph"</span>: <span class="c-str">"⇧"</span>, <span class="c-key">"toggle"</span>: true } ]</code></pre>
+
+    <div class="rec">
+      <b>Recommendation</b>
+      Caps Lock is a dedicated keycode in ZMK (<code>&amp;kp CAPS</code>) — no toggle mark needed,
+      ⇪ already means “locked shift”. The hollow-ring toggle mark exists for the non-obvious cases:
+      <code>&amp;kt LSHFT</code>, <code>&amp;kt LALT</code> (alt-tab without holding), sticky keys later.
+      For actual typing comfort consider <code>&amp;caps_word</code> (auto-off at word end) — it renders
+      as ⇪◦ with the auto-off note in the tooltip. Firmware choice is yours; the visualization covers all three.
+    </div>
+  </section>
+
+  <!-- ============================================================ -->
+  <section>
+    <p class="sec-eyebrow">Scenario 4 · static cap + dynamic detail</p>
+    <h2>Macros</h2>
+    <div class="prose">
+      <p>
+        A macro is not a new slot — it's a kind of binding that any slot can carry (usually primary:
+        “J on the Mouse layer runs Ctrl-C”). On the cap, the macro's display glyph sits in a
+        <b>dashed chip</b>: a border that says “one unit, expands to a sequence”. The sequence itself
+        is a tooltip / editor concern, like the hold matrix above.
+      </p>
+      <p>
+        Macros are defined once at document level and referenced by name — your mirrored-clipboard
+        example reuses <code>copy</code>/<code>paste</code> across several keys and layers, and one
+        edit updates every cap.
+      </p>
+    </div>
+
+    <div class="canvas" id="macro-canvas"></div>
+
+    <pre><code><span class="c-com">// document level — macro registry</span>
+<span class="c-key">"macros"</span>: {
+  <span class="c-key">"copy"</span>:  { <span class="c-key">"glyph"</span>: <span class="c-str">"⌃C"</span>, <span class="c-key">"label"</span>: <span class="c-str">"Copy"</span>,  <span class="c-key">"steps"</span>: <span class="c-str">"hold Ctrl · tap C"</span> },
+  <span class="c-key">"paste"</span>: { <span class="c-key">"glyph"</span>: <span class="c-str">"⌃V"</span>, <span class="c-key">"label"</span>: <span class="c-str">"Paste"</span>, <span class="c-key">"steps"</span>: <span class="c-str">"hold Ctrl · tap V"</span> }
+}
+
+<span class="c-com">// on the Mouse layer, J is the copy macro</span>
+<span class="c-key">"R-r2-c1"</span>: { <span class="c-key">"macro"</span>: <span class="c-str">"copy"</span> }</code></pre>
+  </section>
+
+  <!-- ============================================================ -->
+  <section>
+    <p class="sec-eyebrow">Data model</p>
+    <h2>Schema v2 in one look</h2>
+    <div class="prose">
+      <p>
+        Everything above lands as <code>schemaVersion: 2</code>. Existing v1 documents stay valid:
+        plain-string slots keep working, the parser upgrades on load. New per-key fields are
+        <code>hold</code>, <code>taps</code>, <code>macro</code>; new document fields are
+        <code>board</code> and <code>macros</code>. The app stays a <em>drawing</em> tool — glyphs are
+        freeform text as today; the structure exists so rendering can mark and tint them, not to
+        compile firmware.
+      </p>
+    </div>
+
+    <pre><code>{
+  <span class="c-key">"schemaVersion"</span>: 2,
+  <span class="c-key">"board"</span>:  { <span class="c-key">"homing"</span>: [<span class="c-str">"L-r2-c4"</span>, <span class="c-str">"R-r2-c1"</span>] },
+  <span class="c-key">"macros"</span>: { <span class="c-key">"copy"</span>: { <span class="c-key">"glyph"</span>: <span class="c-str">"⌃C"</span>, <span class="c-key">"label"</span>: <span class="c-str">"Copy"</span>, <span class="c-key">"steps"</span>: <span class="c-str">"hold Ctrl · tap C"</span> } },
+  <span class="c-key">"layers"</span>: [ {
+    <span class="c-key">"name"</span>: <span class="c-str">"Base"</span>, <span class="c-key">"color"</span>: <span class="c-str">"#00e5ff"</span>,
+    <span class="c-key">"keys"</span>: {
+      <span class="c-key">"L-r2-c1"</span>: { <span class="c-key">"primary"</span>: <span class="c-str">"a"</span>, <span class="c-key">"hold"</span>: { <span class="c-key">"glyph"</span>: <span class="c-str">"ä"</span>, <span class="c-key">"shifted"</span>: <span class="c-str">"Ä"</span> } },
+      <span class="c-key">"L-r4-c4"</span>: { <span class="c-key">"primary"</span>: <span class="c-str">"␣"</span>, <span class="c-key">"hold"</span>: { <span class="c-key">"layer"</span>: <span class="c-str">"Nav"</span> } },
+      <span class="c-key">"L-r3-c0"</span>: { <span class="c-key">"primary"</span>: <span class="c-str">"⇧"</span>, <span class="c-key">"taps"</span>: [ { <span class="c-key">"count"</span>: 2, <span class="c-key">"glyph"</span>: <span class="c-str">"⇪"</span> } ] },
+      <span class="c-key">"R-r2-c1"</span>: { <span class="c-key">"macro"</span>: <span class="c-str">"copy"</span> }
+    }
+  } ]
+}</code></pre>
+
+    <h3>Key editor additions</h3>
+    <ul class="prose" style="padding-left:1.2rem; font-size:0.93rem;">
+      <li>“Homing key” checkbox (board-wide, shown with a board icon so it reads as cross-layer).</li>
+      <li>“On hold” group: glyph field <em>or</em> layer picker <em>or</em> macro picker, plus a toggle checkbox — one shared binding editor.</li>
+      <li>“Tap dance” list: rows of tap-count → same binding editor.</li>
+      <li>Macro manager (small modal or panel section): name, glyph, label, steps.</li>
+    </ul>
+  </section>
+
+  <!-- ============================================================ -->
+  <section>
+    <p class="sec-eyebrow">Open decisions</p>
+    <h2>Choices you should ratify before implementation</h2>
+
+    <div class="decision">
+      <h3>1 · Where the hold legend lives</h3>
+      <ul>
+        <li><span class="pick">Pick</span><b>Top-right slot</b> — the corner the code already reserves; pairs with the layer corner tick; never fights the wide primary legend.</li>
+        <li>Bottom-center (keymap-drawer convention) — collides with the homing bar and squeezes between primary and AltGr on 54&nbsp;px caps.</li>
+      </ul>
+    </div>
+
+    <div class="decision">
+      <h3>2 · Shift+hold (Ä) on the cap?</h3>
+      <ul>
+        <li><span class="pick">Pick</span><b>Tooltip + editor matrix only</b> — the pair is almost always derivable (ä→Ä); five glyphs on a 54&nbsp;px cap is the readability cliff.</li>
+        <li>Render both (“ä Ä”) in the hold slot — only worth it if you have non-derivable pairs.</li>
+      </ul>
+    </div>
+
+    <div class="decision">
+      <h3>3 · Layer-hold glyph source</h3>
+      <ul>
+        <li><span class="pick">Pick</span><b>Derived from the layer</b> (name + color) — renames and recolors propagate; zero drift.</li>
+        <li>Freeform glyph with manual color — more control, silently goes stale.</li>
+      </ul>
+    </div>
+
+    <div class="decision">
+      <h3>4 · Macro identity</h3>
+      <ul>
+        <li><span class="pick">Pick</span><b>Document-level registry, keys reference by name</b> — mirrored-clipboard keys stay in sync, tooltips get label + steps for free.</li>
+        <li>Inline per-key macro glyphs — simpler schema, duplicates drift apart.</li>
+      </ul>
+    </div>
+
+    <div class="decision">
+      <h3>5 · Layer indicator on the cap</h3>
+      <ul>
+        <li><span class="pick">Pick</span><b>Corner tick on the border</b> — layer color painted over the top-right corner arc (~7&nbsp;px arms, bevel width); zero interior space, the behavior stack gets the full corner.</li>
+        <li>In-cap LED dot (first draft) — costs exactly the pixels the hold / tap-dance stack needs.</li>
+      </ul>
+    </div>
+
+    <div class="decision">
+      <h3>6 · Dynamic layer scope (phase 2)</h3>
+      <ul>
+        <li><span class="pick">Pick</span><b>Hover tooltip with the full state matrix + click-to-jump on layer-tinted legends</b> — the cap stays a clean static poster (and exports as one); interactivity adds depth without adding ink.</li>
+        <li>Everything on the cap, no dynamics — exports identical, but caps get noisy fast.</li>
+      </ul>
+    </div>
+  </section>
+</div>
+
+<script>
+(function () {
+  // Replicates Keycap.tsx geometry at unit scale: KEY=54, rx=6, PAD=9,
+  // PRIMARY 18/600, SUB 12, LED r3.5 inset 8, bevel bottom+right 2.5.
+  var C = {
+    fill: "#2b2f36", stroke: "#4a505a", bevel: "#3b494c",
+    legend: "#e5e2e1", faint: "#6b7480", base: "#00e5ff", nav: "#d4bbff",
+  };
+  var NS = "http://www.w3.org/2000/svg";
+  var K = 54, R = 6, PAD = 9;
+
+  function el(name, attrs, text) {
+    var n = document.createElementNS(NS, name);
+    for (var k in attrs) n.setAttribute(k, attrs[k]);
+    if (text !== undefined) n.textContent = text;
+    return n;
+  }
+
+  // opts: {primary, primarySize, shifted, altgr, hold:{glyph,color,dots}, tap2:{glyph,toggle},
+  //        homing, led, macro, scale, annotate}
+  function cap(opts) {
+    var scale = opts.scale || 2;
+    var m = 3; // margin for stroke
+    var svg = el("svg", {
+      viewBox: (-m) + " " + (-m) + " " + (K + 2 * m) + " " + (K + 2 * m),
+      width: (K + 2 * m) * scale, height: (K + 2 * m) * scale,
+      "aria-label": opts.label || "keycap mockup", role: "img",
+    });
+    svg.appendChild(el("rect", { x: 0, y: 0, width: K, height: K, rx: R, fill: C.fill, stroke: C.stroke, "stroke-width": 2 }));
+    // bottom+right bevel accent (keyEdgeAccentPath)
+    svg.appendChild(el("path", {
+      d: "M " + K + " " + R + " L " + K + " " + (K - R) + " A " + R + " " + R + " 0 0 1 " + (K - R) + " " + K +
+         " L " + R + " " + K + " A " + R + " " + R + " 0 0 1 0 " + (K - R),
+      fill: "none", stroke: C.bevel, "stroke-width": 2.5, "stroke-linecap": "round",
+    }));
+    // layer indicator: corner tick painted over the top-right border arc —
+    // consumes zero interior space (replaces the earlier in-cap LED dot)
+    if (opts.led) svg.appendChild(el("path", {
+      d: "M " + (K - R - 7) + " 0 L " + (K - R) + " 0 A " + R + " " + R + " 0 0 1 " + K + " " + R + " L " + K + " " + (R + 7),
+      fill: "none", stroke: opts.led, "stroke-width": 2.5, "stroke-linecap": "round",
+    }));
+    if (opts.homing) svg.appendChild(el("rect", { x: K / 2 - 6, y: K - 7, width: 12, height: 2.5, rx: 1.25, fill: C.stroke }));
+
+    var mono = 'ui-monospace, Menlo, monospace';
+    function text(str, attrs) {
+      var a = { "font-family": mono, fill: C.legend };
+      for (var k in attrs) a[k] = attrs[k];
+      var t = el("text", a, str);
+      svg.appendChild(t);
+      return t;
+    }
+
+    if (opts.shifted) text(opts.shifted, { x: PAD, y: PAD, "font-size": 12, "dominant-baseline": "hanging" });
+    if (opts.altgr) text(opts.altgr, { x: K - PAD, y: K - PAD, "font-size": 12, "text-anchor": "end" });
+
+    var primaryEl = null;
+    if (opts.primary) {
+      primaryEl = text(opts.primary, {
+        x: PAD, y: K - PAD, "font-size": opts.primarySize || 18, "font-weight": 600,
+        fill: opts.primaryColor || C.legend,
+      });
+    }
+
+    // top-right behavior stack: hold row first, then tap-dance row
+    var rowY = PAD; // hanging baseline; corner tick sits on the border, so
+    var rightEdge = K - PAD; // the stack gets the full interior width
+    if (opts.hold) {
+      var h = text(opts.hold.glyph, {
+        x: rightEdge, y: rowY, "font-size": 10.5, "text-anchor": "end",
+        "dominant-baseline": "hanging", fill: opts.hold.color || C.legend,
+      });
+      queue(function () {
+        var b = h.getBBox();
+        svg.appendChild(el("rect", { x: b.x, y: b.y + b.height + 1.2, width: b.width, height: 1.6, rx: 0.8, fill: opts.hold.color || C.legend }));
+      });
+      rowY += 16;
+    }
+    // one row per tap count; dots = the count, glyph = what that count produces
+    (opts.taps || []).forEach(function (t) {
+      var g = "·".repeat(t.count || 2) + t.glyph + (t.toggle ? "◦" : "");
+      text(g, {
+        x: rightEdge, y: rowY, "font-size": 10.5,
+        "text-anchor": "end", "dominant-baseline": "hanging", fill: C.legend,
+      });
+      rowY += 14;
+    });
+
+    if (opts.macro && primaryEl) {
+      queue(function () {
+        var b = primaryEl.getBBox();
+        svg.appendChild(el("rect", {
+          x: b.x - 3.5, y: b.y - 2.5, width: b.width + 7, height: b.height + 5, rx: 4,
+          fill: "none", stroke: C.faint, "stroke-width": 1, "stroke-dasharray": "3 2.2",
+        }));
+      });
+    }
+    return svg;
+  }
+
+  var pending = [];
+  function queue(fn) { pending.push(fn); }
+  function flush() { pending.forEach(function (f) { f(); }); pending = []; }
+
+  function fig(parentId, svg, labelHtml) {
+    var f = document.createElement("figure");
+    f.className = "capfig"; f.style.margin = "0";
+    f.appendChild(svg);
+    var c = document.createElement("figcaption");
+    c.className = "caplabel"; c.innerHTML = labelHtml;
+    f.appendChild(c);
+    document.getElementById(parentId).appendChild(f);
+  }
+
+  // --- Vocabulary: one annotated cap carrying every device at once
+  var all = cap({
+    primary: "a", shifted: "A", altgr: "æ",
+    hold: { glyph: "Nav", color: C.nav }, taps: [{ count: 2, glyph: "⇪" }],
+    homing: true, led: C.base, scale: 2.6, label: "annotated keycap showing all legend slots",
+  });
+  fig("vocab-canvas", all, "every device at once<br>(no real key needs all of them)");
+  [
+    ["tap corners", cap({ primary: "a", shifted: "A", altgr: "æ", led: C.base, label: "tap corners only" })],
+    ["hold · underline", cap({ primary: "a", hold: { glyph: "ä" }, led: C.base, label: "hold slot with underline" })],
+    ["double-tap · ··", cap({ primary: "⇧", taps: [{ count: 2, glyph: "⇪" }], led: C.base, label: "double-tap stack" })],
+    ["physical · homing", cap({ primary: "f", homing: true, led: C.base, label: "homing bar" })],
+  ].forEach(function (pair) { fig("vocab-canvas", pair[1], pair[0]); });
+
+  // --- Scenario 1: homing
+  fig("homing-canvas", cap({ primary: "f", homing: true, led: C.base, scale: 2.2, label: "homing key f" }), "L-r2-c4 · renders on<br><b>every</b> layer");
+  fig("homing-canvas", cap({ primary: "j", homing: true, led: C.base, scale: 2.2, label: "homing key j" }), "R-r2-c1");
+  fig("homing-canvas", cap({ primary: "d", led: C.base, scale: 2.2, label: "plain key d for contrast" }), "neighbor, for contrast");
+
+  // --- Scenario 2: hold-tap
+  fig("holdtap-canvas", cap({ primary: "a", shifted: "A", hold: { glyph: "ä" }, led: C.base, scale: 2.4, label: "hold-tap: tap a, hold ä" }),
+    "hold-tap<br>tap a · hold ä<br><span style='color:var(--faint)'>⇧+hold Ä → tooltip</span>");
+  fig("holdtap-canvas", cap({ primary: "␣", primarySize: 16, hold: { glyph: "Nav", color: C.nav }, led: C.base, scale: 2.4, label: "layer-tap: tap space, hold Nav layer" }),
+    "layer-tap<br>tap ␣ · hold → <span style='color:var(--nav)'>Nav</span><br><span style='color:var(--faint)'>tint = layer color</span>");
+
+  // --- Scenario 3: tap dance variants
+  fig("tapdance-canvas", cap({ primary: "⇧", taps: [{ count: 2, glyph: "⇪" }], led: C.base, scale: 2.2, label: "double-tap shift gives caps lock" }),
+    "<b>&amp;kp CAPS</b><br>dedicated Caps Lock<br>keycode");
+  fig("tapdance-canvas", cap({ primary: "⇧", taps: [{ count: 2, glyph: "⇧", toggle: true }], led: C.base, scale: 2.2, label: "double-tap shift toggles shift" }),
+    "<b>&amp;kt LSHFT</b><br>shift-lock toggle<br>◦ = stays on");
+  fig("tapdance-canvas", cap({ primary: "⇧", taps: [{ count: 2, glyph: "⇪", toggle: true }], led: C.base, scale: 2.2, label: "double-tap shift starts caps word" }),
+    "<b>&amp;caps_word</b><br>auto-off at word end<br>(note in tooltip)");
+  fig("tapdance-canvas", cap({ primary: "⇧", taps: [{ count: 2, glyph: "⇪" }, { count: 3, glyph: "⇧", toggle: true }], led: C.base, scale: 2.2, label: "double and triple tap on one key" }),
+    "counts stack as rows<br>·· 2 taps → ⇪<br>··· 3 taps → ⇧◦");
+
+  // --- Scenario 4: macro
+  fig("macro-canvas", cap({ primary: "⌃C", primarySize: 14, macro: true, led: C.mouse, scale: 2.4, label: "J key runs copy macro on mouse layer" }),
+    "R-r2-c1 on <span style='color:var(--mouse)'>Mouse</span> layer<br>dashed chip = macro<br><span style='color:var(--faint)'>tooltip: Copy — hold Ctrl · tap C</span>");
+  fig("macro-canvas", cap({ primary: "j", led: C.base, scale: 2.4, label: "same key on base layer" }),
+    "same key, Base layer<br>plain j");
+
+  flush();
+})();
+</script>
