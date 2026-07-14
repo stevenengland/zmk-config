@@ -139,6 +139,39 @@ export function resolveTapDisplays(taps: readonly TapBinding[] | undefined): Tap
     }));
 }
 
+/** One row of the key detail tooltip's state matrix — a label and its value, plus an optional latch note. */
+export interface TooltipRow {
+  label: string;
+  value: string;
+  note?: string;
+}
+
+/**
+ * Resolves a key's full state matrix for the hover tooltip / editor detail
+ * view: one row per set slot (tap, Shift+tap, AltGr), shared by the live
+ * canvas tooltip so content never drifts from the schema.
+ */
+export function resolveTooltipRows(
+  legend: KeyLegend,
+  _macros: MacroRegistry,
+  layers: readonly Layer[],
+): TooltipRow[] {
+  const rows: TooltipRow[] = [];
+  if (legend.primary) rows.push({ label: "tap", value: legend.primary });
+  if (legend.shifted) rows.push({ label: "⇧ + tap", value: legend.shifted });
+  if (legend.altgr) rows.push({ label: "AltGr", value: legend.altgr });
+
+  const holdDisplay = resolveHoldDisplay(legend.hold, layers);
+  if (holdDisplay) rows.push({ label: "hold", value: holdDisplay.text });
+
+  const sortedTaps = legend.taps ? [...legend.taps].sort((a, b) => a.count - b.count) : [];
+  for (const tap of sortedTaps) {
+    rows.push({ label: `${tap.count}× tap`, value: tap.glyph });
+  }
+
+  return rows;
+}
+
 const LEGEND_SLOTS = ["primary", "shifted", "altgr", "color"] as const;
 
 /** Drop unset or empty-string slots so they never reach the persisted JSON. */
