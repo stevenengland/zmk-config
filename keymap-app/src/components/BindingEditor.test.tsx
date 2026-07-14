@@ -5,6 +5,7 @@ import type { HoldBinding } from "../model/schema";
 
 const handlers = {
   onSetHold: () => {},
+  onSetMacro: () => {},
   onError: () => {},
 };
 
@@ -93,13 +94,13 @@ describe("BindingEditor", () => {
     expect(screen.getByLabelText(/hold glyph/i)).toHaveValue("ö");
   });
 
-  it("presets the mode select to Glyph, with Layer selectable and Macro not yet selectable", () => {
+  it("presets the mode select to Glyph, with Layer and Macro both selectable", () => {
     renderEditor("L-r2-c1", { glyph: "ä" });
 
     const select = screen.getByLabelText(/binding mode/i) as HTMLSelectElement;
     expect(select.value).toBe("glyph");
     expect(screen.getByRole("option", { name: "Layer" })).not.toBeDisabled();
-    expect(screen.getByRole("option", { name: "Macro" })).toBeDisabled();
+    expect(screen.getByRole("option", { name: "Macro" })).not.toBeDisabled();
   });
 
   it("presets the mode select to Layer and the target layer when the key holds a layer reference", () => {
@@ -137,5 +138,43 @@ describe("BindingEditor", () => {
 
     expect(onSetHold).toHaveBeenLastCalledWith({ glyph: "ä", shifted: "Ä" });
     expect(screen.getByLabelText(/hold glyph/i)).toHaveValue("ä");
+  });
+
+  it("presets the mode select to Macro and the referenced name when the key holds a macro reference", () => {
+    renderEditor("L-r2-c1", undefined, { macro: "copy", macroNames: ["copy", "paste"] });
+
+    expect((screen.getByLabelText(/binding mode/i) as HTMLSelectElement).value).toBe("macro");
+    expect((screen.getByLabelText(/^macro$/i) as HTMLSelectElement).value).toBe("copy");
+  });
+
+  it("commits a macro reference when a macro is picked", () => {
+    const onSetMacro = vi.fn();
+    renderEditor("L-r2-c1", undefined, { onSetMacro, macro: "copy", macroNames: ["copy", "paste"] });
+
+    fireEvent.change(screen.getByLabelText(/^macro$/i), { target: { value: "paste" } });
+
+    expect(onSetMacro).toHaveBeenCalledWith("paste");
+  });
+
+  it("switches to Macro mode and commits the first available macro as the default reference", () => {
+    const onSetMacro = vi.fn();
+    renderEditor("L-r2-c1", undefined, { onSetMacro, macroNames: ["copy", "paste"] });
+
+    fireEvent.change(screen.getByLabelText(/binding mode/i), { target: { value: "macro" } });
+
+    expect(onSetMacro).toHaveBeenCalledWith("copy");
+    expect(screen.getByLabelText(/^macro$/i)).toBeInTheDocument();
+  });
+
+  it("switching to Macro mode commits a macro reference, restoring the prior glyph fields when switching back", () => {
+    const onSetHold = vi.fn();
+    const onSetMacro = vi.fn();
+    renderEditor("L-r2-c1", { glyph: "ä" }, { onSetHold, onSetMacro, macroNames: ["copy"] });
+
+    fireEvent.change(screen.getByLabelText(/binding mode/i), { target: { value: "macro" } });
+    expect(onSetMacro).toHaveBeenCalledWith("copy");
+
+    fireEvent.change(screen.getByLabelText(/binding mode/i), { target: { value: "glyph" } });
+    expect(onSetHold).toHaveBeenLastCalledWith({ glyph: "ä" });
   });
 });

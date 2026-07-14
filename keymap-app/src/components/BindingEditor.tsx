@@ -36,47 +36,66 @@ interface BindingEditorProps {
   keyId: string | null;
   hold?: HoldBinding;
   onSetHold: (hold: HoldBinding | undefined) => void;
+  /** Registry name this key's binding references; mutually exclusive with `hold`. */
+  macro?: string;
+  onSetMacro: (name: string | undefined) => void;
   onError: (message: string) => void;
   /** Layer mode's target picker — every layer in the document, in document order. */
   layerNames?: readonly string[];
+  /** Macro mode's target picker — every registered macro name, in registry order. */
+  macroNames?: readonly string[];
 }
 
-type Mode = "glyph" | "layer";
+type Mode = "glyph" | "layer" | "macro";
 
 interface Fields {
   glyph: string;
   shifted: string;
   layer: string;
+  macro: string;
 }
 
-function modeFromHold(hold?: HoldBinding): Mode {
+function modeFromBinding(hold: HoldBinding | undefined, macro: string | undefined): Mode {
+  if (macro) return "macro";
   return hold && isLayerHold(hold) ? "layer" : "glyph";
 }
 
-function fieldsFromHold(hold?: HoldBinding): Fields {
-  if (hold && isLayerHold(hold)) return { glyph: "", shifted: "", layer: hold.layer };
-  return { glyph: hold?.glyph ?? "", shifted: hold?.shifted ?? "", layer: "" };
+function fieldsFromBinding(hold: HoldBinding | undefined, macro: string | undefined): Fields {
+  if (macro) return { glyph: "", shifted: "", layer: "", macro };
+  if (hold && isLayerHold(hold)) return { glyph: "", shifted: "", layer: hold.layer, macro: "" };
+  return { glyph: hold?.glyph ?? "", shifted: hold?.shifted ?? "", layer: "", macro: "" };
 }
 
 /**
  * Shared binding editor for a key's "On hold" group: Glyph mode commits a
  * glyph (+ optional shifted variant), Layer mode commits a by-name layer
- * reference. Macro is previewed but not yet selectable (PRD #28, later slice).
+ * reference, Macro mode commits a by-name macro reference. The three modes
+ * are mutually exclusive — switching modes clears whichever of `hold`/`macro`
+ * the new mode doesn't own.
  */
-export function BindingEditor({ keyId, hold, onSetHold, onError, layerNames = [] }: BindingEditorProps) {
-  const [mode, setMode] = useState<Mode>(() => modeFromHold(hold));
-  const [fields, setFields] = useState<Fields>(() => fieldsFromHold(hold));
+export function BindingEditor({
+  keyId,
+  hold,
+  onSetHold,
+  macro,
+  onSetMacro,
+  onError,
+  layerNames = [],
+  macroNames = [],
+}: BindingEditorProps) {
+  const [mode, setMode] = useState<Mode>(() => modeFromBinding(hold, macro));
+  const [fields, setFields] = useState<Fields>(() => fieldsFromBinding(hold, macro));
 
   useEffect(() => {
-    setMode(modeFromHold(hold));
-    setFields(fieldsFromHold(hold));
-  }, [keyId, hold]);
+    setMode(modeFromBinding(hold, macro));
+    setFields(fieldsFromBinding(hold, macro));
+  }, [keyId, hold, macro]);
 
   const commit = (field: "glyph" | "shifted", raw: string) => {
     const result = convertLegendInput(raw);
     if (!result.ok) {
       onError(result.error);
-      setFields(fieldsFromHold(hold));
+      setFields(fieldsFromBinding(hold, macro));
       return;
     }
     const next = { ...fields, [field]: result.glyph };
@@ -93,11 +112,19 @@ export function BindingEditor({ keyId, hold, onSetHold, onError, layerNames = []
     onSetHold({ layer: name });
   };
 
+  const selectMacro = (name: string) => {
+    setFields((prev) => ({ ...prev, macro: name }));
+    onSetMacro(name);
+  };
+
   const changeMode = (next: Mode) => {
     setMode(next);
     if (next === "layer") {
       const target = fields.layer || layerNames[0];
       if (target) onSetHold({ layer: target });
+    } else if (next === "macro") {
+      const target = fields.macro || macroNames[0];
+      if (target) onSetMacro(target);
     } else {
       onSetHold(fields.glyph ? { glyph: fields.glyph, ...(fields.shifted ? { shifted: fields.shifted } : {}) } : undefined);
     }
@@ -115,9 +142,7 @@ export function BindingEditor({ keyId, hold, onSetHold, onError, layerNames = []
         >
           <option value="glyph">Glyph</option>
           <option value="layer">Layer</option>
-          <option value="macro" disabled>
-            Macro
-          </option>
+          <option value="macro">Macro</option>
         </select>
       </label>
       {mode === "layer" ? (
@@ -130,6 +155,22 @@ export function BindingEditor({ keyId, hold, onSetHold, onError, layerNames = []
             style={field}
           >
             {layerNames.map((name) => (
+              <option key={name} value={name}>
+                {name}
+              </option>
+            ))}
+          </select>
+        </label>
+      ) : mode === "macro" ? (
+        <label style={label}>
+          Macro
+          <select
+            aria-label="Macro"
+            value={fields.macro}
+            onChange={(e) => selectMacro(e.target.value)}
+            style={field}
+          >
+            {macroNames.map((name) => (
               <option key={name} value={name}>
                 {name}
               </option>
