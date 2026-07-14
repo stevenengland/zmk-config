@@ -66,6 +66,21 @@ describe("App", () => {
     expect(legend).toContain("⌘");
   });
 
+  it("creates a macro in the Macros manager, assigns it to a key, and renders the glyph in a dashed chip on the board", () => {
+    const { container } = render(<App />);
+
+    fireEvent.change(screen.getByLabelText(/new macro name/i), { target: { value: "copy" } });
+    fireEvent.change(screen.getByLabelText(/new macro glyph/i), { target: { value: "U+2303" } });
+    fireEvent.click(screen.getByRole("button", { name: /add macro/i }));
+
+    fireEvent.click(container.querySelector('[data-key-id="R-r2-c1"]')!);
+    fireEvent.change(screen.getByLabelText(/binding mode/i), { target: { value: "macro" } });
+
+    const legend = Array.from(container.querySelectorAll("text")).map((t) => t.textContent);
+    expect(legend).toContain("⌃");
+    expect(container.querySelector('[data-key-id="R-r2-c1"] rect[stroke-dasharray]')).not.toBeNull();
+  });
+
   it("clicking a key in the overview selects it, switches the active layer to its owner, keeps overview docked, and focuses the field", () => {
     render(<App />);
     fireEvent.click(screen.getByRole("button", { name: /add layer/i }));

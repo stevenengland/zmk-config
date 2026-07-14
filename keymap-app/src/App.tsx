@@ -149,6 +149,7 @@ export function App() {
                     const index = state.document.layers.findIndex((l) => l.name === name);
                     if (index >= 0) dispatch({ type: "select", index });
                   }}
+                  macros={state.document.macros ?? {}}
                 />
               </div>
             </div>
@@ -178,6 +179,14 @@ export function App() {
               if (!selectedKeyId) return;
               dispatch({ type: "set-hold", keyId: selectedKeyId, hold });
             }}
+            onSetMacro={(macro) => {
+              if (!selectedKeyId) return;
+              dispatch({ type: "set-macro", keyId: selectedKeyId, macro });
+            }}
+            macros={state.document.macros ?? {}}
+            onAddMacro={(name, def) => dispatch({ type: "add-macro", name, def })}
+            onUpdateMacro={(name, def) => dispatch({ type: "update-macro", name, def })}
+            onDeleteMacro={(name) => dispatch({ type: "delete-macro", name })}
           />
         </div>
         <StatusBar message={status} />

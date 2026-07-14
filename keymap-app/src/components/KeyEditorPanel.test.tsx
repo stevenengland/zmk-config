@@ -14,6 +14,11 @@ const handlers = {
   homing: false,
   onToggleHoming: () => {},
   onSetHold: () => {},
+  onSetMacro: () => {},
+  macros: {},
+  onAddMacro: () => {},
+  onUpdateMacro: () => {},
+  onDeleteMacro: () => {},
 };
 
 function renderPanel(keyId: string | null, legend: KeyLegend = {}, overrides = {}) {
@@ -144,6 +149,59 @@ describe("KeyEditorPanel", () => {
 
     expect((screen.getByLabelText(/binding mode/i) as HTMLSelectElement).value).toBe("layer");
     expect((screen.getByLabelText(/target layer/i) as HTMLSelectElement).value).toBe("Nav");
+  });
+
+  it("forwards the registry's names to the binding editor's Macro-mode picker, bound to the key's macro reference", () => {
+    renderPanel(
+      "R-r2-c1",
+      { macro: "copy" },
+      { macros: { copy: { glyph: "⌃C", label: "Copy", steps: "" }, paste: { glyph: "⌃V", label: "Paste", steps: "" } } },
+    );
+
+    expect((screen.getByLabelText(/binding mode/i) as HTMLSelectElement).value).toBe("macro");
+    expect((screen.getByLabelText(/^macro$/i) as HTMLSelectElement).value).toBe("copy");
+  });
+
+  it("commits a macro reference via onSetMacro", () => {
+    const onSetMacro = vi.fn();
+    renderPanel("R-r2-c1", {}, { onSetMacro, macros: { copy: { glyph: "⌃C", label: "Copy", steps: "" } } });
+
+    fireEvent.change(screen.getByLabelText(/binding mode/i), { target: { value: "macro" } });
+
+    expect(onSetMacro).toHaveBeenCalledWith("copy");
+  });
+
+  it("shows the Macros manager with every registry entry, regardless of the selected key", () => {
+    renderPanel("L-r0-c0", {}, { macros: { copy: { glyph: "⌃C", label: "Copy", steps: "" } } });
+
+    expect(screen.getAllByText(/macros/i).length).toBeGreaterThan(0);
+    expect(screen.getByLabelText(/copy glyph/i)).toHaveValue("⌃C");
+  });
+
+  it("shows the Macros manager even when no key is selected", () => {
+    renderPanel(null, {}, { macros: { copy: { glyph: "⌃C", label: "Copy", steps: "" } } });
+
+    expect(screen.getByLabelText(/copy glyph/i)).toHaveValue("⌃C");
+  });
+
+  it("adds a macro via onAddMacro", () => {
+    const onAddMacro = vi.fn();
+    renderPanel(null, {}, { onAddMacro });
+
+    fireEvent.change(screen.getByLabelText(/new macro name/i), { target: { value: "copy" } });
+    fireEvent.change(screen.getByLabelText(/new macro glyph/i), { target: { value: "⌃C" } });
+    fireEvent.click(screen.getByRole("button", { name: /add macro/i }));
+
+    expect(onAddMacro).toHaveBeenCalledWith("copy", { glyph: "⌃C", label: "", steps: "" });
+  });
+
+  it("deletes a macro via onDeleteMacro", () => {
+    const onDeleteMacro = vi.fn();
+    renderPanel(null, {}, { onDeleteMacro, macros: { copy: { glyph: "⌃C", label: "Copy", steps: "" } } });
+
+    fireEvent.click(screen.getByLabelText(/delete copy/i));
+
+    expect(onDeleteMacro).toHaveBeenCalledWith("copy");
   });
 
   it("recolors the primary legend", () => {
