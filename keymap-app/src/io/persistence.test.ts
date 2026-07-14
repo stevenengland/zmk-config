@@ -1,9 +1,9 @@
 import { afterEach, beforeEach, vi } from "vitest";
-import type { KeymapDocument } from "../model/schema";
+import { SCHEMA_VERSION, type KeymapDocument } from "../model/schema";
 import { hasFileSystemAccess, openDocument, saveDocument } from "./persistence";
 
 const DOC: KeymapDocument = {
-  schemaVersion: 1,
+  schemaVersion: SCHEMA_VERSION,
   layers: [{ name: "Base", color: "#00e5ff", keys: { "L-r0-c0": { primary: "Q" } } }],
 };
 

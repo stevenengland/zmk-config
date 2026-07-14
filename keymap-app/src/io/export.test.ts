@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { boardGeometry } from "../model/geometry";
-import type { KeymapDocument, Layer } from "../model/schema";
-import { boxOf, layerTickPath } from "../model/renderStyle";
+import { SCHEMA_VERSION, type KeymapDocument, type Layer } from "../model/schema";
+import { boxOf, homingBarRect, KEY_STROKE, layerTickPath } from "../model/renderStyle";
 import { exportAllLayersSvg, exportJson, exportLayerSvg, layerToSvg } from "./export";
 
 vi.mock("../model/schema", async (importOriginal) => {
@@ -18,7 +18,7 @@ const LAYER: Layer = {
 };
 
 const DOC: KeymapDocument = {
-  schemaVersion: 1,
+  schemaVersion: SCHEMA_VERSION,
   layers: [LAYER, { name: "Nav", color: "#fec931", keys: {} }],
 };
 
@@ -54,6 +54,24 @@ describe("layerToSvg", () => {
     const box = boxOf(boardGeometry.find((e) => e.id === "L-r0-c0")!);
 
     expect(svg).toContain(`d="${layerTickPath(box)}" fill="none" stroke="${LAYER.color}"`);
+  });
+
+  it("renders the homing bar identically to the canvas for a homed key", () => {
+    const svg = layerToSvg(LAYER, ["L-r0-c0"]);
+    const box = boxOf(boardGeometry.find((e) => e.id === "L-r0-c0")!);
+    const r = homingBarRect(box);
+
+    expect(svg).toContain(
+      `<rect x="${r.x}" y="${r.y}" width="${r.width}" height="${r.height}" rx="${r.rx}" fill="${KEY_STROKE}" />`,
+    );
+  });
+
+  it("renders no homing bar for a key not in the homing set", () => {
+    const svg = layerToSvg(LAYER, ["R-r2-c1"]);
+    const box = boxOf(boardGeometry.find((e) => e.id === "L-r0-c0")!);
+    const r = homingBarRect(box);
+
+    expect(svg).not.toContain(`x="${r.x}" y="${r.y}" width="${r.width}"`);
   });
 });
 

@@ -120,6 +120,8 @@ interface LayerOverviewProps {
   activeIndex: number;
   selectedKeyId?: string | null;
   onPickKey?: (layerIndex: number, keyId: string) => void;
+  /** Board-wide homing key ids — same set rendered on every layer's block. */
+  homingKeys?: ReadonlySet<string>;
 }
 
 /**
@@ -133,6 +135,7 @@ export function LayerOverview({
   activeIndex,
   selectedKeyId = null,
   onPickKey,
+  homingKeys,
 }: LayerOverviewProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const activeBlockRef = useRef<HTMLDivElement>(null);
@@ -235,6 +238,7 @@ export function LayerOverview({
                   selectedKeyId={active ? selectedKeyId : null}
                   onSelectKey={(keyId) => onPickKey?.(index, keyId)}
                   layerColor={layer.color}
+                  homingKeys={homingKeys}
                 />
               </div>
             );

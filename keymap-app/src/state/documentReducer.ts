@@ -39,6 +39,7 @@ export type DocumentAction =
   | { type: "select-key"; keyId: string | null }
   | { type: "set-slot"; keyId: string; slot: LegendSlot; value: string }
   | { type: "set-key-color"; keyId: string; color: string }
+  | { type: "toggle-homing"; keyId: string }
   | { type: "set-view"; mode: ViewMode };
 
 export function createInitialState(): DocumentState {
@@ -135,6 +136,18 @@ export function documentReducer(state: DocumentState, action: DocumentAction): D
         else delete next.color;
         return next;
       });
+    case "toggle-homing": {
+      const current = state.document.board?.homing ?? [];
+      const homing = current.includes(action.keyId)
+        ? current.filter((id) => id !== action.keyId)
+        : [...current, action.keyId];
+      const document: KeymapDocument = {
+        schemaVersion: state.document.schemaVersion,
+        layers: state.document.layers,
+        ...(homing.length ? { board: { homing } } : {}),
+      };
+      return { ...state, document };
+    }
     case "set-view":
       return { ...state, viewMode: action.mode };
   }

@@ -1,9 +1,9 @@
-import { parse, serialize, type KeymapDocument } from "./schema";
+import { parse, serialize, SCHEMA_VERSION, type KeymapDocument } from "./schema";
 
 describe("schema serialize/parse", () => {
   it("round-trips a document, omitting unset legend slots", () => {
     const doc: KeymapDocument = {
-      schemaVersion: 1,
+      schemaVersion: SCHEMA_VERSION,
       layers: [
         {
           name: "Base",
@@ -25,7 +25,7 @@ describe("schema serialize/parse", () => {
 
   it("drops empty-string slots instead of persisting them", () => {
     const doc: KeymapDocument = {
-      schemaVersion: 1,
+      schemaVersion: SCHEMA_VERSION,
       layers: [{ name: "Base", color: "#00e5ff", keys: { "L-r0-c0": { primary: "Q", shifted: "" } } }],
     };
 
@@ -35,9 +35,74 @@ describe("schema serialize/parse", () => {
   });
 
   it("rejects an unknown schemaVersion with an error", () => {
-    const json = JSON.stringify({ schemaVersion: 2, layers: [] });
+    const json = JSON.stringify({ schemaVersion: 3, layers: [] });
 
     expect(() => parse(json)).toThrow(/schemaVersion/);
+  });
+
+  it("upgrades a schemaVersion 1 document in memory, preserving all existing legends", () => {
+    const v1Json = JSON.stringify({
+      schemaVersion: 1,
+      layers: [
+        {
+          name: "Base",
+          color: "#00e5ff",
+          keys: { "L-r0-c0": { primary: "Q", shifted: "!", color: "#ff0000" } },
+        },
+      ],
+    });
+
+    const parsed = parse(v1Json);
+
+    expect(parsed.schemaVersion).toBe(SCHEMA_VERSION);
+    expect(parsed.layers[0].keys["L-r0-c0"]).toEqual({
+      primary: "Q",
+      shifted: "!",
+      color: "#ff0000",
+    });
+  });
+
+  it("serializer always emits the current schemaVersion", () => {
+    const json = serialize({
+      schemaVersion: SCHEMA_VERSION,
+      layers: [{ name: "Base", color: "#00e5ff", keys: {} }],
+    });
+
+    expect(JSON.parse(json).schemaVersion).toBe(SCHEMA_VERSION);
+  });
+
+  it("round-trips board.homing", () => {
+    const doc: KeymapDocument = {
+      schemaVersion: SCHEMA_VERSION,
+      board: { homing: ["L-r2-c4", "R-r2-c1"] },
+      layers: [{ name: "Base", color: "#00e5ff", keys: {} }],
+    };
+
+    const parsed = parse(serialize(doc));
+
+    expect(parsed.board).toEqual({ homing: ["L-r2-c4", "R-r2-c1"] });
+  });
+
+  it("prunes an empty board section from the persisted JSON", () => {
+    const doc: KeymapDocument = {
+      schemaVersion: SCHEMA_VERSION,
+      board: { homing: [] },
+      layers: [{ name: "Base", color: "#00e5ff", keys: {} }],
+    };
+
+    const json = serialize(doc);
+
+    expect(json).not.toContain("board");
+    expect(parse(json).board).toBeUndefined();
+  });
+
+  it("omits `board` entirely when the document never had one", () => {
+    const json = serialize({
+      schemaVersion: SCHEMA_VERSION,
+      layers: [{ name: "Base", color: "#00e5ff", keys: {} }],
+    });
+
+    expect(json).not.toContain("board");
   });
 
   it("rejects a document missing `layers` with an error", () => {

@@ -2,6 +2,7 @@ import { render, screen, fireEvent, createEvent } from "@testing-library/react";
 import { vi } from "vitest";
 import { LayerOverview } from "./LayerOverview";
 import { anchoredScroll } from "./layerOverviewZoom";
+import { KEY_STROKE } from "../model/renderStyle";
 import type { Layer } from "../model/schema";
 
 const layers: Layer[] = [
@@ -212,6 +213,18 @@ describe("LayerOverview", () => {
         (p) => p.getAttribute("stroke") === layer.color,
       );
       expect(tick).toBeTruthy();
+    });
+  });
+
+  it("renders the board-wide homing bar on every layer's block", () => {
+    render(
+      <LayerOverview layers={layers} activeIndex={0} homingKeys={new Set(["L-r0-c0"])} />,
+    );
+    const items = screen.getAllByRole("listitem");
+
+    items.forEach((item) => {
+      const keyGroup = item.querySelector('[data-key-id="L-r0-c0"]')!;
+      expect(keyGroup.querySelector(`rect[fill="${KEY_STROKE}"]`)).toBeTruthy();
     });
   });
 });

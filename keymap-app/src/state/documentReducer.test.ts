@@ -4,7 +4,7 @@ import {
   documentHistoryReducer,
   documentReducer,
 } from "./documentReducer";
-import { serialize } from "../model/schema";
+import { SCHEMA_VERSION, serialize } from "../model/schema";
 
 describe("documentReducer", () => {
   it("boots with a single empty default layer that is active", () => {
@@ -24,7 +24,7 @@ describe("documentReducer", () => {
     const loaded = documentReducer(dirty, {
       type: "load",
       document: {
-        schemaVersion: 1,
+        schemaVersion: SCHEMA_VERSION,
         layers: [{ name: "Imported", color: "#fec931", keys: { "L-r0-c0": { primary: "A" } } }],
       },
     });
@@ -127,7 +127,7 @@ describe("documentReducer", () => {
 
     const loaded = documentReducer(overview, {
       type: "load",
-      document: { schemaVersion: 1, layers: [{ name: "Imported", color: "#fec931", keys: {} }] },
+      document: { schemaVersion: SCHEMA_VERSION, layers: [{ name: "Imported", color: "#fec931", keys: {} }] },
     });
 
     expect(loaded.viewMode).toBe("edit");
@@ -205,6 +205,32 @@ describe("documentReducer", () => {
     expect(state.document.layers[0].keys["L-r0-c0"]).toBeUndefined();
   });
 
+  it("marks a key homing on toggle, board-wide", () => {
+    const state = documentReducer(createInitialState(), { type: "toggle-homing", keyId: "L-r2-c4" });
+
+    expect(state.document.board).toEqual({ homing: ["L-r2-c4"] });
+  });
+
+  it("unmarks a homing key on a second toggle and prunes the empty board section", () => {
+    const marked = documentReducer(createInitialState(), { type: "toggle-homing", keyId: "L-r2-c4" });
+
+    const state = documentReducer(marked, { type: "toggle-homing", keyId: "L-r2-c4" });
+
+    expect(state.document.board).toBeUndefined();
+    expect(JSON.parse(serialize(state.document))).not.toHaveProperty("board");
+  });
+
+  it("keeps other homing keys when unmarking one of several", () => {
+    const twoMarked = documentReducer(
+      documentReducer(createInitialState(), { type: "toggle-homing", keyId: "L-r2-c4" }),
+      { type: "toggle-homing", keyId: "R-r2-c1" },
+    );
+
+    const state = documentReducer(twoMarked, { type: "toggle-homing", keyId: "L-r2-c4" });
+
+    expect(state.document.board).toEqual({ homing: ["R-r2-c1"] });
+  });
+
   it("edits legends only on the active layer", () => {
     const two = documentReducer(createInitialState(), { type: "add", name: "L2", color: "#fff" });
 
@@ -275,7 +301,7 @@ describe("documentHistoryReducer", () => {
 
     const loaded = documentHistoryReducer(renamed, {
       type: "load",
-      document: { schemaVersion: 1, layers: [{ name: "Imported", color: "#fec931", keys: {} }] },
+      document: { schemaVersion: SCHEMA_VERSION, layers: [{ name: "Imported", color: "#fec931", keys: {} }] },
     });
 
     expect(loaded.past).toHaveLength(0);
