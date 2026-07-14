@@ -24,6 +24,29 @@ describe("KeyboardCanvas", () => {
     expect(screen.queryByRole("tooltip")).toBeNull();
   });
 
+  it("shows no tooltip for a key with no legend", () => {
+    const { container } = render(<KeyboardCanvas legends={{}} />);
+    const key = container.querySelector('[data-key-id="L-r2-c1"]')!;
+
+    fireEvent.mouseOver(key);
+
+    expect(screen.queryByRole("tooltip")).toBeNull();
+  });
+
+  it("still selects a key on click while its tooltip is showing", () => {
+    const onSelectKey = vi.fn();
+    const { container } = render(
+      <KeyboardCanvas legends={{ "L-r2-c1": { primary: "a" } }} onSelectKey={onSelectKey} />,
+    );
+    const key = container.querySelector('[data-key-id="L-r2-c1"]')!;
+
+    fireEvent.mouseOver(key);
+    expect(screen.getByRole("tooltip")).toBeInTheDocument();
+    fireEvent.click(key);
+
+    expect(onSelectKey).toHaveBeenCalledWith("L-r2-c1");
+  });
+
   it("rotates the angled thumb-cluster keys", () => {
     const { container } = render(<KeyboardCanvas />);
     const rotated = Array.from(
