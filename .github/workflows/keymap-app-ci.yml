@@ -4,14 +4,14 @@ on:
   pull_request:
     paths:
       - "keymap-app/**"
-      - ".github/workflows/keymap-app.yml"
+      - ".github/workflows/keymap-app-ci.yml"
 
 defaults:
   run:
     working-directory: keymap-app
 
 jobs:
-  build:
+  verify:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
