@@ -162,7 +162,12 @@ export function resolveTooltipRows(
   if (legend.altgr) rows.push({ label: "AltGr", value: legend.altgr });
 
   const holdDisplay = resolveHoldDisplay(legend.hold, layers);
-  if (holdDisplay) rows.push({ label: "hold", value: holdDisplay.text });
+  if (holdDisplay) {
+    rows.push({ label: "hold", value: holdDisplay.text });
+    if (legend.hold && !isLayerHold(legend.hold) && legend.hold.shifted) {
+      rows.push({ label: "⇧ + hold", value: legend.hold.shifted });
+    }
+  }
 
   const sortedTaps = legend.taps ? [...legend.taps].sort((a, b) => a.count - b.count) : [];
   for (const tap of sortedTaps) {

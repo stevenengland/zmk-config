@@ -320,6 +320,22 @@ describe("resolveTooltipRows", () => {
     expect(rows).toEqual([{ label: "hold", value: "Nav" }]);
   });
 
+  it("shows a Shift+hold row when the hold's glyph has a shifted variant", () => {
+    const rows = resolveTooltipRows({ hold: { glyph: "ä", shifted: "Ä" } }, {}, []);
+
+    expect(rows).toEqual([
+      { label: "hold", value: "ä" },
+      { label: "⇧ + hold", value: "Ä" },
+    ]);
+  });
+
+  it("does not show a Shift+hold row for a layer-tap hold", () => {
+    const layers = [{ name: "Nav", color: "#fec931", keys: {} }];
+    const rows = resolveTooltipRows({ hold: { layer: "Nav" } }, {}, layers);
+
+    expect(rows).toEqual([{ label: "hold", value: "Nav" }]);
+  });
+
   it("adds one row per tap-dance count, ascending", () => {
     const rows = resolveTooltipRows(
       { taps: [{ count: 3, glyph: "⇧" }, { count: 2, glyph: "⇪" }] },
