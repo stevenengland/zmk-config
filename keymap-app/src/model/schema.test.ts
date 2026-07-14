@@ -1,4 +1,4 @@
-import { parse, serialize, SCHEMA_VERSION, type KeymapDocument } from "./schema";
+import { parse, resolveTapDisplays, serialize, SCHEMA_VERSION, type KeymapDocument } from "./schema";
 
 describe("schema serialize/parse", () => {
   it("round-trips a document, omitting unset legend slots", () => {
@@ -211,5 +211,74 @@ describe("schema serialize/parse", () => {
 
     expect(json).not.toContain("macros");
     expect(parse(json).macros).toBeUndefined();
+  });
+
+  it("round-trips a tap-dance row", () => {
+    const doc: KeymapDocument = {
+      schemaVersion: SCHEMA_VERSION,
+      layers: [
+        {
+          name: "Base",
+          color: "#00e5ff",
+          keys: { "L-r2-c1": { primary: "⇧", taps: [{ count: 2, glyph: "⇪" }] } },
+        },
+      ],
+    };
+
+    const parsed = parse(serialize(doc));
+
+    expect(parsed.layers[0].keys["L-r2-c1"].taps).toEqual([{ count: 2, glyph: "⇪" }]);
+  });
+
+  it("round-trips a tap-dance row's toggle flag", () => {
+    const doc: KeymapDocument = {
+      schemaVersion: SCHEMA_VERSION,
+      layers: [
+        {
+          name: "Base",
+          color: "#00e5ff",
+          keys: { "L-r2-c1": { primary: "⇧", taps: [{ count: 2, glyph: "⇧", toggle: true }] } },
+        },
+      ],
+    };
+
+    const parsed = parse(serialize(doc));
+
+    expect(parsed.layers[0].keys["L-r2-c1"].taps).toEqual([{ count: 2, glyph: "⇧", toggle: true }]);
+  });
+
+  it("prunes the taps array from the persisted JSON once it's empty", () => {
+    const doc: KeymapDocument = {
+      schemaVersion: SCHEMA_VERSION,
+      layers: [{ name: "Base", color: "#00e5ff", keys: { "L-r2-c1": { primary: "⇧", taps: [] } } }],
+    };
+
+    const json = serialize(doc);
+
+    expect(json).not.toContain("taps");
+    expect(parse(json).layers[0].keys["L-r2-c1"].taps).toBeUndefined();
+  });
+});
+
+describe("resolveTapDisplays", () => {
+  it("prefixes the glyph with `count` middots", () => {
+    expect(resolveTapDisplays([{ count: 2, glyph: "⇪" }])).toEqual([{ text: "··⇪" }]);
+  });
+
+  it("orders multiple rows ascending by count", () => {
+    const displays = resolveTapDisplays([
+      { count: 3, glyph: "⇧" },
+      { count: 2, glyph: "⇪" },
+    ]);
+
+    expect(displays).toEqual([{ text: "··⇪" }, { text: "···⇧" }]);
+  });
+
+  it("suffixes a toggle row with the hollow ring", () => {
+    expect(resolveTapDisplays([{ count: 2, glyph: "⇧", toggle: true }])).toEqual([{ text: "··⇧◦" }]);
+  });
+
+  it("returns an empty list for no taps", () => {
+    expect(resolveTapDisplays(undefined)).toEqual([]);
   });
 });

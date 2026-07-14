@@ -2,10 +2,12 @@ import type { BoardElement } from "../model/geometry";
 import {
   resolveHoldDisplay,
   resolveMacroDisplay,
+  resolveTapDisplays,
   type HoldDisplay,
   type KeyLegend,
   type Layer,
   type MacroRegistry,
+  type TapDisplay,
 } from "../model/schema";
 import {
   boxOf,
@@ -30,6 +32,8 @@ import {
   PAD,
   PRIMARY_SIZE,
   SUB_SIZE,
+  TAP_SIZE,
+  tapRowY,
 } from "../model/renderStyle";
 
 // Active state uses the "Engineering Chic" primary teal (docs/design/stitch.md).
@@ -154,6 +158,28 @@ function HoldRow({
   );
 }
 
+/** Tap-dance rows: top-right behavior stack, below any hold row — one row per tap count, ascending. */
+function TapRows({ taps, box, hasHold }: { taps: readonly TapDisplay[]; box: Box; hasHold: boolean }) {
+  return (
+    <>
+      {taps.map((tap, index) => (
+        <text
+          key={index}
+          x={box.right - PAD}
+          y={tapRowY(box, index, hasHold)}
+          textAnchor="end"
+          dominantBaseline="hanging"
+          fontFamily={LEGEND_FONT}
+          fontSize={TAP_SIZE}
+          fill={LEGEND_COLOR}
+        >
+          {tap.text}
+        </text>
+      ))}
+    </>
+  );
+}
+
 /**
  * Renders one board element as an SVG group with its corner legends. Clicking
  * selects it; the selected element is highlighted with the primary teal.
@@ -210,6 +236,7 @@ export function Keycap({
   const isKey = element.kind === "key";
   const holdDisplay = isKey ? resolveHoldDisplay(legend?.hold, layers) : undefined;
   const macroDisplay = isKey ? resolveMacroDisplay(legend?.macro, macros) : undefined;
+  const tapDisplays = isKey ? resolveTapDisplays(legend?.taps) : [];
 
   return (
     <g
@@ -243,6 +270,7 @@ export function Keycap({
       ) : null}
       {isKey && homing ? <rect {...homingBarRect(box)} fill={KEY_STROKE} /> : null}
       {holdDisplay ? <HoldRow display={holdDisplay} box={box} onJumpToLayer={onJumpToLayer} /> : null}
+      {tapDisplays.length ? <TapRows taps={tapDisplays} box={box} hasHold={Boolean(holdDisplay)} /> : null}
       {legend ? <Legends legend={legend} box={box} macroGlyph={macroDisplay?.glyph} /> : null}
     </g>
   );

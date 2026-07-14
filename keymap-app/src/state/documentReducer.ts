@@ -7,6 +7,7 @@ import {
   type Layer,
   type MacroDef,
   type MacroRegistry,
+  type TapBinding,
 } from "../model/schema";
 import {
   apply,
@@ -45,6 +46,9 @@ export type DocumentAction =
   | { type: "set-key-color"; keyId: string; color: string }
   | { type: "set-hold"; keyId: string; hold: HoldBinding | undefined }
   | { type: "set-macro"; keyId: string; macro: string | undefined }
+  | { type: "add-tap"; keyId: string }
+  | { type: "update-tap"; keyId: string; index: number; tap: TapBinding }
+  | { type: "delete-tap"; keyId: string; index: number }
   | { type: "add-macro"; name: string; def: MacroDef }
   | { type: "update-macro"; name: string; def: MacroDef }
   | { type: "delete-macro"; name: string }
@@ -82,7 +86,12 @@ function hasVisibleHold(hold: HoldBinding | undefined): boolean {
 /** A legend with no glyph slots renders nothing, even if `color` is set. */
 function hasVisibleContent(legend: KeyLegend): boolean {
   return Boolean(
-    legend.primary || legend.shifted || legend.altgr || hasVisibleHold(legend.hold) || legend.macro,
+    legend.primary ||
+      legend.shifted ||
+      legend.altgr ||
+      hasVisibleHold(legend.hold) ||
+      legend.macro ||
+      legend.taps?.length,
   );
 }
 
@@ -236,6 +245,24 @@ export function documentReducer(state: DocumentState, action: DocumentAction): D
         } else {
           delete next.macro;
         }
+        return next;
+      });
+    case "add-tap":
+      return updateActiveKey(state, action.keyId, (legend) => ({
+        ...legend,
+        taps: [...(legend.taps ?? []), { count: 2, glyph: "" }],
+      }));
+    case "update-tap":
+      return updateActiveKey(state, action.keyId, (legend) => ({
+        ...legend,
+        taps: (legend.taps ?? []).map((tap, i) => (i === action.index ? action.tap : tap)),
+      }));
+    case "delete-tap":
+      return updateActiveKey(state, action.keyId, (legend) => {
+        const taps = (legend.taps ?? []).filter((_, i) => i !== action.index);
+        const next = { ...legend };
+        if (taps.length) next.taps = taps;
+        else delete next.taps;
         return next;
       });
     case "add-macro":

@@ -81,6 +81,35 @@ describe("App", () => {
     expect(container.querySelector('[data-key-id="R-r2-c1"] rect[stroke-dasharray]')).not.toBeNull();
   });
 
+  it("adds a tap-dance row on a selected key and renders the dot-prefixed glyph on the board", () => {
+    const { container } = render(<App />);
+
+    fireEvent.click(container.querySelector('[data-key-id="L-r2-c1"]')!);
+    fireEvent.click(screen.getByRole("button", { name: /add tap row/i }));
+
+    const glyphInput = screen.getByLabelText(/tap row 1 glyph/i);
+    fireEvent.change(glyphInput, { target: { value: "U+2328" } });
+    fireEvent.blur(glyphInput);
+
+    const legend = Array.from(container.querySelectorAll("text")).map((t) => t.textContent);
+    expect(legend).toContain("··⌨");
+  });
+
+  it("deletes a tap-dance row via its delete control and drops it from the board", () => {
+    const { container } = render(<App />);
+
+    fireEvent.click(container.querySelector('[data-key-id="L-r2-c1"]')!);
+    fireEvent.click(screen.getByRole("button", { name: /add tap row/i }));
+    const glyphInput = screen.getByLabelText(/tap row 1 glyph/i);
+    fireEvent.change(glyphInput, { target: { value: "U+2328" } });
+    fireEvent.blur(glyphInput);
+
+    fireEvent.click(screen.getByLabelText(/delete tap row 1/i));
+
+    const legend = Array.from(container.querySelectorAll("text")).map((t) => t.textContent);
+    expect(legend).not.toContain("··⌨");
+  });
+
   it("clicking a key in the overview selects it, switches the active layer to its owner, keeps overview docked, and focuses the field", () => {
     render(<App />);
     fireEvent.click(screen.getByRole("button", { name: /add layer/i }));

@@ -183,6 +183,18 @@ export function App() {
               if (!selectedKeyId) return;
               dispatch({ type: "set-macro", keyId: selectedKeyId, macro });
             }}
+            onAddTap={() => {
+              if (!selectedKeyId) return;
+              dispatch({ type: "add-tap", keyId: selectedKeyId });
+            }}
+            onUpdateTap={(index, tap) => {
+              if (!selectedKeyId) return;
+              dispatch({ type: "update-tap", keyId: selectedKeyId, index, tap });
+            }}
+            onDeleteTap={(index) => {
+              if (!selectedKeyId) return;
+              dispatch({ type: "delete-tap", keyId: selectedKeyId, index });
+            }}
             macros={state.document.macros ?? {}}
             onAddMacro={(name, def) => dispatch({ type: "add-macro", name, def })}
             onUpdateMacro={(name, def) => dispatch({ type: "update-macro", name, def })}

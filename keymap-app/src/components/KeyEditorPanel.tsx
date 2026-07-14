@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState, type CSSProperties } from "react";
-import type { HoldBinding, KeyLegend, MacroDef, MacroRegistry } from "../model/schema";
+import type { HoldBinding, KeyLegend, MacroDef, MacroRegistry, TapBinding } from "../model/schema";
 import type { LegendSlot } from "../state/documentReducer";
 import { convertLegendInput } from "../model/codepoint";
 import { boardGeometry, describeElementId } from "../model/geometry";
 import { BindingEditor } from "./BindingEditor";
 import { MacroManager } from "./MacroManager";
 import { SymbolPicker } from "./SymbolPicker";
+import { TapDanceList } from "./TapDanceList";
 
 // Colors drawn from the "Engineering Chic" colorset (docs/design/stitch.md).
 const SURFACE = "#131313";
@@ -42,6 +43,9 @@ interface KeyEditorPanelProps {
   onToggleHoming: () => void;
   onSetHold: (hold: HoldBinding | undefined) => void;
   onSetMacro: (name: string | undefined) => void;
+  onAddTap: () => void;
+  onUpdateTap: (index: number, tap: TapBinding) => void;
+  onDeleteTap: (index: number) => void;
   /** Layer count, surfaced in the empty state so the idle panel still orients. */
   layerCount?: number;
   /** Every layer's name, forwarded to the binding editor's Layer-mode picker. */
@@ -114,6 +118,9 @@ export function KeyEditorPanel({
   onToggleHoming,
   onSetHold,
   onSetMacro,
+  onAddTap,
+  onUpdateTap,
+  onDeleteTap,
   layerCount = 1,
   layerNames = [],
   macros,
@@ -240,6 +247,14 @@ export function KeyEditorPanel({
         onError={onError}
         layerNames={layerNames}
         macroNames={Object.keys(macros)}
+      />
+
+      <TapDanceList
+        taps={legend.taps ?? []}
+        onAdd={onAddTap}
+        onUpdate={onUpdateTap}
+        onDelete={onDeleteTap}
+        onError={onError}
       />
 
       <label style={label}>

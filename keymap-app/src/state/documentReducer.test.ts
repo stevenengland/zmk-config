@@ -317,6 +317,72 @@ describe("documentReducer", () => {
     expect(json.layers[0].keys["L-r2-c1"]).toEqual({ primary: "a" });
   });
 
+  it("appends a default tap-dance row on the active layer's key", () => {
+    const state = documentReducer(createInitialState(), { type: "add-tap", keyId: "L-r2-c1" });
+
+    expect(state.document.layers[0].keys["L-r2-c1"].taps).toEqual([{ count: 2, glyph: "" }]);
+  });
+
+  it("appends a further tap-dance row after an existing one", () => {
+    const withOne = documentReducer(createInitialState(), { type: "add-tap", keyId: "L-r2-c1" });
+
+    const state = documentReducer(withOne, { type: "add-tap", keyId: "L-r2-c1" });
+
+    expect(state.document.layers[0].keys["L-r2-c1"].taps).toEqual([
+      { count: 2, glyph: "" },
+      { count: 2, glyph: "" },
+    ]);
+  });
+
+  it("updates a tap-dance row by index", () => {
+    const withOne = documentReducer(createInitialState(), { type: "add-tap", keyId: "L-r2-c1" });
+
+    const state = documentReducer(withOne, {
+      type: "update-tap",
+      keyId: "L-r2-c1",
+      index: 0,
+      tap: { count: 3, glyph: "⇧", toggle: true },
+    });
+
+    expect(state.document.layers[0].keys["L-r2-c1"].taps).toEqual([
+      { count: 3, glyph: "⇧", toggle: true },
+    ]);
+  });
+
+  it("deletes a tap-dance row by index, keeping the key's other legend content", () => {
+    let state = documentReducer(createInitialState(), {
+      type: "set-slot",
+      keyId: "L-r2-c1",
+      slot: "primary",
+      value: "⇧",
+    });
+    state = documentReducer(state, { type: "add-tap", keyId: "L-r2-c1" });
+    state = documentReducer(state, { type: "add-tap", keyId: "L-r2-c1" });
+    state = documentReducer(state, {
+      type: "update-tap",
+      keyId: "L-r2-c1",
+      index: 0,
+      tap: { count: 2, glyph: "⇪" },
+    });
+
+    state = documentReducer(state, { type: "delete-tap", keyId: "L-r2-c1", index: 1 });
+
+    expect(state.document.layers[0].keys["L-r2-c1"]).toEqual({
+      primary: "⇧",
+      taps: [{ count: 2, glyph: "⇪" }],
+    });
+  });
+
+  it("prunes the taps field and drops the key once the last tap-dance row is removed", () => {
+    const withOne = documentReducer(createInitialState(), { type: "add-tap", keyId: "L-r2-c1" });
+
+    const state = documentReducer(withOne, { type: "delete-tap", keyId: "L-r2-c1", index: 0 });
+
+    expect(state.document.layers[0].keys["L-r2-c1"]).toBeUndefined();
+    const json = JSON.parse(serialize(state.document));
+    expect(json.layers[0].keys["L-r2-c1"]).toBeUndefined();
+  });
+
   it("does not persist a legend that only carries a color with no glyph slots", () => {
     const state = documentReducer(createInitialState(), {
       type: "set-key-color",

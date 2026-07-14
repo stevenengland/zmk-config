@@ -30,6 +30,13 @@ export function isLayerHold(hold: HoldBinding): hold is LayerHoldBinding {
   return "layer" in hold;
 }
 
+/** One tap-dance row: tapping `count` times fires `glyph`; `toggle` marks it "stays on until pressed again". */
+export interface TapBinding {
+  count: number;
+  glyph: string;
+  toggle?: boolean;
+}
+
 export interface KeyLegend {
   primary?: string;
   shifted?: string;
@@ -38,6 +45,7 @@ export interface KeyLegend {
   hold?: HoldBinding;
   /** References a `macros` registry entry by name; mutually exclusive with `hold`. */
   macro?: string;
+  taps?: TapBinding[];
 }
 
 export interface Layer {
@@ -107,6 +115,30 @@ export function resolveMacroDisplay(
   return macros?.[macro];
 }
 
+/** What one tap-dance row renders: the mark-glyph vocabulary from docs/design/behavior-legends.html. */
+export interface TapDisplay {
+  text: string;
+}
+
+const TAP_COUNT_DOT = "·";
+const TAP_TOGGLE_RING = "◦";
+
+/**
+ * Resolves a key's tap-dance rows to what the behavior stack renders: each
+ * row's count as a middot prefix (solid, left of the glyph — the trigger)
+ * and, when toggled, a trailing hollow ring (the action), ascending by
+ * count. Shared by the live canvas (Keycap) and the standalone SVG export
+ * so the two never drift.
+ */
+export function resolveTapDisplays(taps: readonly TapBinding[] | undefined): TapDisplay[] {
+  if (!taps) return [];
+  return [...taps]
+    .sort((a, b) => a.count - b.count)
+    .map((tap) => ({
+      text: TAP_COUNT_DOT.repeat(tap.count) + tap.glyph + (tap.toggle ? TAP_TOGGLE_RING : ""),
+    }));
+}
+
 const LEGEND_SLOTS = ["primary", "shifted", "altgr", "color"] as const;
 
 /** Drop unset or empty-string slots so they never reach the persisted JSON. */
@@ -124,6 +156,11 @@ function pruneLegend(legend: KeyLegend): KeyLegend {
       : { glyph: legend.hold.glyph };
   }
   if (legend.macro) pruned.macro = legend.macro;
+  if (legend.taps?.length) {
+    pruned.taps = legend.taps.map((tap) =>
+      tap.toggle ? { count: tap.count, glyph: tap.glyph, toggle: true } : { count: tap.count, glyph: tap.glyph },
+    );
+  }
   return pruned;
 }
 
