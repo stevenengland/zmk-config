@@ -9,12 +9,14 @@ import { boardGeometry, type BoardElement } from "../model/geometry";
 import {
   resolveHoldDisplay,
   resolveMacroDisplay,
+  resolveTapDisplays,
   serialize,
   type HoldDisplay,
   type KeyLegend,
   type KeymapDocument,
   type Layer,
   type MacroRegistry,
+  type TapDisplay,
 } from "../model/schema";
 import {
   BACKGROUND,
@@ -42,6 +44,8 @@ import {
   PAD,
   PRIMARY_SIZE,
   SUB_SIZE,
+  TAP_SIZE,
+  tapRowY,
 } from "../model/renderStyle";
 
 const viewBox = () => boardViewBox(boardGeometry);
@@ -96,6 +100,16 @@ function holdMarkup(display: HoldDisplay, box: Box): string {
   );
 }
 
+/** Tap-dance row markup: one `<text>` per row, dot-count-prefixed. Mirrors Keycap's `TapRows`. */
+function tapMarkup(taps: readonly TapDisplay[], box: Box, hasHold: boolean): string {
+  return taps
+    .map(
+      (tap, index) =>
+        `<text x="${box.right - PAD}" y="${tapRowY(box, index, hasHold)}" text-anchor="end" dominant-baseline="hanging" font-family='${LEGEND_FONT}' font-size="${TAP_SIZE}" fill="${LEGEND_COLOR}">${escapeXml(tap.text)}</text>`,
+    )
+    .join("");
+}
+
 /** Mirrors Keycap's bottom-heavy accent + per-key layer corner tick + homing bar + hold slot so exports never drift from the canvas. */
 function elementMarkup(
   element: BoardElement,
@@ -127,6 +141,8 @@ function elementMarkup(
       : "";
   const holdDisplay = element.kind === "key" ? resolveHoldDisplay(legend?.hold, allLayers) : undefined;
   const hold = holdDisplay ? holdMarkup(holdDisplay, box) : "";
+  const tapDisplays = element.kind === "key" ? resolveTapDisplays(legend?.taps) : [];
+  const taps = tapDisplays.length ? tapMarkup(tapDisplays, box, Boolean(holdDisplay)) : "";
   const macroGlyph =
     element.kind === "key" ? resolveMacroDisplay(legend?.macro, macros)?.glyph : undefined;
   const cx = element.x + element.w / 2;
@@ -135,7 +151,7 @@ function elementMarkup(
     element.kind === "encoder" || element.rotation === undefined
       ? ""
       : ` transform="rotate(${element.rotation} ${cx} ${cy})"`;
-  return `<g${transform}>${shape}${accent}${tick}${homingBar}${hold}${legend ? legendMarkup(legend, box, macroGlyph) : ""}</g>`;
+  return `<g${transform}>${shape}${accent}${tick}${homingBar}${hold}${taps}${legend ? legendMarkup(legend, box, macroGlyph) : ""}</g>`;
 }
 
 /** Standalone SVG document for one layer: full board, legends, embedded font. */

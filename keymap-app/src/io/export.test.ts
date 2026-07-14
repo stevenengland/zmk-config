@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { boardGeometry } from "../model/geometry";
 import { SCHEMA_VERSION, type KeymapDocument, type Layer } from "../model/schema";
-import { boxOf, holdUnderlineRect, homingBarRect, KEY_STROKE, layerTickPath, macroChipRect } from "../model/renderStyle";
+import { boxOf, holdUnderlineRect, homingBarRect, KEY_STROKE, layerTickPath, macroChipRect, tapRowY } from "../model/renderStyle";
 import { exportAllLayersSvg, exportJson, exportLayerSvg, layerToSvg } from "./export";
 
 vi.mock("../model/schema", async (importOriginal) => {
@@ -112,6 +112,64 @@ describe("layerToSvg", () => {
     expect(svg).toContain(
       `<rect x="${r.x}" y="${r.y}" width="${r.width}" height="${r.height}" rx="${r.rx}" fill="#fec931" />`,
     );
+  });
+
+  it("renders a tap-dance row below the hold row, dot-prefixed by its count, identically to the canvas", () => {
+    const layer: Layer = {
+      name: "Base",
+      color: "#00e5ff",
+      keys: { "L-r0-c0": { primary: "⇧", hold: { glyph: "ä" }, taps: [{ count: 2, glyph: "⇪" }] } },
+    };
+    const svg = layerToSvg(layer);
+    const box = boxOf(boardGeometry.find((e) => e.id === "L-r0-c0")!);
+    const y = tapRowY(box, 0, true);
+
+    expect(svg).toContain(`y="${y}" text-anchor="end" dominant-baseline="hanging"`);
+    expect(svg).toContain(">··⇪</text>");
+  });
+
+  it("renders multiple tap-dance rows ascending by count", () => {
+    const layer: Layer = {
+      name: "Base",
+      color: "#00e5ff",
+      keys: {
+        "L-r0-c0": {
+          primary: "⇧",
+          taps: [
+            { count: 3, glyph: "⇧" },
+            { count: 2, glyph: "⇪" },
+          ],
+        },
+      },
+    };
+    const svg = layerToSvg(layer);
+    const box = boxOf(boardGeometry.find((e) => e.id === "L-r0-c0")!);
+
+    const topIndex = svg.indexOf(`y="${tapRowY(box, 0, false)}"`);
+    const bottomIndex = svg.indexOf(`y="${tapRowY(box, 1, false)}"`);
+    expect(svg).toContain(">··⇪</text>");
+    expect(svg).toContain(">···⇧</text>");
+    expect(topIndex).toBeGreaterThan(-1);
+    expect(bottomIndex).toBeGreaterThan(topIndex);
+  });
+
+  it("suffixes a toggle tap row with the hollow ring in the exported SVG", () => {
+    const layer: Layer = {
+      name: "Base",
+      color: "#00e5ff",
+      keys: { "L-r0-c0": { primary: "⇧", taps: [{ count: 2, glyph: "⇧", toggle: true }] } },
+    };
+    const svg = layerToSvg(layer);
+
+    expect(svg).toContain(">··⇧◦</text>");
+  });
+
+  it("renders no tap rows for a key with no taps", () => {
+    const svg = layerToSvg(LAYER);
+    const box = boxOf(boardGeometry.find((e) => e.id === "L-r0-c0")!);
+    const y = tapRowY(box, 0, false);
+
+    expect(svg).not.toContain(`y="${y}" text-anchor="end" dominant-baseline="hanging"`);
   });
 
   it("renders a macro-bound key's glyph and dashed chip, identically to the canvas", () => {
