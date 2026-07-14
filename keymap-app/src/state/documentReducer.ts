@@ -5,6 +5,8 @@ import {
   type KeyLegend,
   type KeymapDocument,
   type Layer,
+  type MacroDef,
+  type MacroRegistry,
 } from "../model/schema";
 import {
   apply,
@@ -42,6 +44,10 @@ export type DocumentAction =
   | { type: "set-slot"; keyId: string; slot: LegendSlot; value: string }
   | { type: "set-key-color"; keyId: string; color: string }
   | { type: "set-hold"; keyId: string; hold: HoldBinding | undefined }
+  | { type: "set-macro"; keyId: string; macro: string | undefined }
+  | { type: "add-macro"; name: string; def: MacroDef }
+  | { type: "update-macro"; name: string; def: MacroDef }
+  | { type: "delete-macro"; name: string }
   | { type: "toggle-homing"; keyId: string }
   | { type: "set-view"; mode: ViewMode };
 
@@ -75,7 +81,9 @@ function hasVisibleHold(hold: HoldBinding | undefined): boolean {
 
 /** A legend with no glyph slots renders nothing, even if `color` is set. */
 function hasVisibleContent(legend: KeyLegend): boolean {
-  return Boolean(legend.primary || legend.shifted || legend.altgr || hasVisibleHold(legend.hold));
+  return Boolean(
+    legend.primary || legend.shifted || legend.altgr || hasVisibleHold(legend.hold) || legend.macro,
+  );
 }
 
 /**
@@ -139,6 +147,31 @@ function clearLayerHoldReferences(layers: readonly Layer[], deletedName: string)
   });
 }
 
+/** A deleted macro can still be referenced by keys on any layer — clear those, dropping keys left with no other content. */
+function clearMacroReferences(layers: readonly Layer[], deletedName: string): Layer[] {
+  return layers.map((layer) => {
+    const keys: Record<string, KeyLegend> = {};
+    for (const [id, legend] of Object.entries(layer.keys)) {
+      if (legend.macro !== deletedName) {
+        keys[id] = legend;
+        continue;
+      }
+      const next = { ...legend };
+      delete next.macro;
+      if (hasVisibleContent(next)) keys[id] = next;
+    }
+    return { ...layer, keys };
+  });
+}
+
+/** Registry entries never persist as an empty object — mirrors `board`'s omit-when-empty rule. */
+function withMacros(document: KeymapDocument, macros: MacroRegistry): KeymapDocument {
+  if (Object.keys(macros).length) return { ...document, macros };
+  const next = { ...document };
+  delete next.macros;
+  return next;
+}
+
 export function documentReducer(state: DocumentState, action: DocumentAction): DocumentState {
   switch (action.type) {
     case "load":
@@ -186,10 +219,37 @@ export function documentReducer(state: DocumentState, action: DocumentAction): D
     case "set-hold":
       return updateActiveKey(state, action.keyId, (legend) => {
         const next = { ...legend };
-        if (action.hold) next.hold = action.hold;
-        else delete next.hold;
+        if (action.hold) {
+          next.hold = action.hold;
+          delete next.macro;
+        } else {
+          delete next.hold;
+        }
         return next;
       });
+    case "set-macro":
+      return updateActiveKey(state, action.keyId, (legend) => {
+        const next = { ...legend };
+        if (action.macro) {
+          next.macro = action.macro;
+          delete next.hold;
+        } else {
+          delete next.macro;
+        }
+        return next;
+      });
+    case "add-macro":
+    case "update-macro": {
+      const macros = { ...(state.document.macros ?? {}), [action.name]: action.def };
+      return { ...state, document: withMacros(state.document, macros) };
+    }
+    case "delete-macro": {
+      if (!state.document.macros?.[action.name]) return state;
+      const macros = { ...state.document.macros };
+      delete macros[action.name];
+      const layers = clearMacroReferences(state.document.layers, action.name);
+      return { ...state, document: withMacros({ ...state.document, layers }, macros) };
+    }
     case "toggle-homing": {
       const current = state.document.board?.homing ?? [];
       const homing = current.includes(action.keyId)
