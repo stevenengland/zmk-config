@@ -53,6 +53,76 @@ describe("documentReducer", () => {
     expect(state.document.layers[0].name).toBe("Base'");
   });
 
+  it("rewrites every hold.layer reference when the target layer is renamed", () => {
+    const withNav = documentReducer(
+      documentReducer(createInitialState(), { type: "add", name: "Nav", color: "#fec931" }),
+      { type: "select", index: 0 },
+    );
+    const withHold = documentReducer(withNav, {
+      type: "set-hold",
+      keyId: "L-r4-c4",
+      hold: { layer: "Nav" },
+    });
+
+    const state = documentReducer(withHold, { type: "rename", index: 1, name: "Navigation" });
+
+    expect(state.document.layers[0].keys["L-r4-c4"].hold).toEqual({ layer: "Navigation" });
+  });
+
+  it("leaves unrelated hold.layer references untouched when a different layer is renamed", () => {
+    const withNav = documentReducer(
+      documentReducer(createInitialState(), { type: "add", name: "Nav", color: "#fec931" }),
+      { type: "select", index: 0 },
+    );
+    const withHold = documentReducer(withNav, {
+      type: "set-hold",
+      keyId: "L-r4-c4",
+      hold: { layer: "Nav" },
+    });
+
+    const state = documentReducer(withHold, { type: "rename", index: 0, name: "Base'" });
+
+    expect(state.document.layers[0].keys["L-r4-c4"].hold).toEqual({ layer: "Nav" });
+  });
+
+  it("clears every hold binding referencing a deleted layer, dropping keys left with no other content", () => {
+    const withNav = documentReducer(
+      documentReducer(createInitialState(), { type: "add", name: "Nav", color: "#fec931" }),
+      { type: "select", index: 0 },
+    );
+    const withHold = documentReducer(withNav, {
+      type: "set-hold",
+      keyId: "L-r4-c4",
+      hold: { layer: "Nav" },
+    });
+
+    const state = documentReducer(withHold, { type: "delete", index: 1 });
+
+    expect(state.document.layers[0].keys["L-r4-c4"]).toBeUndefined();
+  });
+
+  it("clears a hold.layer reference on delete but keeps the key's other legend content", () => {
+    const withNav = documentReducer(
+      documentReducer(createInitialState(), { type: "add", name: "Nav", color: "#fec931" }),
+      { type: "select", index: 0 },
+    );
+    const withPrimary = documentReducer(withNav, {
+      type: "set-slot",
+      keyId: "L-r4-c4",
+      slot: "primary",
+      value: "␣",
+    });
+    const withHold = documentReducer(withPrimary, {
+      type: "set-hold",
+      keyId: "L-r4-c4",
+      hold: { layer: "Nav" },
+    });
+
+    const state = documentReducer(withHold, { type: "delete", index: 1 });
+
+    expect(state.document.layers[0].keys["L-r4-c4"]).toEqual({ primary: "␣" });
+  });
+
   it("recolors a layer", () => {
     const state = documentReducer(createInitialState(), { type: "recolor", index: 0, color: "#ffeac0" });
 

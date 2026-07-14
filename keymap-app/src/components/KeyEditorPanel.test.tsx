@@ -139,6 +139,13 @@ describe("KeyEditorPanel", () => {
     expect(onSetHold).toHaveBeenCalledWith({ glyph: "ä" });
   });
 
+  it("forwards layer names to the binding editor's Layer-mode picker", () => {
+    renderPanel("L-r4-c4", { hold: { layer: "Nav" } }, { layerNames: ["Base", "Nav"] });
+
+    expect((screen.getByLabelText(/binding mode/i) as HTMLSelectElement).value).toBe("layer");
+    expect((screen.getByLabelText(/target layer/i) as HTMLSelectElement).value).toBe("Nav");
+  });
+
   it("recolors the primary legend", () => {
     const onSetColor = vi.fn();
     renderPanel("L-r0-c0", { primary: "A" }, { onSetColor });

@@ -118,7 +118,7 @@ export function Toolbar({
 
   const handleExportLayer = () => {
     try {
-      exportLayerSvg(activeLayer, document.board?.homing ?? []);
+      exportLayerSvg(activeLayer, document.board?.homing ?? [], document.layers);
       onStatus({ text: `Exported ${activeLayer.name}.svg`, tone: "info" });
     } catch (error) {
       onStatus({ text: `Could not export layer: ${describe(error)}`, tone: "error" });

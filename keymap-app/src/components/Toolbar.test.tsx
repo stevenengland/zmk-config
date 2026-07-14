@@ -111,7 +111,7 @@ it("exports the active layer as SVG and reports success", () => {
 
   fireEvent.click(screen.getByRole("button", { name: /^export svg$/i }));
 
-  expect(exportLayerSvg).toHaveBeenCalledWith(DOC.layers[0], []);
+  expect(exportLayerSvg).toHaveBeenCalledWith(DOC.layers[0], [], DOC.layers);
   expect(onStatus).toHaveBeenCalledWith(
     expect.objectContaining({ tone: "info" }),
   );

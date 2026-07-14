@@ -1,4 +1,5 @@
 import {
+  isLayerHold,
   SCHEMA_VERSION,
   type HoldBinding,
   type KeyLegend,
@@ -67,9 +68,14 @@ function replaceLayer(
   return { ...state, document: { ...state.document, layers } };
 }
 
+function hasVisibleHold(hold: HoldBinding | undefined): boolean {
+  if (!hold) return false;
+  return isLayerHold(hold) ? Boolean(hold.layer) : Boolean(hold.glyph);
+}
+
 /** A legend with no glyph slots renders nothing, even if `color` is set. */
 function hasVisibleContent(legend: KeyLegend): boolean {
-  return Boolean(legend.primary || legend.shifted || legend.altgr || legend.hold?.glyph);
+  return Boolean(legend.primary || legend.shifted || legend.altgr || hasVisibleHold(legend.hold));
 }
 
 /**
@@ -102,6 +108,37 @@ function withSlot(legend: KeyLegend, slot: LegendSlot, value: string): KeyLegend
   return next;
 }
 
+/** A layer can be renamed independent of any key that targets it by name — keep every `hold.layer` reference in sync. */
+function rewriteLayerHoldReferences(layers: readonly Layer[], oldName: string, newName: string): Layer[] {
+  return layers.map((layer) => {
+    const keys: Record<string, KeyLegend> = {};
+    for (const [id, legend] of Object.entries(layer.keys)) {
+      keys[id] =
+        legend.hold && isLayerHold(legend.hold) && legend.hold.layer === oldName
+          ? { ...legend, hold: { layer: newName } }
+          : legend;
+    }
+    return { ...layer, keys };
+  });
+}
+
+/** A deleted layer can still be targeted by other layers' hold bindings — clear those, dropping keys left with no other content. */
+function clearLayerHoldReferences(layers: readonly Layer[], deletedName: string): Layer[] {
+  return layers.map((layer) => {
+    const keys: Record<string, KeyLegend> = {};
+    for (const [id, legend] of Object.entries(layer.keys)) {
+      if (!legend.hold || !isLayerHold(legend.hold) || legend.hold.layer !== deletedName) {
+        keys[id] = legend;
+        continue;
+      }
+      const next = { ...legend };
+      delete next.hold;
+      if (hasVisibleContent(next)) keys[id] = next;
+    }
+    return { ...layer, keys };
+  });
+}
+
 export function documentReducer(state: DocumentState, action: DocumentAction): DocumentState {
   switch (action.type) {
     case "load":
@@ -113,13 +150,21 @@ export function documentReducer(state: DocumentState, action: DocumentAction): D
       ];
       return { ...state, document: { ...state.document, layers }, activeIndex: layers.length - 1 };
     }
-    case "rename":
-      return replaceLayer(state, action.index, (layer) => ({ ...layer, name: action.name }));
+    case "rename": {
+      const oldName = state.document.layers[action.index].name;
+      const renamed = replaceLayer(state, action.index, (layer) => ({ ...layer, name: action.name }));
+      const layers = rewriteLayerHoldReferences(renamed.document.layers, oldName, action.name);
+      return { ...renamed, document: { ...renamed.document, layers } };
+    }
     case "recolor":
       return replaceLayer(state, action.index, (layer) => ({ ...layer, color: action.color }));
     case "delete": {
       if (state.document.layers.length <= 1) return state;
-      const layers = state.document.layers.filter((_, i) => i !== action.index);
+      const deletedName = state.document.layers[action.index].name;
+      const layers = clearLayerHoldReferences(
+        state.document.layers.filter((_, i) => i !== action.index),
+        deletedName,
+      );
       const activeIndex = Math.min(state.activeIndex, layers.length - 1);
       return { ...state, document: { ...state.document, layers }, activeIndex };
     }

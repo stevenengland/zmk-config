@@ -96,6 +96,23 @@ describe("layerToSvg", () => {
 
     expect(svg).not.toContain(`x="${r.x}" y="${r.y}" width="${r.width}"`);
   });
+
+  it("renders a layer-tap hold as the target layer's name, tinted in its color, resolved against sibling layers", () => {
+    const layer: Layer = {
+      name: "Base",
+      color: "#00e5ff",
+      keys: { "L-r4-c4": { hold: { layer: "Nav" } } },
+    };
+    const nav: Layer = { name: "Nav", color: "#fec931", keys: {} };
+    const svg = layerToSvg(layer, [], [layer, nav]);
+
+    expect(svg).toContain(`fill="#fec931">Nav</text>`);
+    const box = boxOf(boardGeometry.find((e) => e.id === "L-r4-c4")!);
+    const r = holdUnderlineRect(box);
+    expect(svg).toContain(
+      `<rect x="${r.x}" y="${r.y}" width="${r.width}" height="${r.height}" rx="${r.rx}" fill="#fec931" />`,
+    );
+  });
 });
 
 describe("exportLayerSvg", () => {

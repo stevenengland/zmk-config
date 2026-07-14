@@ -6,7 +6,14 @@
 // `serialize` the Save path uses, so the two never drift.
 
 import { boardGeometry, type BoardElement } from "../model/geometry";
-import { serialize, type KeyLegend, type KeymapDocument, type Layer } from "../model/schema";
+import {
+  resolveHoldDisplay,
+  serialize,
+  type HoldDisplay,
+  type KeyLegend,
+  type KeymapDocument,
+  type Layer,
+} from "../model/schema";
 import {
   BACKGROUND,
   boardViewBox,
@@ -68,11 +75,12 @@ function legendMarkup(legend: KeyLegend, box: Box): string {
 }
 
 /** Hold slot markup: glyph end-aligned top-right over a solid underline. Mirrors Keycap's `HoldRow`. */
-function holdMarkup(glyph: string, box: Box): string {
+function holdMarkup(display: HoldDisplay, box: Box): string {
   const r = holdUnderlineRect(box);
+  const fill = display.color ?? LEGEND_COLOR;
   return (
-    `<text x="${box.right - PAD}" y="${box.top + PAD}" text-anchor="end" dominant-baseline="hanging" font-family='${LEGEND_FONT}' font-size="${HOLD_SIZE}" fill="${LEGEND_COLOR}">${escapeXml(glyph)}</text>` +
-    `<rect x="${r.x}" y="${r.y}" width="${r.width}" height="${r.height}" rx="${r.rx}" fill="${LEGEND_COLOR}" />`
+    `<text x="${box.right - PAD}" y="${box.top + PAD}" text-anchor="end" dominant-baseline="hanging" font-family='${LEGEND_FONT}' font-size="${HOLD_SIZE}" fill="${fill}">${escapeXml(display.text)}</text>` +
+    `<rect x="${r.x}" y="${r.y}" width="${r.width}" height="${r.height}" rx="${r.rx}" fill="${fill}" />`
   );
 }
 
@@ -82,6 +90,7 @@ function elementMarkup(
   legend: KeyLegend | undefined,
   layerColor: string,
   homing: boolean,
+  allLayers: readonly Layer[],
 ): string {
   const box = boxOf(element);
   const shape =
@@ -103,7 +112,8 @@ function elementMarkup(
           return `<rect x="${r.x}" y="${r.y}" width="${r.width}" height="${r.height}" rx="${r.rx}" fill="${KEY_STROKE}" />`;
         })()
       : "";
-  const hold = element.kind === "key" && legend?.hold ? holdMarkup(legend.hold.glyph, box) : "";
+  const holdDisplay = element.kind === "key" ? resolveHoldDisplay(legend?.hold, allLayers) : undefined;
+  const hold = holdDisplay ? holdMarkup(holdDisplay, box) : "";
   const cx = element.x + element.w / 2;
   const cy = element.y + element.h / 2;
   const transform =
@@ -114,12 +124,16 @@ function elementMarkup(
 }
 
 /** Standalone SVG document for one layer: full board, legends, embedded font. */
-export function layerToSvg(layer: Layer, homing: readonly string[] = []): string {
+export function layerToSvg(
+  layer: Layer,
+  homing: readonly string[] = [],
+  allLayers: readonly Layer[] = [layer],
+): string {
   const box = viewBox();
   const homingSet = new Set(homing);
   const elements = boardGeometry
     .map((element) =>
-      elementMarkup(element, layer.keys[element.id], layer.color, homingSet.has(element.id)),
+      elementMarkup(element, layer.keys[element.id], layer.color, homingSet.has(element.id), allLayers),
     )
     .join("");
   return (
@@ -143,14 +157,18 @@ function downloadFile(content: string, filename: string, mime: string): void {
 }
 
 /** Downloads the current layer as a standalone `<layer-name>.svg`. */
-export function exportLayerSvg(layer: Layer, homing: readonly string[] = []): void {
-  downloadFile(layerToSvg(layer, homing), `${layer.name}.svg`, "image/svg+xml");
+export function exportLayerSvg(
+  layer: Layer,
+  homing: readonly string[] = [],
+  allLayers: readonly Layer[] = [layer],
+): void {
+  downloadFile(layerToSvg(layer, homing, allLayers), `${layer.name}.svg`, "image/svg+xml");
 }
 
 /** Sequential per-layer downloads, one `<layer-name>.svg` per layer — no zip dependency. */
 export function exportAllLayersSvg(layers: readonly Layer[], homing: readonly string[] = []): void {
   for (const layer of layers) {
-    exportLayerSvg(layer, homing);
+    exportLayerSvg(layer, homing, layers);
   }
 }
 
