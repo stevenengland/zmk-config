@@ -16,6 +16,8 @@ import {
   ENCODER_FILL,
   ENCODER_STROKE,
   FONT_FACE_CSS,
+  HOLD_SIZE,
+  holdUnderlineRect,
   homingBarRect,
   KEY_EDGE_ACCENT,
   KEY_EDGE_ACCENT_WIDTH,
@@ -65,7 +67,16 @@ function legendMarkup(legend: KeyLegend, box: Box): string {
   return parts.join("");
 }
 
-/** Mirrors Keycap's bottom-heavy accent + per-key layer corner tick + homing bar so exports never drift from the canvas. */
+/** Hold slot markup: glyph end-aligned top-right over a solid underline. Mirrors Keycap's `HoldRow`. */
+function holdMarkup(glyph: string, box: Box): string {
+  const r = holdUnderlineRect(box);
+  return (
+    `<text x="${box.right - PAD}" y="${box.top + PAD}" text-anchor="end" dominant-baseline="hanging" font-family='${LEGEND_FONT}' font-size="${HOLD_SIZE}" fill="${LEGEND_COLOR}">${escapeXml(glyph)}</text>` +
+    `<rect x="${r.x}" y="${r.y}" width="${r.width}" height="${r.height}" rx="${r.rx}" fill="${LEGEND_COLOR}" />`
+  );
+}
+
+/** Mirrors Keycap's bottom-heavy accent + per-key layer corner tick + homing bar + hold slot so exports never drift from the canvas. */
 function elementMarkup(
   element: BoardElement,
   legend: KeyLegend | undefined,
@@ -92,13 +103,14 @@ function elementMarkup(
           return `<rect x="${r.x}" y="${r.y}" width="${r.width}" height="${r.height}" rx="${r.rx}" fill="${KEY_STROKE}" />`;
         })()
       : "";
+  const hold = element.kind === "key" && legend?.hold ? holdMarkup(legend.hold.glyph, box) : "";
   const cx = element.x + element.w / 2;
   const cy = element.y + element.h / 2;
   const transform =
     element.kind === "encoder" || element.rotation === undefined
       ? ""
       : ` transform="rotate(${element.rotation} ${cx} ${cy})"`;
-  return `<g${transform}>${shape}${accent}${tick}${homingBar}${legend ? legendMarkup(legend, box) : ""}</g>`;
+  return `<g${transform}>${shape}${accent}${tick}${homingBar}${hold}${legend ? legendMarkup(legend, box) : ""}</g>`;
 }
 
 /** Standalone SVG document for one layer: full board, legends, embedded font. */

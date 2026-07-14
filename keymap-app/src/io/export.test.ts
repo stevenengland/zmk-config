@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { boardGeometry } from "../model/geometry";
 import { SCHEMA_VERSION, type KeymapDocument, type Layer } from "../model/schema";
-import { boxOf, homingBarRect, KEY_STROKE, layerTickPath } from "../model/renderStyle";
+import { boxOf, holdUnderlineRect, homingBarRect, KEY_STROKE, layerTickPath } from "../model/renderStyle";
 import { exportAllLayersSvg, exportJson, exportLayerSvg, layerToSvg } from "./export";
 
 vi.mock("../model/schema", async (importOriginal) => {
@@ -70,6 +70,29 @@ describe("layerToSvg", () => {
     const svg = layerToSvg(LAYER, ["R-r2-c1"]);
     const box = boxOf(boardGeometry.find((e) => e.id === "L-r0-c0")!);
     const r = homingBarRect(box);
+
+    expect(svg).not.toContain(`x="${r.x}" y="${r.y}" width="${r.width}"`);
+  });
+
+  it("renders the hold glyph end-aligned top-right with the identical underline the canvas uses", () => {
+    const layer: Layer = {
+      name: "Base",
+      color: "#00e5ff",
+      keys: { "L-r0-c0": { primary: "a", hold: { glyph: "ä" } } },
+    };
+    const svg = layerToSvg(layer);
+    const box = boxOf(boardGeometry.find((e) => e.id === "L-r0-c0")!);
+    const r = holdUnderlineRect(box);
+
+    expect(svg).toContain(`text-anchor="end"`);
+    expect(svg).toContain(">ä</text>");
+    expect(svg).toContain(`<rect x="${r.x}" y="${r.y}" width="${r.width}" height="${r.height}" rx="${r.rx}"`);
+  });
+
+  it("renders no hold row for a key with no hold glyph", () => {
+    const svg = layerToSvg(LAYER);
+    const box = boxOf(boardGeometry.find((e) => e.id === "L-r0-c0")!);
+    const r = holdUnderlineRect(box);
 
     expect(svg).not.toContain(`x="${r.x}" y="${r.y}" width="${r.width}"`);
   });

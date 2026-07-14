@@ -138,6 +138,36 @@ export function homingBarRect(box: Box): HomingBarRect {
   };
 }
 
+// Hold slot: top-right behavior stack, row one (docs/design/behavior-legends.html
+// "hold slot"). Underline is a fixed-size bar rather than a text-bbox measurement
+// so the live canvas (React SVG) and the standalone export (string SVG, no DOM)
+// can never drift apart. Shared by the live canvas (Keycap) and the standalone
+// SVG export.
+export const HOLD_SIZE = 10.5;
+export const HOLD_UNDERLINE_WIDTH = 10;
+export const HOLD_UNDERLINE_HEIGHT = 1.6;
+export const HOLD_UNDERLINE_RADIUS = 0.8;
+export const HOLD_UNDERLINE_TOP_OFFSET = 13;
+
+export interface HoldUnderlineRect {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  rx: number;
+}
+
+export function holdUnderlineRect(box: Box): HoldUnderlineRect {
+  const { top, right } = box;
+  return {
+    x: right - PAD - HOLD_UNDERLINE_WIDTH,
+    y: top + PAD + HOLD_UNDERLINE_TOP_OFFSET,
+    width: HOLD_UNDERLINE_WIDTH,
+    height: HOLD_UNDERLINE_HEIGHT,
+    rx: HOLD_UNDERLINE_RADIUS,
+  };
+}
+
 const VIEWBOX_PADDING = 40;
 
 /** Tight bounding box around every board element, plus padding. */

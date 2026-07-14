@@ -13,11 +13,18 @@ const SUPPORTED_SCHEMA_VERSIONS: readonly number[] = [1, SCHEMA_VERSION];
  * carry its own `color`; `shifted` (top-left) and `altgr` (bottom-right) are
  * plain glyphs. Every slot is optional and omitted when unset.
  */
+/** Hold-tap in glyph mode: tap `primary`, hold `glyph`, Shift+hold `shifted` (tooltip-only). */
+export interface HoldBinding {
+  glyph: string;
+  shifted?: string;
+}
+
 export interface KeyLegend {
   primary?: string;
   shifted?: string;
   altgr?: string;
   color?: string;
+  hold?: HoldBinding;
 }
 
 export interface Layer {
@@ -45,6 +52,11 @@ function pruneLegend(legend: KeyLegend): KeyLegend {
   for (const slot of LEGEND_SLOTS) {
     const value = legend[slot];
     if (value) pruned[slot] = value;
+  }
+  if (legend.hold?.glyph) {
+    pruned.hold = legend.hold.shifted
+      ? { glyph: legend.hold.glyph, shifted: legend.hold.shifted }
+      : { glyph: legend.hold.glyph };
   }
   return pruned;
 }
