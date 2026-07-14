@@ -1,5 +1,5 @@
 import { boardGeometry, keys, encoders } from "../model/geometry";
-import type { KeyLegend, Layer } from "../model/schema";
+import type { KeyLegend, Layer, MacroRegistry } from "../model/schema";
 import { BACKGROUND, boardViewBox } from "../model/renderStyle";
 import { Keycap } from "./Keycap";
 
@@ -21,6 +21,8 @@ interface KeyboardCanvasProps {
   layers?: readonly Layer[];
   /** Fires when a layer-tinted hold legend is clicked, switching the canvas to that layer. */
   onJumpToLayer?: (layerName: string) => void;
+  /** Document-level macro registry, used to resolve a key's macro reference to its display glyph. */
+  macros?: MacroRegistry;
 }
 
 /** Inline-SVG render of the full Sofle Choc board with selectable, legended keys. */
@@ -32,6 +34,7 @@ export function KeyboardCanvas({
   homingKeys,
   layers,
   onJumpToLayer,
+  macros,
 }: KeyboardCanvasProps = {}) {
   return (
     <svg
@@ -51,6 +54,7 @@ export function KeyboardCanvas({
           homing={homingKeys?.has(element.id)}
           layers={layers}
           onJumpToLayer={onJumpToLayer}
+          macros={macros}
         />
       ))}
     </svg>

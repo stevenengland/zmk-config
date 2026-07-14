@@ -1,5 +1,12 @@
 import type { BoardElement } from "../model/geometry";
-import { resolveHoldDisplay, type HoldDisplay, type KeyLegend, type Layer } from "../model/schema";
+import {
+  resolveHoldDisplay,
+  resolveMacroDisplay,
+  type HoldDisplay,
+  type KeyLegend,
+  type Layer,
+  type MacroRegistry,
+} from "../model/schema";
 import {
   boxOf,
   type Box,
@@ -17,6 +24,9 @@ import {
   layerTickPath,
   LEGEND_COLOR,
   LEGEND_FONT,
+  macroChipRect,
+  MACRO_CHIP_DASH,
+  MACRO_CHIP_STROKE,
   PAD,
   PRIMARY_SIZE,
   SUB_SIZE,
@@ -39,6 +49,8 @@ interface KeycapProps {
   layers?: readonly Layer[];
   /** Fires when a layer-tinted hold legend is clicked, switching the canvas to that layer. */
   onJumpToLayer?: (layerName: string) => void;
+  /** Document-level macro registry, used to resolve a key's macro reference to its display glyph. */
+  macros?: MacroRegistry;
 }
 
 /**
@@ -47,7 +59,8 @@ interface KeycapProps {
  * carries the layer tick on the border, leaving the interior free for the
  * behavior stack. Empty slots render nothing.
  */
-function Legends({ legend, box }: { legend: KeyLegend; box: Box }) {
+function Legends({ legend, box, macroGlyph }: { legend: KeyLegend; box: Box; macroGlyph?: string }) {
+  const primaryText = macroGlyph ?? legend.primary;
   return (
     <>
       {legend.shifted ? (
@@ -75,7 +88,7 @@ function Legends({ legend, box }: { legend: KeyLegend; box: Box }) {
           {legend.altgr}
         </text>
       ) : null}
-      {legend.primary ? (
+      {primaryText ? (
         <text
           x={box.left + PAD}
           y={box.bottom - PAD}
@@ -85,8 +98,17 @@ function Legends({ legend, box }: { legend: KeyLegend; box: Box }) {
           fontWeight={600}
           fill={legend.color ?? LEGEND_COLOR}
         >
-          {legend.primary}
+          {primaryText}
         </text>
+      ) : null}
+      {macroGlyph ? (
+        <rect
+          {...macroChipRect(macroGlyph, box)}
+          fill="none"
+          stroke={MACRO_CHIP_STROKE}
+          strokeWidth={1}
+          strokeDasharray={MACRO_CHIP_DASH}
+        />
       ) : null}
     </>
   );
@@ -146,6 +168,7 @@ export function Keycap({
   homing,
   layers = [],
   onJumpToLayer,
+  macros,
 }: KeycapProps) {
   const { x, y, w, h, rotation } = element;
   const box = boxOf(element);
@@ -186,6 +209,7 @@ export function Keycap({
 
   const isKey = element.kind === "key";
   const holdDisplay = isKey ? resolveHoldDisplay(legend?.hold, layers) : undefined;
+  const macroDisplay = isKey ? resolveMacroDisplay(legend?.macro, macros) : undefined;
 
   return (
     <g
@@ -219,7 +243,7 @@ export function Keycap({
       ) : null}
       {isKey && homing ? <rect {...homingBarRect(box)} fill={KEY_STROKE} /> : null}
       {holdDisplay ? <HoldRow display={holdDisplay} box={box} onJumpToLayer={onJumpToLayer} /> : null}
-      {legend ? <Legends legend={legend} box={box} /> : null}
+      {legend ? <Legends legend={legend} box={box} macroGlyph={macroDisplay?.glyph} /> : null}
     </g>
   );
 }

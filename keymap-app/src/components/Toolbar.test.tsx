@@ -111,7 +111,7 @@ it("exports the active layer as SVG and reports success", () => {
 
   fireEvent.click(screen.getByRole("button", { name: /^export svg$/i }));
 
-  expect(exportLayerSvg).toHaveBeenCalledWith(DOC.layers[0], [], DOC.layers);
+  expect(exportLayerSvg).toHaveBeenCalledWith(DOC.layers[0], [], DOC.layers, {});
   expect(onStatus).toHaveBeenCalledWith(
     expect.objectContaining({ tone: "info" }),
   );
@@ -122,7 +122,7 @@ it("exports every layer as SVG and reports success", () => {
 
   fireEvent.click(screen.getByRole("button", { name: /export all/i }));
 
-  expect(exportAllLayersSvg).toHaveBeenCalledWith(DOC.layers, []);
+  expect(exportAllLayersSvg).toHaveBeenCalledWith(DOC.layers, [], {});
   expect(onStatus).toHaveBeenCalledWith(
     expect.objectContaining({ tone: "info" }),
   );
