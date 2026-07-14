@@ -36,6 +36,8 @@ export interface KeyLegend {
   altgr?: string;
   color?: string;
   hold?: HoldBinding;
+  /** References a `macros` registry entry by name; mutually exclusive with `hold`. */
+  macro?: string;
 }
 
 export interface Layer {
@@ -49,9 +51,20 @@ export interface Board {
   homing?: string[];
 }
 
+/** One document-level macro: display glyph, tooltip label, and its step summary. */
+export interface MacroDef {
+  glyph: string;
+  label: string;
+  steps: string;
+}
+
+/** Document-level macro registry, keyed by name — keys reference an entry via `KeyLegend.macro`. */
+export type MacroRegistry = Record<string, MacroDef>;
+
 export interface KeymapDocument {
   schemaVersion: typeof SCHEMA_VERSION;
   board?: Board;
+  macros?: MacroRegistry;
   layers: Layer[];
 }
 
@@ -82,6 +95,18 @@ export function resolveHoldDisplay(
   return hold.glyph ? { text: hold.glyph } : undefined;
 }
 
+/**
+ * Resolves a key's macro reference against the document's registry — the
+ * chip glyph the live canvas and the standalone SVG export both render.
+ */
+export function resolveMacroDisplay(
+  macro: string | undefined,
+  macros: MacroRegistry | undefined,
+): MacroDef | undefined {
+  if (!macro) return undefined;
+  return macros?.[macro];
+}
+
 const LEGEND_SLOTS = ["primary", "shifted", "altgr", "color"] as const;
 
 /** Drop unset or empty-string slots so they never reach the persisted JSON. */
@@ -98,6 +123,7 @@ function pruneLegend(legend: KeyLegend): KeyLegend {
       ? { glyph: legend.hold.glyph, shifted: legend.hold.shifted }
       : { glyph: legend.hold.glyph };
   }
+  if (legend.macro) pruned.macro = legend.macro;
   return pruned;
 }
 
@@ -111,9 +137,11 @@ function pruneKeys(keys: Record<string, KeyLegend>): Record<string, KeyLegend> {
 
 export function serialize(doc: KeymapDocument): string {
   const homing = doc.board?.homing ?? [];
+  const macros = doc.macros ?? {};
   const normalized: KeymapDocument = {
     schemaVersion: SCHEMA_VERSION,
     ...(homing.length ? { board: { homing } } : {}),
+    ...(Object.keys(macros).length ? { macros } : {}),
     layers: doc.layers.map((layer) => ({
       name: layer.name,
       color: layer.color,
@@ -140,8 +168,31 @@ function isBoard(value: unknown): value is Board {
   return homing === undefined || (Array.isArray(homing) && homing.every((id) => typeof id === "string"));
 }
 
+function isMacroDef(value: unknown): value is MacroDef {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    typeof (value as MacroDef).glyph === "string" &&
+    typeof (value as MacroDef).label === "string" &&
+    typeof (value as MacroDef).steps === "string"
+  );
+}
+
+function isMacroRegistry(value: unknown): value is MacroRegistry {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    Object.values(value as Record<string, unknown>).every(isMacroDef)
+  );
+}
+
 export function parse(json: string): KeymapDocument {
-  const raw = JSON.parse(json) as { schemaVersion?: unknown; board?: unknown; layers?: unknown };
+  const raw = JSON.parse(json) as {
+    schemaVersion?: unknown;
+    board?: unknown;
+    macros?: unknown;
+    layers?: unknown;
+  };
   if (!SUPPORTED_SCHEMA_VERSIONS.includes(raw.schemaVersion as number)) {
     throw new Error(
       `unsupported schemaVersion: ${String(raw.schemaVersion)} (expected one of ${SUPPORTED_SCHEMA_VERSIONS.join(", ")})`,
@@ -158,9 +209,13 @@ export function parse(json: string): KeymapDocument {
   if (raw.board !== undefined && !isBoard(raw.board)) {
     throw new Error("invalid keymap document: `board` is malformed");
   }
+  if (raw.macros !== undefined && !isMacroRegistry(raw.macros)) {
+    throw new Error("invalid keymap document: `macros` is malformed");
+  }
   return {
     schemaVersion: SCHEMA_VERSION,
     ...(raw.board !== undefined ? { board: raw.board as Board } : {}),
+    ...(raw.macros !== undefined ? { macros: raw.macros as MacroRegistry } : {}),
     layers: raw.layers as Layer[],
   };
 }
