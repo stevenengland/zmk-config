@@ -11,6 +11,7 @@ import {
   layerTickPath,
   macroChipRect,
   SYMBOL_FONT_FAMILY,
+  tapRowY,
 } from "../model/renderStyle";
 
 const key: BoardElement = { id: "L-r0-c0", kind: "key", x: 0, y: 0, w: 54, h: 54 };
@@ -232,6 +233,55 @@ describe("Keycap legends", () => {
     fireEvent.click(holdText);
 
     expect(onJumpToLayer).not.toHaveBeenCalled();
+  });
+
+  it("renders a tap-dance row below the hold row, dot-prefixed by its count", () => {
+    const { container } = svg(
+      <Keycap element={key} legend={{ primary: "⇧", hold: { glyph: "ä" }, taps: [{ count: 2, glyph: "⇪" }] }} />,
+    );
+    const group = container.querySelector("[data-key-id]")!;
+
+    const tapText = Array.from(group.querySelectorAll("text")).find((t) => t.textContent === "··⇪")!;
+    expect(tapText).toBeTruthy();
+    expect(tapText.getAttribute("text-anchor")).toBe("end");
+    expect(tapText.getAttribute("dominant-baseline")).toBe("hanging");
+    expect(tapText.getAttribute("y")).toBe(String(tapRowY(boxOf(key), 0, true)));
+  });
+
+  it("renders one row per tap count, ascending", () => {
+    const { container } = svg(
+      <Keycap
+        element={key}
+        legend={{
+          primary: "⇧",
+          taps: [
+            { count: 3, glyph: "⇧" },
+            { count: 2, glyph: "⇪" },
+          ],
+        }}
+      />,
+    );
+    const group = container.querySelector("[data-key-id]")!;
+
+    const rowTop = Array.from(group.querySelectorAll("text")).find((t) => t.textContent === "··⇪")!;
+    const rowBottom = Array.from(group.querySelectorAll("text")).find((t) => t.textContent === "···⇧")!;
+    expect(Number(rowTop.getAttribute("y"))).toBeLessThan(Number(rowBottom.getAttribute("y")));
+  });
+
+  it("suffixes a toggle tap row with the hollow ring", () => {
+    const { container } = svg(
+      <Keycap element={key} legend={{ primary: "⇧", taps: [{ count: 2, glyph: "⇧", toggle: true }] }} />,
+    );
+
+    const texts = Array.from(container.querySelectorAll("text")).map((t) => t.textContent);
+    expect(texts).toContain("··⇧◦");
+  });
+
+  it("renders no tap rows for a key with no taps", () => {
+    const { container } = svg(<Keycap element={key} legend={{ primary: "a" }} />);
+
+    const texts = Array.from(container.querySelectorAll("text")).map((t) => t.textContent);
+    expect(texts.some((t) => t?.includes("·"))).toBe(false);
   });
 
   it("renders a macro-bound key's glyph in place of primary, wrapped in a dashed chip", () => {

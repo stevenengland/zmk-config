@@ -168,6 +168,19 @@ export function holdUnderlineRect(box: Box): HoldUnderlineRect {
   };
 }
 
+// Tap-dance rows: top-right behavior stack, below any hold row — one row per
+// tap count (docs/design/behavior-legends.html "Tap dance"). Same size as the
+// hold row; row height is a fixed step rather than a text-bbox measurement so
+// the live canvas and the string-based SVG export can never drift apart.
+export const TAP_SIZE = HOLD_SIZE;
+export const TAP_ROW_HEIGHT = 14;
+export const HOLD_ROW_HEIGHT = 16;
+
+/** Hanging-baseline y for tap row `index`, offset below the hold row when present. */
+export function tapRowY(box: Box, index: number, hasHold: boolean): number {
+  return box.top + PAD + (hasHold ? HOLD_ROW_HEIGHT : 0) + index * TAP_ROW_HEIGHT;
+}
+
 // Macro chip: dashed border around the primary legend when it displays a
 // macro's glyph (docs/design/behavior-legends.html "Macros") — "one unit
 // that expands to a sequence". Sized from a fixed per-glyph advance and
