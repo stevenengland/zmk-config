@@ -122,4 +122,33 @@ describe("schema serialize/parse", () => {
 
     expect(() => parse(json)).toThrow(/layer/);
   });
+
+  it("round-trips a hold glyph with its shifted variant", () => {
+    const doc: KeymapDocument = {
+      schemaVersion: SCHEMA_VERSION,
+      layers: [
+        {
+          name: "Base",
+          color: "#00e5ff",
+          keys: { "L-r2-c1": { primary: "a", hold: { glyph: "ä", shifted: "Ä" } } },
+        },
+      ],
+    };
+
+    const parsed = parse(serialize(doc));
+
+    expect(parsed.layers[0].keys["L-r2-c1"].hold).toEqual({ glyph: "ä", shifted: "Ä" });
+  });
+
+  it("omits the hold object entirely once its glyph is cleared", () => {
+    const doc: KeymapDocument = {
+      schemaVersion: SCHEMA_VERSION,
+      layers: [{ name: "Base", color: "#00e5ff", keys: { "L-r2-c1": { primary: "a", hold: { glyph: "" } } } }],
+    };
+
+    const json = serialize(doc);
+
+    expect(json).not.toContain("hold");
+    expect(parse(json).layers[0].keys["L-r2-c1"].hold).toBeUndefined();
+  });
 });

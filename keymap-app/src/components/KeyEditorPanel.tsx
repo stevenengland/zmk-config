@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState, type CSSProperties } from "react";
-import type { KeyLegend } from "../model/schema";
+import type { HoldBinding, KeyLegend } from "../model/schema";
 import type { LegendSlot } from "../state/documentReducer";
 import { convertLegendInput } from "../model/codepoint";
 import { boardGeometry, describeElementId } from "../model/geometry";
+import { BindingEditor } from "./BindingEditor";
 import { SymbolPicker } from "./SymbolPicker";
 
 // Colors drawn from the "Engineering Chic" colorset (docs/design/stitch.md).
@@ -38,6 +39,7 @@ interface KeyEditorPanelProps {
   /** Board-wide: whether this key is a homing key (renders on every layer). */
   homing: boolean;
   onToggleHoming: () => void;
+  onSetHold: (hold: HoldBinding | undefined) => void;
   /** Layer count, surfaced in the empty state so the idle panel still orients. */
   layerCount?: number;
 }
@@ -101,6 +103,7 @@ export function KeyEditorPanel({
   onError,
   homing,
   onToggleHoming,
+  onSetHold,
   layerCount = 1,
 }: KeyEditorPanelProps) {
   const [fields, setFields] = useState<Fields>(() => fieldsFromLegend(legend));
@@ -210,6 +213,9 @@ export function KeyEditorPanel({
       ))}
 
       <SymbolPicker onInsert={(glyph) => commit(activeSlot, glyph)} />
+
+      <span style={label}>On hold</span>
+      <BindingEditor keyId={keyId} hold={legend.hold} onSetHold={onSetHold} onError={onError} />
 
       <label style={label}>
         Primary color

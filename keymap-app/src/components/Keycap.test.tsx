@@ -4,6 +4,7 @@ import { Keycap } from "./Keycap";
 import type { BoardElement } from "../model/geometry";
 import {
   boxOf,
+  holdUnderlineRect,
   homingBarRect,
   KEY_EDGE_ACCENT_WIDTH,
   KEY_STROKE,
@@ -150,5 +151,31 @@ describe("Keycap legends", () => {
     const group = container.querySelector("[data-encoder-id]")!;
 
     expect(group.querySelector(`rect[fill="${KEY_STROKE}"]`)).toBeNull();
+  });
+
+  it("renders the hold glyph end-aligned top-right with a solid underline", () => {
+    const { container } = svg(
+      <Keycap element={key} legend={{ primary: "a", hold: { glyph: "ä" } }} />,
+    );
+    const group = container.querySelector("[data-key-id]")!;
+
+    const holdText = Array.from(group.querySelectorAll("text")).find((t) => t.textContent === "ä")!;
+    expect(holdText).toBeTruthy();
+    expect(holdText.getAttribute("text-anchor")).toBe("end");
+    expect(holdText.getAttribute("dominant-baseline")).toBe("hanging");
+
+    const expected = holdUnderlineRect(boxOf(key));
+    const underline = group.querySelector(`rect[x="${expected.x}"][y="${expected.y}"]`)!;
+    expect(underline).toBeTruthy();
+    expect(underline.getAttribute("width")).toBe(String(expected.width));
+    expect(underline.getAttribute("height")).toBe(String(expected.height));
+  });
+
+  it("renders no hold row when the key has no hold glyph", () => {
+    const { container } = svg(<Keycap element={key} legend={{ primary: "a" }} />);
+    const group = container.querySelector("[data-key-id]")!;
+
+    const expected = holdUnderlineRect(boxOf(key));
+    expect(group.querySelector(`rect[x="${expected.x}"][y="${expected.y}"]`)).toBeNull();
   });
 });

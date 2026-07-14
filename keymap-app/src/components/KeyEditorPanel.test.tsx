@@ -13,6 +13,7 @@ const handlers = {
   onError: () => {},
   homing: false,
   onToggleHoming: () => {},
+  onSetHold: () => {},
 };
 
 function renderPanel(keyId: string | null, legend: KeyLegend = {}, overrides = {}) {
@@ -117,6 +118,25 @@ describe("KeyEditorPanel", () => {
     fireEvent.click(screen.getByLabelText(/homing key/i));
 
     expect(onToggleHoming).toHaveBeenCalledTimes(1);
+  });
+
+  it("shows the On hold group with the shared binding editor bound to the key's hold glyph", () => {
+    renderPanel("L-r2-c1", { primary: "a", hold: { glyph: "ä", shifted: "Ä" } });
+
+    expect(screen.getByText(/on hold/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/hold glyph/i)).toHaveValue("ä");
+    expect(screen.getByLabelText(/hold shifted/i)).toHaveValue("Ä");
+  });
+
+  it("commits a hold glyph via onSetHold", () => {
+    const onSetHold = vi.fn();
+    renderPanel("L-r2-c1", { primary: "a" }, { onSetHold });
+
+    const input = screen.getByLabelText(/hold glyph/i);
+    fireEvent.change(input, { target: { value: "ä" } });
+    fireEvent.blur(input);
+
+    expect(onSetHold).toHaveBeenCalledWith({ glyph: "ä" });
   });
 
   it("recolors the primary legend", () => {

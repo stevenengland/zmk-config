@@ -195,6 +195,58 @@ describe("documentReducer", () => {
     expect(json.layers[0].keys["L-r0-c0"]).toEqual({ shifted: "!" });
   });
 
+  it("sets a hold glyph with its shifted variant on the active layer's key", () => {
+    const state = documentReducer(createInitialState(), {
+      type: "set-hold",
+      keyId: "L-r2-c1",
+      hold: { glyph: "ä", shifted: "Ä" },
+    });
+
+    expect(state.document.layers[0].keys["L-r2-c1"]).toEqual({ hold: { glyph: "ä", shifted: "Ä" } });
+  });
+
+  it("does not drop a key that carries only a hold glyph and no legend text", () => {
+    const state = documentReducer(createInitialState(), {
+      type: "set-hold",
+      keyId: "L-r2-c1",
+      hold: { glyph: "ä" },
+    });
+
+    expect(state.document.layers[0].keys["L-r2-c1"]).toBeDefined();
+  });
+
+  it("clears the hold binding and drops the key once fully empty", () => {
+    const withHold = documentReducer(createInitialState(), {
+      type: "set-hold",
+      keyId: "L-r2-c1",
+      hold: { glyph: "ä", shifted: "Ä" },
+    });
+
+    const state = documentReducer(withHold, { type: "set-hold", keyId: "L-r2-c1", hold: undefined });
+
+    expect(state.document.layers[0].keys["L-r2-c1"]).toBeUndefined();
+  });
+
+  it("clearing the hold binding removes it from the serialized document while keeping siblings", () => {
+    let state = documentReducer(createInitialState(), {
+      type: "set-slot",
+      keyId: "L-r2-c1",
+      slot: "primary",
+      value: "a",
+    });
+    state = documentReducer(state, {
+      type: "set-hold",
+      keyId: "L-r2-c1",
+      hold: { glyph: "ä", shifted: "Ä" },
+    });
+
+    state = documentReducer(state, { type: "set-hold", keyId: "L-r2-c1", hold: undefined });
+
+    expect(state.document.layers[0].keys["L-r2-c1"]).toEqual({ primary: "a" });
+    const json = JSON.parse(serialize(state.document));
+    expect(json.layers[0].keys["L-r2-c1"]).toEqual({ primary: "a" });
+  });
+
   it("does not persist a legend that only carries a color with no glyph slots", () => {
     const state = documentReducer(createInitialState(), {
       type: "set-key-color",

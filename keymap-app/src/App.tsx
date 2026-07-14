@@ -168,6 +168,10 @@ export function App() {
               if (!selectedKeyId) return;
               dispatch({ type: "toggle-homing", keyId: selectedKeyId });
             }}
+            onSetHold={(hold) => {
+              if (!selectedKeyId) return;
+              dispatch({ type: "set-hold", keyId: selectedKeyId, hold });
+            }}
           />
         </div>
         <StatusBar message={status} />

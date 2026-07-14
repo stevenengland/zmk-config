@@ -1,5 +1,6 @@
 import {
   SCHEMA_VERSION,
+  type HoldBinding,
   type KeyLegend,
   type KeymapDocument,
   type Layer,
@@ -39,6 +40,7 @@ export type DocumentAction =
   | { type: "select-key"; keyId: string | null }
   | { type: "set-slot"; keyId: string; slot: LegendSlot; value: string }
   | { type: "set-key-color"; keyId: string; color: string }
+  | { type: "set-hold"; keyId: string; hold: HoldBinding | undefined }
   | { type: "toggle-homing"; keyId: string }
   | { type: "set-view"; mode: ViewMode };
 
@@ -67,7 +69,7 @@ function replaceLayer(
 
 /** A legend with no glyph slots renders nothing, even if `color` is set. */
 function hasVisibleContent(legend: KeyLegend): boolean {
-  return Boolean(legend.primary || legend.shifted || legend.altgr);
+  return Boolean(legend.primary || legend.shifted || legend.altgr || legend.hold?.glyph);
 }
 
 /**
@@ -134,6 +136,13 @@ export function documentReducer(state: DocumentState, action: DocumentAction): D
         const next = { ...legend };
         if (action.color) next.color = action.color;
         else delete next.color;
+        return next;
+      });
+    case "set-hold":
+      return updateActiveKey(state, action.keyId, (legend) => {
+        const next = { ...legend };
+        if (action.hold) next.hold = action.hold;
+        else delete next.hold;
         return next;
       });
     case "toggle-homing": {

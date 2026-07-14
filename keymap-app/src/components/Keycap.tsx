@@ -6,6 +6,8 @@ import {
   CORNER_RADIUS,
   ENCODER_FILL,
   ENCODER_STROKE,
+  HOLD_SIZE,
+  holdUnderlineRect,
   homingBarRect,
   KEY_EDGE_ACCENT,
   KEY_EDGE_ACCENT_WIDTH,
@@ -86,6 +88,27 @@ function Legends({ legend, box }: { legend: KeyLegend; box: Box }) {
   );
 }
 
+/** Hold slot: top-right behavior stack, row one — glyph end-aligned over a solid underline. */
+function HoldRow({ glyph, box }: { glyph: string; box: Box }) {
+  const underline = holdUnderlineRect(box);
+  return (
+    <>
+      <text
+        x={box.right - PAD}
+        y={box.top + PAD}
+        textAnchor="end"
+        dominantBaseline="hanging"
+        fontFamily={LEGEND_FONT}
+        fontSize={HOLD_SIZE}
+        fill={LEGEND_COLOR}
+      >
+        {glyph}
+      </text>
+      <rect {...underline} fill={LEGEND_COLOR} />
+    </>
+  );
+}
+
 /**
  * Renders one board element as an SVG group with its corner legends. Clicking
  * selects it; the selected element is highlighted with the primary teal.
@@ -162,6 +185,7 @@ export function Keycap({ element, legend, selected, onSelect, layerColor, homing
         />
       ) : null}
       {isKey && homing ? <rect {...homingBarRect(box)} fill={KEY_STROKE} /> : null}
+      {isKey && legend?.hold ? <HoldRow glyph={legend.hold.glyph} box={box} /> : null}
       {legend ? <Legends legend={legend} box={box} /> : null}
     </g>
   );
