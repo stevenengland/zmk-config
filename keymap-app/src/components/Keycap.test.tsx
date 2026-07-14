@@ -9,6 +9,7 @@ import {
   KEY_EDGE_ACCENT_WIDTH,
   KEY_STROKE,
   layerTickPath,
+  macroChipRect,
   SYMBOL_FONT_FAMILY,
 } from "../model/renderStyle";
 
@@ -231,5 +232,39 @@ describe("Keycap legends", () => {
     fireEvent.click(holdText);
 
     expect(onJumpToLayer).not.toHaveBeenCalled();
+  });
+
+  it("renders a macro-bound key's glyph in place of primary, wrapped in a dashed chip", () => {
+    const macros = { copy: { glyph: "⌃C", label: "Copy", steps: "hold Ctrl · tap C" } };
+    const { container } = svg(
+      <Keycap element={key} legend={{ macro: "copy" }} macros={macros} />,
+    );
+    const group = container.querySelector("[data-key-id]")!;
+
+    const primary = Array.from(group.querySelectorAll("text")).find((t) => t.textContent === "⌃C")!;
+    expect(primary).toBeTruthy();
+
+    const expected = macroChipRect("⌃C", boxOf(key));
+    const chip = group.querySelector(`rect[x="${expected.x}"][y="${expected.y}"]`)!;
+    expect(chip).toBeTruthy();
+    expect(chip.getAttribute("width")).toBe(String(expected.width));
+    expect(chip.getAttribute("height")).toBe(String(expected.height));
+    expect(chip.getAttribute("fill")).toBe("none");
+    expect(chip.getAttribute("stroke-dasharray")).toBeTruthy();
+  });
+
+  it("renders no macro chip for a key with no macro reference", () => {
+    const { container } = svg(<Keycap element={key} legend={{ primary: "a" }} />);
+    const group = container.querySelector("[data-key-id]")!;
+
+    const expected = macroChipRect("a", boxOf(key));
+    expect(group.querySelector(`rect[x="${expected.x}"][y="${expected.y}"]`)).toBeNull();
+  });
+
+  it("falls back to no primary text when a macro reference doesn't resolve in the registry", () => {
+    const { container } = svg(<Keycap element={key} legend={{ macro: "missing" }} macros={{}} />);
+    const group = container.querySelector("[data-key-id]")!;
+
+    expect(group.querySelectorAll("text")).toHaveLength(0);
   });
 });

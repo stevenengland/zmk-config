@@ -8,11 +8,13 @@
 import { boardGeometry, type BoardElement } from "../model/geometry";
 import {
   resolveHoldDisplay,
+  resolveMacroDisplay,
   serialize,
   type HoldDisplay,
   type KeyLegend,
   type KeymapDocument,
   type Layer,
+  type MacroRegistry,
 } from "../model/schema";
 import {
   BACKGROUND,
@@ -34,6 +36,9 @@ import {
   layerTickPath,
   LEGEND_COLOR,
   LEGEND_FONT,
+  macroChipRect,
+  MACRO_CHIP_DASH,
+  MACRO_CHIP_STROKE,
   PAD,
   PRIMARY_SIZE,
   SUB_SIZE,
@@ -54,7 +59,7 @@ function escapeXml(text: string): string {
 }
 
 /** Corner legends, matching the on-canvas Keycap layout (primary/shifted/altgr). */
-function legendMarkup(legend: KeyLegend, box: Box): string {
+function legendMarkup(legend: KeyLegend, box: Box, macroGlyph?: string): string {
   const parts: string[] = [];
   if (legend.shifted) {
     parts.push(
@@ -66,9 +71,16 @@ function legendMarkup(legend: KeyLegend, box: Box): string {
       `<text x="${box.right - PAD}" y="${box.bottom - PAD}" text-anchor="end" font-family='${LEGEND_FONT}' font-size="${SUB_SIZE}" fill="${LEGEND_COLOR}">${escapeXml(legend.altgr)}</text>`,
     );
   }
-  if (legend.primary) {
+  const primaryText = macroGlyph ?? legend.primary;
+  if (primaryText) {
     parts.push(
-      `<text x="${box.left + PAD}" y="${box.bottom - PAD}" text-anchor="start" font-family='${LEGEND_FONT}' font-size="${PRIMARY_SIZE}" font-weight="600" fill="${legend.color ?? LEGEND_COLOR}">${escapeXml(legend.primary)}</text>`,
+      `<text x="${box.left + PAD}" y="${box.bottom - PAD}" text-anchor="start" font-family='${LEGEND_FONT}' font-size="${PRIMARY_SIZE}" font-weight="600" fill="${legend.color ?? LEGEND_COLOR}">${escapeXml(primaryText)}</text>`,
+    );
+  }
+  if (macroGlyph) {
+    const r = macroChipRect(macroGlyph, box);
+    parts.push(
+      `<rect x="${r.x}" y="${r.y}" width="${r.width}" height="${r.height}" rx="${r.rx}" fill="none" stroke="${MACRO_CHIP_STROKE}" stroke-width="1" stroke-dasharray="${MACRO_CHIP_DASH}" />`,
     );
   }
   return parts.join("");
@@ -91,6 +103,7 @@ function elementMarkup(
   layerColor: string,
   homing: boolean,
   allLayers: readonly Layer[],
+  macros: MacroRegistry,
 ): string {
   const box = boxOf(element);
   const shape =
@@ -114,13 +127,15 @@ function elementMarkup(
       : "";
   const holdDisplay = element.kind === "key" ? resolveHoldDisplay(legend?.hold, allLayers) : undefined;
   const hold = holdDisplay ? holdMarkup(holdDisplay, box) : "";
+  const macroGlyph =
+    element.kind === "key" ? resolveMacroDisplay(legend?.macro, macros)?.glyph : undefined;
   const cx = element.x + element.w / 2;
   const cy = element.y + element.h / 2;
   const transform =
     element.kind === "encoder" || element.rotation === undefined
       ? ""
       : ` transform="rotate(${element.rotation} ${cx} ${cy})"`;
-  return `<g${transform}>${shape}${accent}${tick}${homingBar}${hold}${legend ? legendMarkup(legend, box) : ""}</g>`;
+  return `<g${transform}>${shape}${accent}${tick}${homingBar}${hold}${legend ? legendMarkup(legend, box, macroGlyph) : ""}</g>`;
 }
 
 /** Standalone SVG document for one layer: full board, legends, embedded font. */
@@ -128,12 +143,20 @@ export function layerToSvg(
   layer: Layer,
   homing: readonly string[] = [],
   allLayers: readonly Layer[] = [layer],
+  macros: MacroRegistry = {},
 ): string {
   const box = viewBox();
   const homingSet = new Set(homing);
   const elements = boardGeometry
     .map((element) =>
-      elementMarkup(element, layer.keys[element.id], layer.color, homingSet.has(element.id), allLayers),
+      elementMarkup(
+        element,
+        layer.keys[element.id],
+        layer.color,
+        homingSet.has(element.id),
+        allLayers,
+        macros,
+      ),
     )
     .join("");
   return (
@@ -161,14 +184,19 @@ export function exportLayerSvg(
   layer: Layer,
   homing: readonly string[] = [],
   allLayers: readonly Layer[] = [layer],
+  macros: MacroRegistry = {},
 ): void {
-  downloadFile(layerToSvg(layer, homing, allLayers), `${layer.name}.svg`, "image/svg+xml");
+  downloadFile(layerToSvg(layer, homing, allLayers, macros), `${layer.name}.svg`, "image/svg+xml");
 }
 
 /** Sequential per-layer downloads, one `<layer-name>.svg` per layer — no zip dependency. */
-export function exportAllLayersSvg(layers: readonly Layer[], homing: readonly string[] = []): void {
+export function exportAllLayersSvg(
+  layers: readonly Layer[],
+  homing: readonly string[] = [],
+  macros: MacroRegistry = {},
+): void {
   for (const layer of layers) {
-    exportLayerSvg(layer, homing, layers);
+    exportLayerSvg(layer, homing, layers, macros);
   }
 }
 

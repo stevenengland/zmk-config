@@ -168,6 +168,42 @@ export function holdUnderlineRect(box: Box): HoldUnderlineRect {
   };
 }
 
+// Macro chip: dashed border around the primary legend when it displays a
+// macro's glyph (docs/design/behavior-legends.html "Macros") — "one unit
+// that expands to a sequence". Sized from a fixed per-glyph advance and
+// fixed ascent/descent rather than DOM-measured text metrics, so the live
+// canvas and the string-based SVG export can never drift apart — same
+// rationale as holdUnderlineRect above.
+export const MACRO_GLYPH_ADVANCE = 11;
+export const MACRO_CHIP_ASCENT = 13;
+export const MACRO_CHIP_DESCENT = 3;
+export const MACRO_CHIP_PAD_X = 3.5;
+export const MACRO_CHIP_PAD_Y = 2.5;
+export const MACRO_CHIP_RADIUS = 4;
+export const MACRO_CHIP_STROKE = "#6b7480";
+export const MACRO_CHIP_DASH = "3 2.2";
+
+export interface MacroChipRect {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  rx: number;
+}
+
+export function macroChipRect(glyph: string, box: Box): MacroChipRect {
+  const baselineX = box.left + PAD;
+  const baselineY = box.bottom - PAD;
+  const width = Math.max(glyph.length, 1) * MACRO_GLYPH_ADVANCE;
+  return {
+    x: baselineX - MACRO_CHIP_PAD_X,
+    y: baselineY - MACRO_CHIP_ASCENT - MACRO_CHIP_PAD_Y,
+    width: width + 2 * MACRO_CHIP_PAD_X,
+    height: MACRO_CHIP_ASCENT + MACRO_CHIP_DESCENT + 2 * MACRO_CHIP_PAD_Y,
+    rx: MACRO_CHIP_RADIUS,
+  };
+}
+
 const VIEWBOX_PADDING = 40;
 
 /** Tight bounding box around every board element, plus padding. */

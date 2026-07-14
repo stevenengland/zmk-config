@@ -165,4 +165,51 @@ describe("schema serialize/parse", () => {
 
     expect(parsed.layers[0].keys["L-r4-c4"].hold).toEqual({ layer: "Nav" });
   });
+
+  it("round-trips the macro registry and a key's macro reference", () => {
+    const doc: KeymapDocument = {
+      schemaVersion: SCHEMA_VERSION,
+      macros: { copy: { glyph: "⌃C", label: "Copy", steps: "hold Ctrl · tap C" } },
+      layers: [{ name: "Base", color: "#00e5ff", keys: { "R-r2-c1": { macro: "copy" } } }],
+    };
+
+    const parsed = parse(serialize(doc));
+
+    expect(parsed.macros).toEqual({ copy: { glyph: "⌃C", label: "Copy", steps: "hold Ctrl · tap C" } });
+    expect(parsed.layers[0].keys["R-r2-c1"]).toEqual({ macro: "copy" });
+  });
+
+  it("persists a macro registry entry even when no key references it", () => {
+    const doc: KeymapDocument = {
+      schemaVersion: SCHEMA_VERSION,
+      macros: { copy: { glyph: "⌃C", label: "Copy", steps: "hold Ctrl · tap C" } },
+      layers: [{ name: "Base", color: "#00e5ff", keys: {} }],
+    };
+
+    const parsed = parse(serialize(doc));
+
+    expect(parsed.macros).toEqual({ copy: { glyph: "⌃C", label: "Copy", steps: "hold Ctrl · tap C" } });
+  });
+
+  it("omits `macros` entirely when the document never had any", () => {
+    const json = serialize({
+      schemaVersion: SCHEMA_VERSION,
+      layers: [{ name: "Base", color: "#00e5ff", keys: {} }],
+    });
+
+    expect(json).not.toContain("macros");
+  });
+
+  it("prunes an empty macro registry from the persisted JSON", () => {
+    const doc: KeymapDocument = {
+      schemaVersion: SCHEMA_VERSION,
+      macros: {},
+      layers: [{ name: "Base", color: "#00e5ff", keys: {} }],
+    };
+
+    const json = serialize(doc);
+
+    expect(json).not.toContain("macros");
+    expect(parse(json).macros).toBeUndefined();
+  });
 });

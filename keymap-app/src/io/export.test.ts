@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { boardGeometry } from "../model/geometry";
 import { SCHEMA_VERSION, type KeymapDocument, type Layer } from "../model/schema";
-import { boxOf, holdUnderlineRect, homingBarRect, KEY_STROKE, layerTickPath } from "../model/renderStyle";
+import { boxOf, holdUnderlineRect, homingBarRect, KEY_STROKE, layerTickPath, macroChipRect } from "../model/renderStyle";
 import { exportAllLayersSvg, exportJson, exportLayerSvg, layerToSvg } from "./export";
 
 vi.mock("../model/schema", async (importOriginal) => {
@@ -112,6 +112,30 @@ describe("layerToSvg", () => {
     expect(svg).toContain(
       `<rect x="${r.x}" y="${r.y}" width="${r.width}" height="${r.height}" rx="${r.rx}" fill="#fec931" />`,
     );
+  });
+
+  it("renders a macro-bound key's glyph and dashed chip, identically to the canvas", () => {
+    const layer: Layer = {
+      name: "Base",
+      color: "#00e5ff",
+      keys: { "L-r0-c0": { macro: "copy" } },
+    };
+    const macros = { copy: { glyph: "⌃C", label: "Copy", steps: "hold Ctrl · tap C" } };
+    const svg = layerToSvg(layer, [], [layer], macros);
+    const box = boxOf(boardGeometry.find((e) => e.id === "L-r0-c0")!);
+    const r = macroChipRect("⌃C", box);
+
+    expect(svg).toContain(">⌃C</text>");
+    expect(svg).toContain(
+      `<rect x="${r.x}" y="${r.y}" width="${r.width}" height="${r.height}" rx="${r.rx}" fill="none"`,
+    );
+    expect(svg).toContain("stroke-dasharray");
+  });
+
+  it("renders no macro chip for a key with no macro reference", () => {
+    const svg = layerToSvg(LAYER);
+
+    expect(svg).not.toContain("stroke-dasharray");
   });
 });
 

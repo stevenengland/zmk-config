@@ -366,6 +366,121 @@ describe("documentReducer", () => {
     expect(state.document.layers[1].keys["L-r0-c0"]).toEqual({ shifted: "!" });
     expect(state.document.layers[0].keys["L-r0-c0"]).toBeUndefined();
   });
+
+  it("adds a macro to the document-level registry", () => {
+    const state = documentReducer(createInitialState(), {
+      type: "add-macro",
+      name: "copy",
+      def: { glyph: "⌃C", label: "Copy", steps: "hold Ctrl · tap C" },
+    });
+
+    expect(state.document.macros).toEqual({
+      copy: { glyph: "⌃C", label: "Copy", steps: "hold Ctrl · tap C" },
+    });
+  });
+
+  it("assigns a macro reference to a key, clearing any hold binding on it", () => {
+    const withHold = documentReducer(createInitialState(), {
+      type: "set-hold",
+      keyId: "R-r2-c1",
+      hold: { glyph: "ä" },
+    });
+
+    const state = documentReducer(withHold, { type: "set-macro", keyId: "R-r2-c1", macro: "copy" });
+
+    expect(state.document.layers[0].keys["R-r2-c1"]).toEqual({ macro: "copy" });
+  });
+
+  it("setting a hold binding clears a key's macro reference", () => {
+    const withMacro = documentReducer(createInitialState(), {
+      type: "set-macro",
+      keyId: "R-r2-c1",
+      macro: "copy",
+    });
+
+    const state = documentReducer(withMacro, {
+      type: "set-hold",
+      keyId: "R-r2-c1",
+      hold: { glyph: "ä" },
+    });
+
+    expect(state.document.layers[0].keys["R-r2-c1"]).toEqual({ hold: { glyph: "ä" } });
+  });
+
+  it("editing a macro's glyph and label updates every key referencing it, across layers", () => {
+    let state = documentReducer(createInitialState(), {
+      type: "add-macro",
+      name: "copy",
+      def: { glyph: "⌃C", label: "Copy", steps: "hold Ctrl · tap C" },
+    });
+    state = documentReducer(state, { type: "add", name: "Mouse", color: "#fec931" });
+    state = documentReducer(state, { type: "set-macro", keyId: "R-r2-c1", macro: "copy" });
+    state = documentReducer(state, { type: "select", index: 0 });
+    state = documentReducer(state, { type: "set-macro", keyId: "L-r0-c0", macro: "copy" });
+
+    state = documentReducer(state, {
+      type: "update-macro",
+      name: "copy",
+      def: { glyph: "⌃⇧C", label: "Copy (renamed)", steps: "hold Ctrl+Shift · tap C" },
+    });
+
+    expect(state.document.macros).toEqual({
+      copy: { glyph: "⌃⇧C", label: "Copy (renamed)", steps: "hold Ctrl+Shift · tap C" },
+    });
+    // both referencing keys resolve the updated entry via the same by-name lookup
+    expect(state.document.layers[0].keys["L-r0-c0"]).toEqual({ macro: "copy" });
+    expect(state.document.layers[1].keys["R-r2-c1"]).toEqual({ macro: "copy" });
+  });
+
+  it("deleting a macro removes it from the registry and clears every key reference to it, dropping keys left with no other content", () => {
+    let state = documentReducer(createInitialState(), {
+      type: "add-macro",
+      name: "copy",
+      def: { glyph: "⌃C", label: "Copy", steps: "hold Ctrl · tap C" },
+    });
+    state = documentReducer(state, { type: "add", name: "Mouse", color: "#fec931" });
+    state = documentReducer(state, { type: "set-macro", keyId: "R-r2-c1", macro: "copy" });
+    state = documentReducer(state, { type: "select", index: 0 });
+    state = documentReducer(state, {
+      type: "set-slot",
+      keyId: "L-r0-c0",
+      slot: "primary",
+      value: "a",
+    });
+    state = documentReducer(state, { type: "set-macro", keyId: "L-r0-c0", macro: "copy" });
+
+    state = documentReducer(state, { type: "delete-macro", name: "copy" });
+
+    expect(state.document.macros).toBeUndefined();
+    // key with other content keeps its remaining legend, macro ref dropped
+    expect(state.document.layers[0].keys["L-r0-c0"]).toEqual({ primary: "a" });
+    // key with no other content is dropped entirely — no dangling reference
+    expect(state.document.layers[1].keys["R-r2-c1"]).toBeUndefined();
+  });
+
+  it("prunes an empty macro registry from the serialized document once the last entry is deleted", () => {
+    let state = documentReducer(createInitialState(), {
+      type: "add-macro",
+      name: "copy",
+      def: { glyph: "⌃C", label: "Copy", steps: "hold Ctrl · tap C" },
+    });
+
+    state = documentReducer(state, { type: "delete-macro", name: "copy" });
+
+    expect(JSON.parse(serialize(state.document))).not.toHaveProperty("macros");
+  });
+
+  it("keeps a macro registry entry that no key references", () => {
+    const state = documentReducer(createInitialState(), {
+      type: "add-macro",
+      name: "copy",
+      def: { glyph: "⌃C", label: "Copy", steps: "hold Ctrl · tap C" },
+    });
+
+    expect(JSON.parse(serialize(state.document)).macros).toEqual({
+      copy: { glyph: "⌃C", label: "Copy", steps: "hold Ctrl · tap C" },
+    });
+  });
 });
 
 describe("documentHistoryReducer", () => {

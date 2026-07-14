@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState, type CSSProperties } from "react";
-import type { HoldBinding, KeyLegend } from "../model/schema";
+import type { HoldBinding, KeyLegend, MacroDef, MacroRegistry } from "../model/schema";
 import type { LegendSlot } from "../state/documentReducer";
 import { convertLegendInput } from "../model/codepoint";
 import { boardGeometry, describeElementId } from "../model/geometry";
 import { BindingEditor } from "./BindingEditor";
+import { MacroManager } from "./MacroManager";
 import { SymbolPicker } from "./SymbolPicker";
 
 // Colors drawn from the "Engineering Chic" colorset (docs/design/stitch.md).
@@ -40,10 +41,16 @@ interface KeyEditorPanelProps {
   homing: boolean;
   onToggleHoming: () => void;
   onSetHold: (hold: HoldBinding | undefined) => void;
+  onSetMacro: (name: string | undefined) => void;
   /** Layer count, surfaced in the empty state so the idle panel still orients. */
   layerCount?: number;
   /** Every layer's name, forwarded to the binding editor's Layer-mode picker. */
   layerNames?: readonly string[];
+  /** Document-level macro registry, shown in the "Macros" manager and forwarded to the Macro-mode picker. */
+  macros: MacroRegistry;
+  onAddMacro: (name: string, def: MacroDef) => void;
+  onUpdateMacro: (name: string, def: MacroDef) => void;
+  onDeleteMacro: (name: string) => void;
 }
 
 const panel: CSSProperties = {
@@ -106,8 +113,13 @@ export function KeyEditorPanel({
   homing,
   onToggleHoming,
   onSetHold,
+  onSetMacro,
   layerCount = 1,
   layerNames = [],
+  macros,
+  onAddMacro,
+  onUpdateMacro,
+  onDeleteMacro,
 }: KeyEditorPanelProps) {
   const [fields, setFields] = useState<Fields>(() => fieldsFromLegend(legend));
   // The slot a picked symbol lands in; follows field focus, primary by default.
@@ -153,6 +165,7 @@ export function KeyEditorPanel({
           {boardGeometry.length} keys · {layerCount} layer{layerCount === 1 ? "" : "s"}
         </p>
         <p style={{ color: ON_SURFACE_VARIANT, fontSize: 14 }}>Select a key to edit its legends.</p>
+        <MacroManager macros={macros} onAdd={onAddMacro} onUpdate={onUpdateMacro} onDelete={onDeleteMacro} onError={onError} />
       </aside>
     );
   }
@@ -222,8 +235,11 @@ export function KeyEditorPanel({
         keyId={keyId}
         hold={legend.hold}
         onSetHold={onSetHold}
+        macro={legend.macro}
+        onSetMacro={onSetMacro}
         onError={onError}
         layerNames={layerNames}
+        macroNames={Object.keys(macros)}
       />
 
       <label style={label}>
@@ -263,6 +279,8 @@ export function KeyEditorPanel({
       >
         Reset color
       </button>
+
+      <MacroManager macros={macros} onAdd={onAddMacro} onUpdate={onUpdateMacro} onDelete={onDeleteMacro} onError={onError} />
     </aside>
   );
 }
