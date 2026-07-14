@@ -42,6 +42,8 @@ interface KeyEditorPanelProps {
   onSetHold: (hold: HoldBinding | undefined) => void;
   /** Layer count, surfaced in the empty state so the idle panel still orients. */
   layerCount?: number;
+  /** Every layer's name, forwarded to the binding editor's Layer-mode picker. */
+  layerNames?: readonly string[];
 }
 
 const panel: CSSProperties = {
@@ -105,6 +107,7 @@ export function KeyEditorPanel({
   onToggleHoming,
   onSetHold,
   layerCount = 1,
+  layerNames = [],
 }: KeyEditorPanelProps) {
   const [fields, setFields] = useState<Fields>(() => fieldsFromLegend(legend));
   // The slot a picked symbol lands in; follows field focus, primary by default.
@@ -215,7 +218,13 @@ export function KeyEditorPanel({
       <SymbolPicker onInsert={(glyph) => commit(activeSlot, glyph)} />
 
       <span style={label}>On hold</span>
-      <BindingEditor keyId={keyId} hold={legend.hold} onSetHold={onSetHold} onError={onError} />
+      <BindingEditor
+        keyId={keyId}
+        hold={legend.hold}
+        onSetHold={onSetHold}
+        onError={onError}
+        layerNames={layerNames}
+      />
 
       <label style={label}>
         Primary color

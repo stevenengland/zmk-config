@@ -144,6 +144,11 @@ export function App() {
                   onSelectKey={selectKey}
                   layerColor={activeLayer.color}
                   homingKeys={homingKeys}
+                  layers={state.document.layers}
+                  onJumpToLayer={(name) => {
+                    const index = state.document.layers.findIndex((l) => l.name === name);
+                    if (index >= 0) dispatch({ type: "select", index });
+                  }}
                 />
               </div>
             </div>
@@ -153,6 +158,7 @@ export function App() {
             activeIndex={state.activeIndex}
             legend={selectedLegend}
             layerCount={state.document.layers.length}
+            layerNames={state.document.layers.map((l) => l.name)}
             onSetSlot={(slot, glyph) => {
               if (!selectedKeyId) return;
               setStatus(null);

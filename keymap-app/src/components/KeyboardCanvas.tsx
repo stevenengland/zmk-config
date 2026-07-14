@@ -1,5 +1,5 @@
 import { boardGeometry, keys, encoders } from "../model/geometry";
-import type { KeyLegend } from "../model/schema";
+import type { KeyLegend, Layer } from "../model/schema";
 import { BACKGROUND, boardViewBox } from "../model/renderStyle";
 import { Keycap } from "./Keycap";
 
@@ -17,6 +17,10 @@ interface KeyboardCanvasProps {
   layerColor?: string;
   /** Board-wide homing key ids — same set rendered on every layer. */
   homingKeys?: ReadonlySet<string>;
+  /** Every layer in the document, used to resolve a layer-tap hold's tint and jump target. */
+  layers?: readonly Layer[];
+  /** Fires when a layer-tinted hold legend is clicked, switching the canvas to that layer. */
+  onJumpToLayer?: (layerName: string) => void;
 }
 
 /** Inline-SVG render of the full Sofle Choc board with selectable, legended keys. */
@@ -26,6 +30,8 @@ export function KeyboardCanvas({
   onSelectKey,
   layerColor,
   homingKeys,
+  layers,
+  onJumpToLayer,
 }: KeyboardCanvasProps = {}) {
   return (
     <svg
@@ -43,6 +49,8 @@ export function KeyboardCanvas({
           onSelect={onSelectKey}
           layerColor={layerColor}
           homing={homingKeys?.has(element.id)}
+          layers={layers}
+          onJumpToLayer={onJumpToLayer}
         />
       ))}
     </svg>

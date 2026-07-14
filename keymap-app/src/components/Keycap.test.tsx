@@ -178,4 +178,58 @@ describe("Keycap legends", () => {
     const expected = holdUnderlineRect(boxOf(key));
     expect(group.querySelector(`rect[x="${expected.x}"][y="${expected.y}"]`)).toBeNull();
   });
+
+  it("renders a layer-tap hold as the target layer's name, tinted in its color", () => {
+    const layers = [
+      { name: "Base", color: "#00e5ff", keys: {} },
+      { name: "Nav", color: "#fec931", keys: {} },
+    ];
+    const { container } = svg(
+      <Keycap element={key} legend={{ hold: { layer: "Nav" } }} layers={layers} />,
+    );
+    const group = container.querySelector("[data-key-id]")!;
+
+    const holdText = Array.from(group.querySelectorAll("text")).find((t) => t.textContent === "Nav")!;
+    expect(holdText).toBeTruthy();
+    expect(holdText.getAttribute("fill")).toBe("#fec931");
+
+    const underline = group.querySelector(`rect[fill="#fec931"]`)!;
+    expect(underline).toBeTruthy();
+  });
+
+  it("clicking a layer-tap hold legend jumps to that layer without selecting the key", () => {
+    const layers = [
+      { name: "Base", color: "#00e5ff", keys: {} },
+      { name: "Nav", color: "#fec931", keys: {} },
+    ];
+    const onJumpToLayer = vi.fn();
+    const onSelect = vi.fn();
+    const { container } = svg(
+      <Keycap
+        element={key}
+        legend={{ hold: { layer: "Nav" } }}
+        layers={layers}
+        onJumpToLayer={onJumpToLayer}
+        onSelect={onSelect}
+      />,
+    );
+
+    const holdText = Array.from(container.querySelectorAll("text")).find((t) => t.textContent === "Nav")!;
+    fireEvent.click(holdText);
+
+    expect(onJumpToLayer).toHaveBeenCalledWith("Nav");
+    expect(onSelect).not.toHaveBeenCalled();
+  });
+
+  it("does not treat a plain glyph hold as clickable", () => {
+    const onJumpToLayer = vi.fn();
+    const { container } = svg(
+      <Keycap element={key} legend={{ hold: { glyph: "ä" } }} onJumpToLayer={onJumpToLayer} />,
+    );
+
+    const holdText = Array.from(container.querySelectorAll("text")).find((t) => t.textContent === "ä")!;
+    fireEvent.click(holdText);
+
+    expect(onJumpToLayer).not.toHaveBeenCalled();
+  });
 });

@@ -1,5 +1,5 @@
 import { useEffect, useState, type CSSProperties } from "react";
-import type { HoldBinding } from "../model/schema";
+import { isLayerHold, type HoldBinding } from "../model/schema";
 import { convertLegendInput } from "../model/codepoint";
 
 // Colors drawn from the "Engineering Chic" colorset (docs/design/stitch.md), matching KeyEditorPanel.
@@ -37,30 +37,42 @@ interface BindingEditorProps {
   hold?: HoldBinding;
   onSetHold: (hold: HoldBinding | undefined) => void;
   onError: (message: string) => void;
+  /** Layer mode's target picker — every layer in the document, in document order. */
+  layerNames?: readonly string[];
 }
+
+type Mode = "glyph" | "layer";
 
 interface Fields {
   glyph: string;
   shifted: string;
+  layer: string;
+}
+
+function modeFromHold(hold?: HoldBinding): Mode {
+  return hold && isLayerHold(hold) ? "layer" : "glyph";
 }
 
 function fieldsFromHold(hold?: HoldBinding): Fields {
-  return { glyph: hold?.glyph ?? "", shifted: hold?.shifted ?? "" };
+  if (hold && isLayerHold(hold)) return { glyph: "", shifted: "", layer: hold.layer };
+  return { glyph: hold?.glyph ?? "", shifted: hold?.shifted ?? "", layer: "" };
 }
 
 /**
- * Shared binding editor for a key's "On hold" group. Only glyph mode is wired
- * this slice — the mode select previews the eventual Glyph / Layer / Macro
- * switch (PRD #28) with Layer and Macro disabled until those slices land.
+ * Shared binding editor for a key's "On hold" group: Glyph mode commits a
+ * glyph (+ optional shifted variant), Layer mode commits a by-name layer
+ * reference. Macro is previewed but not yet selectable (PRD #28, later slice).
  */
-export function BindingEditor({ keyId, hold, onSetHold, onError }: BindingEditorProps) {
+export function BindingEditor({ keyId, hold, onSetHold, onError, layerNames = [] }: BindingEditorProps) {
+  const [mode, setMode] = useState<Mode>(() => modeFromHold(hold));
   const [fields, setFields] = useState<Fields>(() => fieldsFromHold(hold));
 
   useEffect(() => {
+    setMode(modeFromHold(hold));
     setFields(fieldsFromHold(hold));
   }, [keyId, hold]);
 
-  const commit = (field: keyof Fields, raw: string) => {
+  const commit = (field: "glyph" | "shifted", raw: string) => {
     const result = convertLegendInput(raw);
     if (!result.ok) {
       onError(result.error);
@@ -76,46 +88,84 @@ export function BindingEditor({ keyId, hold, onSetHold, onError }: BindingEditor
     }
   };
 
+  const selectLayer = (name: string) => {
+    setFields((prev) => ({ ...prev, layer: name }));
+    onSetHold({ layer: name });
+  };
+
+  const changeMode = (next: Mode) => {
+    setMode(next);
+    if (next === "layer") {
+      const target = fields.layer || layerNames[0];
+      if (target) onSetHold({ layer: target });
+    } else {
+      onSetHold(fields.glyph ? { glyph: fields.glyph, ...(fields.shifted ? { shifted: fields.shifted } : {}) } : undefined);
+    }
+  };
+
   return (
     <div>
       <label style={label}>
         Binding mode
-        <select aria-label="Binding mode" defaultValue="glyph" style={field}>
+        <select
+          aria-label="Binding mode"
+          value={mode}
+          onChange={(e) => changeMode(e.target.value as Mode)}
+          style={field}
+        >
           <option value="glyph">Glyph</option>
-          <option value="layer" disabled>
-            Layer
-          </option>
+          <option value="layer">Layer</option>
           <option value="macro" disabled>
             Macro
           </option>
         </select>
       </label>
-      <label style={label}>
-        Hold glyph
-        <input
-          aria-label="Hold glyph"
-          style={field}
-          value={fields.glyph}
-          onChange={(e) => setFields((prev) => ({ ...prev, glyph: e.target.value }))}
-          onBlur={(e) => commit("glyph", e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") commit("glyph", e.currentTarget.value);
-          }}
-        />
-      </label>
-      <label style={label}>
-        Hold shifted glyph
-        <input
-          aria-label="Hold shifted glyph"
-          style={field}
-          value={fields.shifted}
-          onChange={(e) => setFields((prev) => ({ ...prev, shifted: e.target.value }))}
-          onBlur={(e) => commit("shifted", e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") commit("shifted", e.currentTarget.value);
-          }}
-        />
-      </label>
+      {mode === "layer" ? (
+        <label style={label}>
+          Target layer
+          <select
+            aria-label="Target layer"
+            value={fields.layer}
+            onChange={(e) => selectLayer(e.target.value)}
+            style={field}
+          >
+            {layerNames.map((name) => (
+              <option key={name} value={name}>
+                {name}
+              </option>
+            ))}
+          </select>
+        </label>
+      ) : (
+        <>
+          <label style={label}>
+            Hold glyph
+            <input
+              aria-label="Hold glyph"
+              style={field}
+              value={fields.glyph}
+              onChange={(e) => setFields((prev) => ({ ...prev, glyph: e.target.value }))}
+              onBlur={(e) => commit("glyph", e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") commit("glyph", e.currentTarget.value);
+              }}
+            />
+          </label>
+          <label style={label}>
+            Hold shifted glyph
+            <input
+              aria-label="Hold shifted glyph"
+              style={field}
+              value={fields.shifted}
+              onChange={(e) => setFields((prev) => ({ ...prev, shifted: e.target.value }))}
+              onBlur={(e) => commit("shifted", e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") commit("shifted", e.currentTarget.value);
+              }}
+            />
+          </label>
+        </>
+      )}
     </div>
   );
 }

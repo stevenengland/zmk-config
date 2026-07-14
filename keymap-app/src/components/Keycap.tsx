@@ -1,5 +1,5 @@
 import type { BoardElement } from "../model/geometry";
-import type { KeyLegend } from "../model/schema";
+import { resolveHoldDisplay, type HoldDisplay, type KeyLegend, type Layer } from "../model/schema";
 import {
   boxOf,
   type Box,
@@ -35,6 +35,10 @@ interface KeycapProps {
   layerColor?: string;
   /** Board-wide physical property: renders a bottom-edge bar, same on every layer. */
   homing?: boolean;
+  /** Every layer in the document, used to resolve a layer-tap hold's tint and jump target. */
+  layers?: readonly Layer[];
+  /** Fires when a layer-tinted hold legend is clicked, switching the canvas to that layer. */
+  onJumpToLayer?: (layerName: string) => void;
 }
 
 /**
@@ -89,8 +93,18 @@ function Legends({ legend, box }: { legend: KeyLegend; box: Box }) {
 }
 
 /** Hold slot: top-right behavior stack, row one — glyph end-aligned over a solid underline. */
-function HoldRow({ glyph, box }: { glyph: string; box: Box }) {
+function HoldRow({
+  display,
+  box,
+  onJumpToLayer,
+}: {
+  display: HoldDisplay;
+  box: Box;
+  onJumpToLayer?: (layerName: string) => void;
+}) {
   const underline = holdUnderlineRect(box);
+  const fill = display.color ?? LEGEND_COLOR;
+  const layerName = display.layerName;
   return (
     <>
       <text
@@ -100,11 +114,20 @@ function HoldRow({ glyph, box }: { glyph: string; box: Box }) {
         dominantBaseline="hanging"
         fontFamily={LEGEND_FONT}
         fontSize={HOLD_SIZE}
-        fill={LEGEND_COLOR}
+        fill={fill}
+        style={layerName ? { cursor: "pointer" } : undefined}
+        onClick={
+          layerName
+            ? (e) => {
+                e.stopPropagation();
+                onJumpToLayer?.(layerName);
+              }
+            : undefined
+        }
       >
-        {glyph}
+        {display.text}
       </text>
-      <rect {...underline} fill={LEGEND_COLOR} />
+      <rect {...underline} fill={fill} />
     </>
   );
 }
@@ -114,7 +137,16 @@ function HoldRow({ glyph, box }: { glyph: string; box: Box }) {
  * selects it; the selected element is highlighted with the primary teal.
  * Rotation, when present, is applied about the element centre.
  */
-export function Keycap({ element, legend, selected, onSelect, layerColor, homing }: KeycapProps) {
+export function Keycap({
+  element,
+  legend,
+  selected,
+  onSelect,
+  layerColor,
+  homing,
+  layers = [],
+  onJumpToLayer,
+}: KeycapProps) {
   const { x, y, w, h, rotation } = element;
   const box = boxOf(element);
   const idAttr =
@@ -153,6 +185,7 @@ export function Keycap({ element, legend, selected, onSelect, layerColor, homing
       : `rotate(${rotation} ${cx} ${cy})`;
 
   const isKey = element.kind === "key";
+  const holdDisplay = isKey ? resolveHoldDisplay(legend?.hold, layers) : undefined;
 
   return (
     <g
@@ -185,7 +218,7 @@ export function Keycap({ element, legend, selected, onSelect, layerColor, homing
         />
       ) : null}
       {isKey && homing ? <rect {...homingBarRect(box)} fill={KEY_STROKE} /> : null}
-      {isKey && legend?.hold ? <HoldRow glyph={legend.hold.glyph} box={box} /> : null}
+      {holdDisplay ? <HoldRow display={holdDisplay} box={box} onJumpToLayer={onJumpToLayer} /> : null}
       {legend ? <Legends legend={legend} box={box} /> : null}
     </g>
   );

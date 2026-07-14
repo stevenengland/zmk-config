@@ -1,13 +1,14 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, it, expect, vi } from "vitest";
 import { BindingEditor } from "./BindingEditor";
+import type { HoldBinding } from "../model/schema";
 
 const handlers = {
   onSetHold: () => {},
   onError: () => {},
 };
 
-function renderEditor(keyId: string | null, hold: { glyph: string; shifted?: string } | undefined, overrides = {}) {
+function renderEditor(keyId: string | null, hold: HoldBinding | undefined, overrides = {}) {
   return render(<BindingEditor {...handlers} {...overrides} keyId={keyId} hold={hold} />);
 }
 
@@ -92,12 +93,49 @@ describe("BindingEditor", () => {
     expect(screen.getByLabelText(/hold glyph/i)).toHaveValue("ö");
   });
 
-  it("presets the mode select to Glyph, with Layer and Macro not yet selectable", () => {
+  it("presets the mode select to Glyph, with Layer selectable and Macro not yet selectable", () => {
     renderEditor("L-r2-c1", { glyph: "ä" });
 
     const select = screen.getByLabelText(/binding mode/i) as HTMLSelectElement;
     expect(select.value).toBe("glyph");
-    expect(screen.getByRole("option", { name: "Layer" })).toBeDisabled();
+    expect(screen.getByRole("option", { name: "Layer" })).not.toBeDisabled();
     expect(screen.getByRole("option", { name: "Macro" })).toBeDisabled();
+  });
+
+  it("presets the mode select to Layer and the target layer when the key holds a layer reference", () => {
+    renderEditor("L-r4-c4", { layer: "Nav" }, { layerNames: ["Base", "Nav"] });
+
+    expect((screen.getByLabelText(/binding mode/i) as HTMLSelectElement).value).toBe("layer");
+    expect((screen.getByLabelText(/target layer/i) as HTMLSelectElement).value).toBe("Nav");
+  });
+
+  it("commits a layer reference when a target layer is picked", () => {
+    const onSetHold = vi.fn();
+    renderEditor("L-r4-c4", { layer: "Base" }, { onSetHold, layerNames: ["Base", "Nav"] });
+
+    fireEvent.change(screen.getByLabelText(/target layer/i), { target: { value: "Nav" } });
+
+    expect(onSetHold).toHaveBeenCalledWith({ layer: "Nav" });
+  });
+
+  it("switches to Layer mode and commits the first available layer as the default target", () => {
+    const onSetHold = vi.fn();
+    renderEditor("L-r2-c1", undefined, { onSetHold, layerNames: ["Base", "Nav"] });
+
+    fireEvent.change(screen.getByLabelText(/binding mode/i), { target: { value: "layer" } });
+
+    expect(onSetHold).toHaveBeenCalledWith({ layer: "Base" });
+    expect(screen.getByLabelText(/target layer/i)).toBeInTheDocument();
+  });
+
+  it("switches back to Glyph mode and restores the glyph fields", () => {
+    const onSetHold = vi.fn();
+    renderEditor("L-r2-c1", { glyph: "ä", shifted: "Ä" }, { onSetHold, layerNames: ["Base", "Nav"] });
+
+    fireEvent.change(screen.getByLabelText(/binding mode/i), { target: { value: "layer" } });
+    fireEvent.change(screen.getByLabelText(/binding mode/i), { target: { value: "glyph" } });
+
+    expect(onSetHold).toHaveBeenLastCalledWith({ glyph: "ä", shifted: "Ä" });
+    expect(screen.getByLabelText(/hold glyph/i)).toHaveValue("ä");
   });
 });

@@ -151,4 +151,18 @@ describe("schema serialize/parse", () => {
     expect(json).not.toContain("hold");
     expect(parse(json).layers[0].keys["L-r2-c1"].hold).toBeUndefined();
   });
+
+  it("round-trips a hold binding that targets a layer by name", () => {
+    const doc: KeymapDocument = {
+      schemaVersion: SCHEMA_VERSION,
+      layers: [
+        { name: "Base", color: "#00e5ff", keys: { "L-r4-c4": { primary: "␣", hold: { layer: "Nav" } } } },
+        { name: "Nav", color: "#fec931", keys: {} },
+      ],
+    };
+
+    const parsed = parse(serialize(doc));
+
+    expect(parsed.layers[0].keys["L-r4-c4"].hold).toEqual({ layer: "Nav" });
+  });
 });

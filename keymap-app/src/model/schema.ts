@@ -14,9 +14,20 @@ const SUPPORTED_SCHEMA_VERSIONS: readonly number[] = [1, SCHEMA_VERSION];
  * plain glyphs. Every slot is optional and omitted when unset.
  */
 /** Hold-tap in glyph mode: tap `primary`, hold `glyph`, Shift+hold `shifted` (tooltip-only). */
-export interface HoldBinding {
+export interface GlyphHoldBinding {
   glyph: string;
   shifted?: string;
+}
+
+/** Layer-tap: hold moves to the named layer; glyph and tint are derived from it, always in sync. */
+export interface LayerHoldBinding {
+  layer: string;
+}
+
+export type HoldBinding = GlyphHoldBinding | LayerHoldBinding;
+
+export function isLayerHold(hold: HoldBinding): hold is LayerHoldBinding {
+  return "layer" in hold;
 }
 
 export interface KeyLegend {
@@ -44,6 +55,33 @@ export interface KeymapDocument {
   layers: Layer[];
 }
 
+/** What a hold slot renders, resolved against the document's layers. */
+export interface HoldDisplay {
+  text: string;
+  /** Set only for a layer-tap hold: the target layer's tint and jump target. */
+  layerName?: string;
+  color?: string;
+}
+
+/**
+ * Resolves a hold binding to what the hold slot renders: a layer-tap shows
+ * the target layer's name tinted in its color; a glyph hold shows its glyph
+ * untinted. Shared by the live canvas (Keycap) and the standalone SVG export
+ * so the two never drift.
+ */
+export function resolveHoldDisplay(
+  hold: HoldBinding | undefined,
+  layers: readonly Layer[],
+): HoldDisplay | undefined {
+  if (!hold) return undefined;
+  if (isLayerHold(hold)) {
+    if (!hold.layer) return undefined;
+    const target = layers.find((layer) => layer.name === hold.layer);
+    return { text: hold.layer, layerName: hold.layer, color: target?.color };
+  }
+  return hold.glyph ? { text: hold.glyph } : undefined;
+}
+
 const LEGEND_SLOTS = ["primary", "shifted", "altgr", "color"] as const;
 
 /** Drop unset or empty-string slots so they never reach the persisted JSON. */
@@ -53,7 +91,9 @@ function pruneLegend(legend: KeyLegend): KeyLegend {
     const value = legend[slot];
     if (value) pruned[slot] = value;
   }
-  if (legend.hold?.glyph) {
+  if (legend.hold && isLayerHold(legend.hold)) {
+    if (legend.hold.layer) pruned.hold = { layer: legend.hold.layer };
+  } else if (legend.hold?.glyph) {
     pruned.hold = legend.hold.shifted
       ? { glyph: legend.hold.glyph, shifted: legend.hold.shifted }
       : { glyph: legend.hold.glyph };
