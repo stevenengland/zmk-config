@@ -336,6 +336,13 @@ describe("resolveTooltipRows", () => {
     expect(rows).toEqual([{ label: "hold", value: "Nav" }]);
   });
 
+  it("shows the macro's label and steps in the tap row when a macro is bound", () => {
+    const macros = { copy: { glyph: "⌃C", label: "Copy", steps: "hold Ctrl · tap C" } };
+    const rows = resolveTooltipRows({ primary: "j", macro: "copy" }, macros, []);
+
+    expect(rows).toEqual([{ label: "tap", value: "Copy — hold Ctrl · tap C" }]);
+  });
+
   it("adds one row per tap-dance count, ascending", () => {
     const rows = resolveTooltipRows(
       { taps: [{ count: 3, glyph: "⇧" }, { count: 2, glyph: "⇪" }] },

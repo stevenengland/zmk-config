@@ -153,11 +153,16 @@ export interface TooltipRow {
  */
 export function resolveTooltipRows(
   legend: KeyLegend,
-  _macros: MacroRegistry,
+  macros: MacroRegistry,
   layers: readonly Layer[],
 ): TooltipRow[] {
   const rows: TooltipRow[] = [];
-  if (legend.primary) rows.push({ label: "tap", value: legend.primary });
+  const macroDef = resolveMacroDisplay(legend.macro, macros);
+  if (macroDef) {
+    rows.push({ label: "tap", value: `${macroDef.label} — ${macroDef.steps}` });
+  } else if (legend.primary) {
+    rows.push({ label: "tap", value: legend.primary });
+  }
   if (legend.shifted) rows.push({ label: "⇧ + tap", value: legend.shifted });
   if (legend.altgr) rows.push({ label: "AltGr", value: legend.altgr });
 
