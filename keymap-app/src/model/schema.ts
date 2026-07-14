@@ -4,6 +4,8 @@
 // `parse` accepts schemaVersion 1 and 2 and upgrades v1 in memory;
 // `serialize` always emits the current version.
 
+import marks from "../data/marks.json";
+
 export const SCHEMA_VERSION = 2;
 
 const SUPPORTED_SCHEMA_VERSIONS: readonly number[] = [1, SCHEMA_VERSION];
@@ -120,8 +122,11 @@ export interface TapDisplay {
   text: string;
 }
 
-const TAP_COUNT_DOT = "·";
-const TAP_TOGGLE_RING = "◦";
+// The mark vocabulary lives in src/data/marks.json because the font subset
+// script reads the same file: every mark that can appear in a legend is
+// embedded in the woff2, so exports render it anywhere (fontCoverage.test.ts).
+const TAP_COUNT_DOT = marks.tapCount;
+const TAP_TOGGLE_RING = marks.toggle;
 
 /**
  * Resolves a key's tap-dance rows to what the behavior stack renders: each

@@ -4,6 +4,9 @@
 // font once did (canvas legends omitted the embedded family export already used).
 
 import symbolFontUrl from "../assets/fonts/NotoSansSymbols2-Subset.woff2";
+import symbols1FontUrl from "../assets/fonts/NotoSansSymbols-Subset.woff2";
+import mathFontUrl from "../assets/fonts/NotoSansMath-Subset.woff2";
+import notoSansFontUrl from "../assets/fonts/NotoSans-Subset.woff2";
 import interRegularUrl from "../assets/fonts/Inter-Regular.woff2";
 import interSemiBoldUrl from "../assets/fonts/Inter-SemiBold.woff2";
 import monoRegularUrl from "../assets/fonts/JetBrainsMono-Regular.woff2";
@@ -29,10 +32,18 @@ export const KEY_EDGE_ACCENT_WIDTH = 2.5;
 // behavior stack (see Keycap's `Legends`).
 export const TICK_ARM_LENGTH = 7;
 
+// No single Noto face carries every legend glyph: Symbols 2 has the keycap and
+// modifier glyphs, Symbols the arrows, Math the operators, and the base Latin
+// face the last few punctuation marks. LEGEND_FONT stacks them in the same
+// order scripts/gen-font-subset.sh assigns codepoints to them, so the first
+// family in the stack that can draw a glyph is the one that embeds it.
 export const SYMBOL_FONT_FAMILY = "Noto Sans Symbols 2";
+export const SYMBOLS1_FONT_FAMILY = "Noto Sans Symbols";
+export const MATH_FONT_FAMILY = "Noto Sans Math";
+export const NOTO_SANS_FONT_FAMILY = "Noto Sans Subset";
 export const UI_FONT = `"Inter", system-ui, sans-serif`;
 export const MONO_FONT = `"JetBrains Mono", monospace`;
-export const LEGEND_FONT = `"${SYMBOL_FONT_FAMILY}", "JetBrains Mono", monospace`;
+export const LEGEND_FONT = `"${SYMBOL_FONT_FAMILY}", "${SYMBOLS1_FONT_FAMILY}", "${MATH_FONT_FAMILY}", "${NOTO_SANS_FONT_FAMILY}", "JetBrains Mono", monospace`;
 export const LEGEND_COLOR = "#e5e2e1";
 export const PRIMARY_SIZE = 18;
 export const SUB_SIZE = 12;
@@ -47,6 +58,21 @@ export const FONT_FACE_CSS = `@font-face {
   font-family: "${SYMBOL_FONT_FAMILY}";
   font-display: swap;
   src: url(${symbolFontUrl}) format("woff2");
+}
+@font-face {
+  font-family: "${SYMBOLS1_FONT_FAMILY}";
+  font-display: swap;
+  src: url(${symbols1FontUrl}) format("woff2");
+}
+@font-face {
+  font-family: "${MATH_FONT_FAMILY}";
+  font-display: swap;
+  src: url(${mathFontUrl}) format("woff2");
+}
+@font-face {
+  font-family: "${NOTO_SANS_FONT_FAMILY}";
+  font-display: swap;
+  src: url(${notoSansFontUrl}) format("woff2");
 }
 @font-face {
   font-family: "Inter";
