@@ -28,6 +28,41 @@ describe("BindingEditor", () => {
     expect(screen.getByLabelText(/hold shifted/i)).toHaveValue("");
   });
 
+  it("marks a glyph hold as latching when the toggle box is checked", () => {
+    const onSetHold = vi.fn();
+    renderEditor("L-r2-c1", { glyph: "⇧" }, { onSetHold });
+
+    fireEvent.click(screen.getByLabelText(/stays on until pressed again/i));
+
+    expect(onSetHold).toHaveBeenCalledWith({ glyph: "⇧", toggle: true });
+  });
+
+  it("marks a layer hold as latching, keeping its target", () => {
+    const onSetHold = vi.fn();
+    renderEditor("L-r4-c4", { layer: "Nav" }, { onSetHold, layerNames: ["Base", "Nav"] });
+
+    fireEvent.click(screen.getByLabelText(/stays on until pressed again/i));
+
+    expect(onSetHold).toHaveBeenCalledWith({ layer: "Nav", toggle: true });
+  });
+
+  it("clears the latch when the toggle box is unchecked", () => {
+    const onSetHold = vi.fn();
+    renderEditor("L-r2-c1", { glyph: "⇧", toggle: true }, { onSetHold });
+
+    const box = screen.getByLabelText(/stays on until pressed again/i);
+    expect(box).toBeChecked();
+    fireEvent.click(box);
+
+    expect(onSetHold).toHaveBeenCalledWith({ glyph: "⇧" });
+  });
+
+  it("offers no toggle box in macro mode — a macro fires once, it does not latch", () => {
+    renderEditor("L-r2-c1", undefined, { macro: "copy", macroNames: ["copy"] });
+
+    expect(screen.queryByLabelText(/stays on until pressed again/i)).toBeNull();
+  });
+
   it("commits a hold glyph on blur", () => {
     const onSetHold = vi.fn();
     renderEditor("L-r2-c1", undefined, { onSetHold });

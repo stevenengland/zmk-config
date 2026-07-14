@@ -89,6 +89,16 @@ describe("layerToSvg", () => {
     expect(svg).toContain(`<rect x="${r.x}" y="${r.y}" width="${r.width}" height="${r.height}" rx="${r.rx}"`);
   });
 
+  it("marks a latching hold with the same hollow ring the canvas draws", () => {
+    const layer: Layer = {
+      name: "Base",
+      color: "#00e5ff",
+      keys: { "L-r0-c0": { primary: "a", hold: { glyph: "⇧", toggle: true } } },
+    };
+
+    expect(layerToSvg(layer)).toContain(">⇧◦</text>");
+  });
+
   it("renders no hold row for a key with no hold glyph", () => {
     const svg = layerToSvg(LAYER);
     const box = boxOf(boardGeometry.find((e) => e.id === "L-r0-c0")!);

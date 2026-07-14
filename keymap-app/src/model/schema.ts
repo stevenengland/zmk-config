@@ -15,14 +15,19 @@ const SUPPORTED_SCHEMA_VERSIONS: readonly number[] = [1, SCHEMA_VERSION];
  * carry its own `color`; `shifted` (top-left) and `altgr` (bottom-right) are
  * plain glyphs. Every slot is optional and omitted when unset.
  */
+/** `toggle` marks a hold as latching — "stays on until pressed again" (shift-lock, caps word). */
+interface LatchableHold {
+  toggle?: boolean;
+}
+
 /** Hold-tap in glyph mode: tap `primary`, hold `glyph`, Shift+hold `shifted` (tooltip-only). */
-export interface GlyphHoldBinding {
+export interface GlyphHoldBinding extends LatchableHold {
   glyph: string;
   shifted?: string;
 }
 
 /** Layer-tap: hold moves to the named layer; glyph and tint are derived from it, always in sync. */
-export interface LayerHoldBinding {
+export interface LayerHoldBinding extends LatchableHold {
   layer: string;
 }
 
@@ -89,20 +94,23 @@ export interface HoldDisplay {
 /**
  * Resolves a hold binding to what the hold slot renders: a layer-tap shows
  * the target layer's name tinted in its color; a glyph hold shows its glyph
- * untinted. Shared by the live canvas (Keycap) and the standalone SVG export
- * so the two never drift.
+ * untinted. A latching hold takes the hollow-ring suffix, the same mark a
+ * toggled tap-dance row carries. `layerName` stays the bare layer name, so
+ * the ring never leaks into the jump target. Shared by the live canvas
+ * (Keycap) and the standalone SVG export so the two never drift.
  */
 export function resolveHoldDisplay(
   hold: HoldBinding | undefined,
   layers: readonly Layer[],
 ): HoldDisplay | undefined {
   if (!hold) return undefined;
+  const mark = hold.toggle ? TAP_TOGGLE_RING : "";
   if (isLayerHold(hold)) {
     if (!hold.layer) return undefined;
     const target = layers.find((layer) => layer.name === hold.layer);
-    return { text: hold.layer, layerName: hold.layer, color: target?.color };
+    return { text: hold.layer + mark, layerName: hold.layer, color: target?.color };
   }
-  return hold.glyph ? { text: hold.glyph } : undefined;
+  return hold.glyph ? { text: hold.glyph + mark } : undefined;
 }
 
 /**
@@ -144,6 +152,9 @@ export function resolveTapDisplays(taps: readonly TapBinding[] | undefined): Tap
     }));
 }
 
+/** What the hollow ring means, spelled out wherever a latch appears in prose. */
+export const LATCH_NOTE = "stays on until pressed again";
+
 /** One row of the key detail tooltip's state matrix — a label and its value, plus an optional latch note. */
 export interface TooltipRow {
   label: string;
@@ -174,7 +185,12 @@ export function resolveTooltipRows(
 
   const holdDisplay = resolveHoldDisplay(legend.hold, layers);
   if (holdDisplay) {
-    rows.push({ label: "hold", value: holdDisplay.text });
+    const holdName = legend.hold && isLayerHold(legend.hold) ? legend.hold.layer : legend.hold?.glyph;
+    rows.push({
+      label: "hold",
+      value: holdName ?? holdDisplay.text,
+      ...(legend.hold?.toggle ? { note: LATCH_NOTE } : {}),
+    });
     if (legend.hold && !isLayerHold(legend.hold) && legend.hold.shifted) {
       rows.push({ label: "⇧ + hold", value: legend.hold.shifted });
     }
@@ -185,7 +201,7 @@ export function resolveTooltipRows(
     rows.push({
       label: `${tap.count}× tap`,
       value: tap.glyph,
-      ...(tap.toggle ? { note: "stays on until pressed again" } : {}),
+      ...(tap.toggle ? { note: LATCH_NOTE } : {}),
     });
   }
 
@@ -201,12 +217,15 @@ function pruneLegend(legend: KeyLegend): KeyLegend {
     const value = legend[slot];
     if (value) pruned[slot] = value;
   }
+  const latch = legend.hold?.toggle ? { toggle: true as const } : {};
   if (legend.hold && isLayerHold(legend.hold)) {
-    if (legend.hold.layer) pruned.hold = { layer: legend.hold.layer };
+    if (legend.hold.layer) pruned.hold = { layer: legend.hold.layer, ...latch };
   } else if (legend.hold?.glyph) {
-    pruned.hold = legend.hold.shifted
-      ? { glyph: legend.hold.glyph, shifted: legend.hold.shifted }
-      : { glyph: legend.hold.glyph };
+    pruned.hold = {
+      glyph: legend.hold.glyph,
+      ...(legend.hold.shifted ? { shifted: legend.hold.shifted } : {}),
+      ...latch,
+    };
   }
   if (legend.macro) pruned.macro = legend.macro;
   if (legend.taps?.length) {

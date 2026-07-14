@@ -1,5 +1,5 @@
 import { useEffect, useState, type CSSProperties } from "react";
-import { isLayerHold, type HoldBinding } from "../model/schema";
+import { isLayerHold, LATCH_NOTE, type HoldBinding } from "../model/schema";
 import { convertLegendInput } from "../model/codepoint";
 
 // Colors drawn from the "Engineering Chic" colorset (docs/design/stitch.md), matching KeyEditorPanel.
@@ -30,6 +30,18 @@ const field: CSSProperties = {
   borderRadius: 4,
   color: ON_SURFACE,
   fontFamily: "JetBrains Mono, monospace",
+};
+
+// The latch checkbox reads as a sentence, not as a form field: it sits inline
+// with its box rather than stacked under an uppercase caption like the inputs.
+const latchLabel: CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  gap: 8,
+  marginBottom: 12,
+  fontFamily: "JetBrains Mono, monospace",
+  fontSize: 11,
+  color: ON_SURFACE_VARIANT,
 };
 
 interface BindingEditorProps {
@@ -91,6 +103,10 @@ export function BindingEditor({
     setFields(fieldsFromBinding(hold, macro));
   }, [keyId, hold, macro]);
 
+  // A latch is a property of the binding, not of a mode: it survives edits to
+  // the glyph and to the layer target, so every hold commit carries it along.
+  const latch = hold?.toggle ? { toggle: true as const } : {};
+
   const commit = (field: "glyph" | "shifted", raw: string) => {
     const result = convertLegendInput(raw);
     if (!result.ok) {
@@ -103,13 +119,21 @@ export function BindingEditor({
     if (!next.glyph) {
       onSetHold(undefined);
     } else {
-      onSetHold({ glyph: next.glyph, ...(next.shifted ? { shifted: next.shifted } : {}) });
+      onSetHold({ glyph: next.glyph, ...(next.shifted ? { shifted: next.shifted } : {}), ...latch });
     }
   };
 
   const selectLayer = (name: string) => {
     setFields((prev) => ({ ...prev, layer: name }));
-    onSetHold({ layer: name });
+    onSetHold({ layer: name, ...latch });
+  };
+
+  const setLatch = (on: boolean) => {
+    if (!hold) return;
+    const base: HoldBinding = isLayerHold(hold)
+      ? { layer: hold.layer }
+      : { glyph: hold.glyph, ...(hold.shifted ? { shifted: hold.shifted } : {}) };
+    onSetHold(on ? { ...base, toggle: true } : base);
   };
 
   const selectMacro = (name: string) => {
@@ -121,12 +145,16 @@ export function BindingEditor({
     setMode(next);
     if (next === "layer") {
       const target = fields.layer || layerNames[0];
-      if (target) onSetHold({ layer: target });
+      if (target) onSetHold({ layer: target, ...latch });
     } else if (next === "macro") {
       const target = fields.macro || macroNames[0];
       if (target) onSetMacro(target);
     } else {
-      onSetHold(fields.glyph ? { glyph: fields.glyph, ...(fields.shifted ? { shifted: fields.shifted } : {}) } : undefined);
+      onSetHold(
+        fields.glyph
+          ? { glyph: fields.glyph, ...(fields.shifted ? { shifted: fields.shifted } : {}), ...latch }
+          : undefined,
+      );
     }
   };
 
@@ -206,6 +234,18 @@ export function BindingEditor({
             />
           </label>
         </>
+      )}
+      {mode === "macro" ? null : (
+        <label style={latchLabel}>
+          <input
+            type="checkbox"
+            aria-label={LATCH_NOTE}
+            checked={hold?.toggle ?? false}
+            disabled={!hold}
+            onChange={(e) => setLatch(e.target.checked)}
+          />
+          Latching — {LATCH_NOTE}
+        </label>
       )}
     </div>
   );
