@@ -19,6 +19,9 @@ const handlers = {
   onAddMacro: () => {},
   onUpdateMacro: () => {},
   onDeleteMacro: () => {},
+  onAddTap: () => {},
+  onUpdateTap: () => {},
+  onDeleteTap: () => {},
 };
 
 function renderPanel(keyId: string | null, legend: KeyLegend = {}, overrides = {}) {
@@ -202,6 +205,30 @@ describe("KeyEditorPanel", () => {
     fireEvent.click(screen.getByLabelText(/delete copy/i));
 
     expect(onDeleteMacro).toHaveBeenCalledWith("copy");
+  });
+
+  it("lists the selected key's tap-dance rows", () => {
+    renderPanel("L-r0-c0", { primary: "⇧", taps: [{ count: 2, glyph: "⇪" }] });
+
+    expect(screen.getByLabelText(/tap row 1 glyph/i)).toHaveValue("⇪");
+  });
+
+  it("adds a tap-dance row via onAddTap", () => {
+    const onAddTap = vi.fn();
+    renderPanel("L-r0-c0", { primary: "⇧" }, { onAddTap });
+
+    fireEvent.click(screen.getByRole("button", { name: /add tap row/i }));
+
+    expect(onAddTap).toHaveBeenCalled();
+  });
+
+  it("deletes a tap-dance row via onDeleteTap", () => {
+    const onDeleteTap = vi.fn();
+    renderPanel("L-r0-c0", { primary: "⇧", taps: [{ count: 2, glyph: "⇪" }] }, { onDeleteTap });
+
+    fireEvent.click(screen.getByLabelText(/delete tap row 1/i));
+
+    expect(onDeleteTap).toHaveBeenCalledWith(0);
   });
 
   it("recolors the primary legend", () => {
