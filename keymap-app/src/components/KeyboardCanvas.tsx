@@ -1,7 +1,9 @@
+import { useState } from "react";
 import { boardGeometry, keys, encoders } from "../model/geometry";
 import type { KeyLegend, Layer, MacroRegistry } from "../model/schema";
 import { BACKGROUND, boardViewBox } from "../model/renderStyle";
 import { Keycap } from "./Keycap";
+import { KeyTooltip } from "./KeyTooltip";
 
 function viewBox(): string {
   const box = boardViewBox(boardGeometry);
@@ -36,27 +38,56 @@ export function KeyboardCanvas({
   onJumpToLayer,
   macros,
 }: KeyboardCanvasProps = {}) {
+  // Hover tracking is delegated on the <svg> rather than wired per-Keycap, so
+  // the tooltip's DOM-rect anchoring stays independent of the SVG render tree.
+  const [hover, setHover] = useState<{ id: string; rect: DOMRect } | null>(null);
+
+  const hoveredLegend = hover ? legends[hover.id] : undefined;
+
   return (
-    <svg
-      role="img"
-      aria-label="Sofle Choc keyboard"
-      viewBox={viewBox()}
-      style={{ width: "100%", height: "auto", background: BACKGROUND }}
-    >
-      {[...keys, ...encoders].map((element) => (
-        <Keycap
-          key={element.id}
-          element={element}
-          legend={legends[element.id]}
-          selected={element.id === selectedKeyId}
-          onSelect={onSelectKey}
-          layerColor={layerColor}
-          homing={homingKeys?.has(element.id)}
-          layers={layers}
-          onJumpToLayer={onJumpToLayer}
-          macros={macros}
+    <>
+      <svg
+        role="img"
+        aria-label="Sofle Choc keyboard"
+        viewBox={viewBox()}
+        style={{ width: "100%", height: "auto", background: BACKGROUND }}
+        onMouseOver={(e) => {
+          const target = (e.target as Element).closest("[data-key-id]");
+          if (!target) return;
+          setHover({ id: target.getAttribute("data-key-id")!, rect: target.getBoundingClientRect() });
+        }}
+        onMouseOut={(e) => {
+          const target = (e.target as Element).closest("[data-key-id]");
+          if (!target) return;
+          const related = e.relatedTarget as Node | null;
+          if (related && target.contains(related)) return;
+          setHover(null);
+        }}
+      >
+        {[...keys, ...encoders].map((element) => (
+          <Keycap
+            key={element.id}
+            element={element}
+            legend={legends[element.id]}
+            selected={element.id === selectedKeyId}
+            onSelect={onSelectKey}
+            layerColor={layerColor}
+            homing={homingKeys?.has(element.id)}
+            layers={layers}
+            onJumpToLayer={onJumpToLayer}
+            macros={macros}
+          />
+        ))}
+      </svg>
+      {hover && hoveredLegend ? (
+        <KeyTooltip
+          keyId={hover.id}
+          legend={hoveredLegend}
+          macros={macros ?? {}}
+          layers={layers ?? []}
+          anchorRect={hover.rect}
         />
-      ))}
-    </svg>
+      ) : null}
+    </>
   );
 }

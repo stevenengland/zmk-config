@@ -139,6 +139,54 @@ export function resolveTapDisplays(taps: readonly TapBinding[] | undefined): Tap
     }));
 }
 
+/** One row of the key detail tooltip's state matrix — a label and its value, plus an optional latch note. */
+export interface TooltipRow {
+  label: string;
+  value: string;
+  note?: string;
+}
+
+/**
+ * Resolves a key's full state matrix for the hover tooltip / editor detail
+ * view: one row per set slot (tap, Shift+tap, AltGr, hold, Shift+hold, one
+ * per tap-dance count), in that order. A bound macro takes over the tap row
+ * with its label and steps; a toggle-flagged tap row carries a latch note.
+ */
+export function resolveTooltipRows(
+  legend: KeyLegend,
+  macros: MacroRegistry,
+  layers: readonly Layer[],
+): TooltipRow[] {
+  const rows: TooltipRow[] = [];
+  const macroDef = resolveMacroDisplay(legend.macro, macros);
+  if (macroDef) {
+    rows.push({ label: "tap", value: `${macroDef.label} — ${macroDef.steps}` });
+  } else if (legend.primary) {
+    rows.push({ label: "tap", value: legend.primary });
+  }
+  if (legend.shifted) rows.push({ label: "⇧ + tap", value: legend.shifted });
+  if (legend.altgr) rows.push({ label: "AltGr", value: legend.altgr });
+
+  const holdDisplay = resolveHoldDisplay(legend.hold, layers);
+  if (holdDisplay) {
+    rows.push({ label: "hold", value: holdDisplay.text });
+    if (legend.hold && !isLayerHold(legend.hold) && legend.hold.shifted) {
+      rows.push({ label: "⇧ + hold", value: legend.hold.shifted });
+    }
+  }
+
+  const sortedTaps = legend.taps ? [...legend.taps].sort((a, b) => a.count - b.count) : [];
+  for (const tap of sortedTaps) {
+    rows.push({
+      label: `${tap.count}× tap`,
+      value: tap.glyph,
+      ...(tap.toggle ? { note: "stays on until pressed again" } : {}),
+    });
+  }
+
+  return rows;
+}
+
 const LEGEND_SLOTS = ["primary", "shifted", "altgr", "color"] as const;
 
 /** Drop unset or empty-string slots so they never reach the persisted JSON. */

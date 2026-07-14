@@ -1,4 +1,11 @@
-import { parse, resolveTapDisplays, serialize, SCHEMA_VERSION, type KeymapDocument } from "./schema";
+import {
+  parse,
+  resolveTapDisplays,
+  resolveTooltipRows,
+  serialize,
+  SCHEMA_VERSION,
+  type KeymapDocument,
+} from "./schema";
 
 describe("schema serialize/parse", () => {
   it("round-trips a document, omitting unset legend slots", () => {
@@ -280,5 +287,80 @@ describe("resolveTapDisplays", () => {
 
   it("returns an empty list for no taps", () => {
     expect(resolveTapDisplays(undefined)).toEqual([]);
+  });
+});
+
+describe("resolveTooltipRows", () => {
+  it("shows only the rows that are set: tap, Shift+tap, AltGr", () => {
+    const rows = resolveTooltipRows({ primary: "a", shifted: "A", altgr: "æ" }, {}, []);
+
+    expect(rows).toEqual([
+      { label: "tap", value: "a" },
+      { label: "⇧ + tap", value: "A" },
+      { label: "AltGr", value: "æ" },
+    ]);
+  });
+
+  it("omits rows for slots that are unset", () => {
+    const rows = resolveTooltipRows({ primary: "a" }, {}, []);
+
+    expect(rows).toEqual([{ label: "tap", value: "a" }]);
+  });
+
+  it("shows a hold row for a glyph hold", () => {
+    const rows = resolveTooltipRows({ hold: { glyph: "ä" } }, {}, []);
+
+    expect(rows).toEqual([{ label: "hold", value: "ä" }]);
+  });
+
+  it("shows a hold row tinted to the target layer for a layer-tap hold", () => {
+    const layers = [{ name: "Nav", color: "#fec931", keys: {} }];
+    const rows = resolveTooltipRows({ hold: { layer: "Nav" } }, {}, layers);
+
+    expect(rows).toEqual([{ label: "hold", value: "Nav" }]);
+  });
+
+  it("shows a Shift+hold row when the hold's glyph has a shifted variant", () => {
+    const rows = resolveTooltipRows({ hold: { glyph: "ä", shifted: "Ä" } }, {}, []);
+
+    expect(rows).toEqual([
+      { label: "hold", value: "ä" },
+      { label: "⇧ + hold", value: "Ä" },
+    ]);
+  });
+
+  it("does not show a Shift+hold row for a layer-tap hold", () => {
+    const layers = [{ name: "Nav", color: "#fec931", keys: {} }];
+    const rows = resolveTooltipRows({ hold: { layer: "Nav" } }, {}, layers);
+
+    expect(rows).toEqual([{ label: "hold", value: "Nav" }]);
+  });
+
+  it("shows the macro's label and steps in the tap row when a macro is bound", () => {
+    const macros = { copy: { glyph: "⌃C", label: "Copy", steps: "hold Ctrl · tap C" } };
+    const rows = resolveTooltipRows({ primary: "j", macro: "copy" }, macros, []);
+
+    expect(rows).toEqual([{ label: "tap", value: "Copy — hold Ctrl · tap C" }]);
+  });
+
+  it("adds one row per tap-dance count, ascending", () => {
+    const rows = resolveTooltipRows(
+      { taps: [{ count: 3, glyph: "⇧" }, { count: 2, glyph: "⇪" }] },
+      {},
+      [],
+    );
+
+    expect(rows).toEqual([
+      { label: "2× tap", value: "⇪" },
+      { label: "3× tap", value: "⇧" },
+    ]);
+  });
+
+  it("shows the latch note on a toggle-flagged tap row", () => {
+    const rows = resolveTooltipRows({ taps: [{ count: 2, glyph: "⇧", toggle: true }] }, {}, []);
+
+    expect(rows).toEqual([
+      { label: "2× tap", value: "⇧", note: "stays on until pressed again" },
+    ]);
   });
 });
