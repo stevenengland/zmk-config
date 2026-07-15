@@ -303,6 +303,12 @@ describe("Keycap legends", () => {
     expect(chip.getAttribute("stroke-dasharray")).toBeTruthy();
   });
 
+  it("sizes the macro chip by code points, so an astral-plane glyph is one unit wide, not two", () => {
+    const box = boxOf(key);
+    // 📋 (U+1F4CB) is a surrogate pair — String.length counts it as 2.
+    expect(macroChipRect("📋", box).width).toBe(macroChipRect("a", box).width);
+  });
+
   it("renders no macro chip for a key with no macro reference", () => {
     const { container } = svg(<Keycap element={key} legend={{ primary: "a" }} />);
     const group = container.querySelector("[data-key-id]")!;

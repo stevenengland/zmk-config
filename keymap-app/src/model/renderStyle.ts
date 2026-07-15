@@ -233,7 +233,9 @@ export interface MacroChipRect {
 export function macroChipRect(glyph: string, box: Box): MacroChipRect {
   const baselineX = box.left + PAD;
   const baselineY = box.bottom - PAD;
-  const width = Math.max(glyph.length, 1) * MACRO_GLYPH_ADVANCE;
+  // Count code points, not UTF-16 units, so an astral-plane macro glyph
+  // (e.g. 📋 U+1F4CB, a surrogate pair) draws one unit wide, not two.
+  const width = Math.max([...glyph].length, 1) * MACRO_GLYPH_ADVANCE;
   return {
     x: baselineX - MACRO_CHIP_PAD_X,
     y: baselineY - MACRO_CHIP_ASCENT - MACRO_CHIP_PAD_Y,
