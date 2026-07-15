@@ -68,8 +68,11 @@ export function App() {
           display: "flex",
           flexDirection: "column",
           minHeight: "100vh",
+          width: "100%",
           maxWidth: 1420,
           margin: "0 auto",
+          overflow: "hidden",
+          boxSizing: "border-box",
         }}
       >
         {/* App-global so the embedded symbol font is available to the on-canvas

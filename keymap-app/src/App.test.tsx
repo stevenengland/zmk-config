@@ -101,6 +101,17 @@ describe("App", () => {
     expect(Array.from(container.querySelectorAll("text"), (node) => node.textContent)).toContain("⌘");
   });
 
+  it("keeps global and layer controls reachable through named toolbars at narrow widths", () => {
+    Object.defineProperty(window, "innerWidth", { configurable: true, value: 390 });
+    render(<App />);
+
+    const globalControls = screen.getByRole("toolbar", { name: /global controls/i });
+    const layerControls = screen.getByRole("toolbar", { name: /layer controls/i });
+
+    expect(globalControls).toContainElement(screen.getByRole("button", { name: /^save$/i }));
+    expect(layerControls).toContainElement(screen.getByRole("button", { name: /add layer/i }));
+  });
+
   it("creates a macro in the Macros manager, assigns it to a key, and renders the glyph in a dashed chip on the board", () => {
     const { container } = render(<App />);
 

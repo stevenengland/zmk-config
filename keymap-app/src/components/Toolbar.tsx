@@ -144,8 +144,8 @@ export function Toolbar({
   };
 
   return (
-    <div style={bar}>
-      <div style={wordmark}>
+    <div className="km-toolbar" role="toolbar" aria-label="Global controls" style={bar}>
+      <div className="km-toolbar__wordmark" style={wordmark}>
         <span style={{ fontWeight: 700, fontSize: 15, color: ON_SURFACE }}>Sofle Choc</span>
         <span
           style={{
@@ -160,7 +160,7 @@ export function Toolbar({
         </span>
       </div>
 
-      <div style={cluster}>
+      <div className="km-toolbar__cluster km-toolbar__cluster--primary" style={cluster}>
         <button type="button" className="km-btn km-btn--primary" style={actionButton} onClick={handleOpen}>
           Open
         </button>
@@ -169,9 +169,9 @@ export function Toolbar({
         </button>
       </div>
 
-      <div aria-hidden style={divider} />
+      <div className="km-toolbar__divider" aria-hidden style={divider} />
 
-      <div style={cluster}>
+      <div className="km-toolbar__cluster" style={cluster}>
         <button type="button" className="km-btn" style={actionButton} onClick={handleExportLayer}>
           Export SVG
         </button>
@@ -183,9 +183,9 @@ export function Toolbar({
         </button>
       </div>
 
-      <div aria-hidden style={divider} />
+      <div className="km-toolbar__divider" aria-hidden style={divider} />
 
-      <div style={cluster}>
+      <div className="km-toolbar__cluster" style={cluster}>
         <button type="button" className="km-btn" style={actionButton} onClick={onUndo} disabled={!canUndo}>
           Undo
         </button>
