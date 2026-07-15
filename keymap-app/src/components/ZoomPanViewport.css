@@ -1,0 +1,46 @@
+.km-zoom-pan {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  flex-direction: column;
+}
+
+.km-zoom-pan__controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 4px 8px;
+  color: #e5e2e1;
+  font: 12px "JetBrains Mono", monospace;
+}
+
+.km-zoom-pan__controls .km-btn {
+  min-width: 32px;
+  min-height: 30px;
+  border: 1px solid var(--km-outline-variant, #3b494c);
+  border-radius: 4px;
+  background: #1a1d22;
+  color: inherit;
+}
+
+.km-zoom-pan__viewport {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  overflow: auto;
+  touch-action: none;
+  overscroll-behavior: contain;
+  cursor: grab;
+}
+
+.km-zoom-pan__viewport:active {
+  cursor: grabbing;
+}
+
+.km-zoom-pan__content {
+  width: max-content;
+  min-width: 100%;
+  transform-origin: top left;
+}

@@ -1,7 +1,7 @@
 import { render, screen, fireEvent, createEvent } from "@testing-library/react";
 import { vi } from "vitest";
 import { LayerOverview } from "./LayerOverview";
-import { anchoredScroll } from "./layerOverviewZoom";
+import { anchoredScroll } from "./zoomPanMath";
 import { KEY_STROKE } from "../model/renderStyle";
 import type { Layer } from "../model/schema";
 

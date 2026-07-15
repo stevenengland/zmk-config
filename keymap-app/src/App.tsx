@@ -4,6 +4,7 @@ import { KeyEditorPanel } from "./components/KeyEditorPanel";
 import { LayerOverview } from "./components/LayerOverview";
 import { LayerTabs } from "./components/LayerTabs";
 import { ResponsiveAppShell } from "./components/ResponsiveAppShell";
+import { ZoomPanViewport } from "./components/ZoomPanViewport";
 import { StatusBar, type StatusMessage } from "./components/StatusBar";
 import { Toolbar } from "./components/Toolbar";
 import { DocumentContext } from "./state/documentContext";
@@ -170,43 +171,34 @@ export function App() {
               />
             </div>
           ) : (
-            <div
-              style={{
-                flex: 1,
-                padding: 24,
-                display: "flex",
-                alignItems: "flex-start",
-                justifyContent: "center",
-              }}
-            >
-              {/* Surface-container card framing the board (ZSA-Oryx pattern):
-                  lifts the canvas off the page background and centers it. */}
-              <div
-                style={{
-                  width: "100%",
-                  maxWidth: 1040,
-                  padding: 20,
-                  background: "#1b1e23",
-                  border: "1px solid #3b494c",
-                  borderRadius: 12,
-                  boxSizing: "border-box",
-                }}
-              >
-                <KeyboardCanvas
-                  legends={activeLayer.keys}
-                  selectedKeyId={selectedKeyId}
-                  onSelectKey={selectKey}
-                  layerColor={activeLayer.color}
-                  homingKeys={homingKeys}
-                  layers={state.document.layers}
-                  onJumpToLayer={(name) => {
-                    const index = state.document.layers.findIndex((l) => l.name === name);
-                    if (index >= 0) dispatch({ type: "select", index });
+            <ZoomPanViewport ariaLabel="Edit layer viewport" fitWidth={1088}>
+              <div style={{ width: 1088, padding: 24, boxSizing: "border-box" }}>
+                <div
+                  style={{
+                    width: 1040,
+                    padding: 20,
+                    background: "#1b1e23",
+                    border: "1px solid #3b494c",
+                    borderRadius: 12,
+                    boxSizing: "border-box",
                   }}
-                  macros={state.document.macros ?? {}}
-                />
+                >
+                  <KeyboardCanvas
+                    legends={activeLayer.keys}
+                    selectedKeyId={selectedKeyId}
+                    onSelectKey={selectKey}
+                    layerColor={activeLayer.color}
+                    homingKeys={homingKeys}
+                    layers={state.document.layers}
+                    onJumpToLayer={(name) => {
+                      const index = state.document.layers.findIndex((l) => l.name === name);
+                      if (index >= 0) dispatch({ type: "select", index });
+                    }}
+                    macros={state.document.macros ?? {}}
+                  />
+                </div>
               </div>
-            </div>
+            </ZoomPanViewport>
           )}
         </ResponsiveAppShell>
         <StatusBar message={status} />

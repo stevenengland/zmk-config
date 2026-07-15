@@ -55,6 +55,18 @@ describe("App", () => {
     expect(container.querySelectorAll('svg[aria-label="Sofle Choc keyboard"]')).toHaveLength(1);
   });
 
+  it("uses the same Fit and zoom controls in Edit and Overview without clearing selection", () => {
+    const { container } = render(<App />);
+    const key = container.querySelector('[data-key-id="L-r0-c0"]')!;
+    fireEvent.click(key);
+
+    expect(screen.getByRole("button", { name: /^fit$/i })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("tab", { name: /all/i }));
+
+    expect(screen.getByRole("button", { name: /^fit$/i })).toBeInTheDocument();
+    expect(container.querySelector('[data-key-id="L-r0-c0"][aria-pressed="true"]')).not.toBeNull();
+  });
+
   it("binds the editor to a clicked key and renders a committed legend on the board", () => {
     const { container } = render(<App />);
 
