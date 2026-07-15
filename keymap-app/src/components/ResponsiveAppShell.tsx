@@ -51,7 +51,9 @@ export function ResponsiveAppShell({
           </div>
         ) : null
       ) : (
-        <div className="km-docked-editor">{editor}</div>
+        <div className="km-docked-editor" role="region" aria-label="Docked key editor">
+          {editor}
+        </div>
       )}
     </div>
   );
