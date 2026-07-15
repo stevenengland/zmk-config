@@ -33,6 +33,31 @@ describe("KeyboardCanvas", () => {
     expect(screen.queryByRole("tooltip")).toBeNull();
   });
 
+  it("shows the state-matrix tooltip on focus and hides it on blur, for keyboard and touch users", () => {
+    const { container } = render(
+      <KeyboardCanvas legends={{ "L-r2-c1": { primary: "a", shifted: "A" } }} />,
+    );
+    const key = container.querySelector('[data-key-id="L-r2-c1"]')!;
+
+    fireEvent.focus(key);
+    expect(screen.getByRole("tooltip")).toHaveTextContent("a");
+
+    fireEvent.blur(key);
+    expect(screen.queryByRole("tooltip")).toBeNull();
+  });
+
+  it("points a focused key's aria-describedby at its tooltip id", () => {
+    const { container } = render(
+      <KeyboardCanvas legends={{ "L-r2-c1": { primary: "a" } }} />,
+    );
+    const key = container.querySelector('[data-key-id="L-r2-c1"]')!;
+
+    fireEvent.focus(key);
+
+    const tooltip = screen.getByRole("tooltip");
+    expect(key.getAttribute("aria-describedby")).toBe(tooltip.id);
+  });
+
   it("still selects a key on click while its tooltip is showing", () => {
     const onSelectKey = vi.fn();
     const { container } = render(

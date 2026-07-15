@@ -303,6 +303,12 @@ describe("Keycap legends", () => {
     expect(chip.getAttribute("stroke-dasharray")).toBeTruthy();
   });
 
+  it("sizes the macro chip by code points, so an astral-plane glyph is one unit wide, not two", () => {
+    const box = boxOf(key);
+    // 📋 (U+1F4CB) is a surrogate pair — String.length counts it as 2.
+    expect(macroChipRect("📋", box).width).toBe(macroChipRect("a", box).width);
+  });
+
   it("renders no macro chip for a key with no macro reference", () => {
     const { container } = svg(<Keycap element={key} legend={{ primary: "a" }} />);
     const group = container.querySelector("[data-key-id]")!;
@@ -316,5 +322,27 @@ describe("Keycap legends", () => {
     const group = container.querySelector("[data-key-id]")!;
 
     expect(group.querySelectorAll("text")).toHaveLength(0);
+  });
+
+  it("puts a key in the tab order, so its state matrix is reachable without a mouse", () => {
+    const { container } = svg(<Keycap element={key} legend={{ primary: "a" }} />);
+    const group = container.querySelector("[data-key-id]")!;
+
+    expect(group.getAttribute("tabindex")).toBe("0");
+  });
+
+  it("links a key to its tooltip via aria-describedby only while that key's tooltip is showing", () => {
+    const { container, rerender } = svg(
+      <Keycap element={key} legend={{ primary: "a" }} hasTooltip={false} />,
+    );
+    const group = container.querySelector("[data-key-id]")!;
+    expect(group.getAttribute("aria-describedby")).toBeNull();
+
+    rerender(
+      <svg>
+        <Keycap element={key} legend={{ primary: "a" }} hasTooltip />
+      </svg>,
+    );
+    expect(group.getAttribute("aria-describedby")).toBe(`key-tooltip-${key.id}`);
   });
 });

@@ -74,7 +74,7 @@ describe("App", () => {
     fireEvent.click(screen.getByRole("button", { name: /add macro/i }));
 
     fireEvent.click(container.querySelector('[data-key-id="R-r2-c1"]')!);
-    fireEvent.change(screen.getByLabelText(/binding mode/i), { target: { value: "macro" } });
+    fireEvent.change(screen.getByLabelText(/^macro$/i), { target: { value: "copy" } });
 
     const legend = Array.from(container.querySelectorAll("text")).map((t) => t.textContent);
     expect(legend).toContain("⌃");

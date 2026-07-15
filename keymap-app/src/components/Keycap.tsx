@@ -55,6 +55,8 @@ interface KeycapProps {
   onJumpToLayer?: (layerName: string) => void;
   /** Document-level macro registry, used to resolve a key's macro reference to its display glyph. */
   macros?: MacroRegistry;
+  /** True while this key's hover/focus tooltip (KeyTooltip) is showing — links it via aria-describedby. */
+  hasTooltip?: boolean;
 }
 
 /**
@@ -195,6 +197,7 @@ export function Keycap({
   layers = [],
   onJumpToLayer,
   macros,
+  hasTooltip,
 }: KeycapProps) {
   const { x, y, w, h, rotation } = element;
   const box = boxOf(element);
@@ -245,6 +248,8 @@ export function Keycap({
       role="button"
       aria-label={element.id}
       aria-pressed={selected ?? false}
+      aria-describedby={hasTooltip ? `key-tooltip-${element.id}` : undefined}
+      tabIndex={isKey ? 0 : undefined}
       style={{ cursor: "pointer" }}
       onClick={() => onSelect?.(element.id)}
     >

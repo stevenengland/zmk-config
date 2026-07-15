@@ -4,6 +4,8 @@
 // `parse` accepts schemaVersion 1 and 2 and upgrades v1 in memory;
 // `serialize` always emits the current version.
 
+import marks from "../data/marks.json";
+
 export const SCHEMA_VERSION = 2;
 
 const SUPPORTED_SCHEMA_VERSIONS: readonly number[] = [1, SCHEMA_VERSION];
@@ -13,14 +15,19 @@ const SUPPORTED_SCHEMA_VERSIONS: readonly number[] = [1, SCHEMA_VERSION];
  * carry its own `color`; `shifted` (top-left) and `altgr` (bottom-right) are
  * plain glyphs. Every slot is optional and omitted when unset.
  */
+/** `toggle` marks a hold as latching — "stays on until pressed again" (shift-lock, caps word). */
+interface LatchableHold {
+  toggle?: boolean;
+}
+
 /** Hold-tap in glyph mode: tap `primary`, hold `glyph`, Shift+hold `shifted` (tooltip-only). */
-export interface GlyphHoldBinding {
+export interface GlyphHoldBinding extends LatchableHold {
   glyph: string;
   shifted?: string;
 }
 
 /** Layer-tap: hold moves to the named layer; glyph and tint are derived from it, always in sync. */
-export interface LayerHoldBinding {
+export interface LayerHoldBinding extends LatchableHold {
   layer: string;
 }
 
@@ -43,7 +50,7 @@ export interface KeyLegend {
   altgr?: string;
   color?: string;
   hold?: HoldBinding;
-  /** References a `macros` registry entry by name; mutually exclusive with `hold`. */
+  /** References a `macros` registry entry by name; independent of `hold` — a key can tap a macro and hold a layer at once. */
   macro?: string;
   taps?: TapBinding[];
 }
@@ -87,20 +94,35 @@ export interface HoldDisplay {
 /**
  * Resolves a hold binding to what the hold slot renders: a layer-tap shows
  * the target layer's name tinted in its color; a glyph hold shows its glyph
- * untinted. Shared by the live canvas (Keycap) and the standalone SVG export
- * so the two never drift.
+ * untinted. A latching hold takes the hollow-ring suffix, the same mark a
+ * toggled tap-dance row carries. `layerName` stays the bare layer name, so
+ * the ring never leaks into the jump target. Shared by the live canvas
+ * (Keycap) and the standalone SVG export so the two never drift.
  */
 export function resolveHoldDisplay(
   hold: HoldBinding | undefined,
   layers: readonly Layer[],
 ): HoldDisplay | undefined {
   if (!hold) return undefined;
+  const mark = hold.toggle ? TAP_TOGGLE_RING : "";
   if (isLayerHold(hold)) {
     if (!hold.layer) return undefined;
     const target = layers.find((layer) => layer.name === hold.layer);
-    return { text: hold.layer, layerName: hold.layer, color: target?.color };
+    return { text: hold.layer + mark, layerName: hold.layer, color: target?.color };
   }
-  return hold.glyph ? { text: hold.glyph } : undefined;
+  return hold.glyph ? { text: hold.glyph + mark } : undefined;
+}
+
+function hasVisibleHold(hold: HoldBinding | undefined): boolean {
+  if (!hold) return false;
+  return isLayerHold(hold) ? Boolean(hold.layer) : Boolean(hold.glyph);
+}
+
+/** A legend with no glyph slots renders nothing, even if `color` is set. Shared by the reducer and `parse`. */
+export function hasVisibleContent(legend: KeyLegend): boolean {
+  return Boolean(
+    legend.primary || legend.shifted || legend.altgr || hasVisibleHold(legend.hold) || legend.macro || legend.taps?.length,
+  );
 }
 
 /**
@@ -120,8 +142,11 @@ export interface TapDisplay {
   text: string;
 }
 
-const TAP_COUNT_DOT = "·";
-const TAP_TOGGLE_RING = "◦";
+// The mark vocabulary lives in src/data/marks.json because the font subset
+// script reads the same file: every mark that can appear in a legend is
+// embedded in the woff2, so exports render it anywhere (fontCoverage.test.ts).
+const TAP_COUNT_DOT = marks.tapCount;
+const TAP_TOGGLE_RING = marks.toggle;
 
 /**
  * Resolves a key's tap-dance rows to what the behavior stack renders: each
@@ -138,6 +163,9 @@ export function resolveTapDisplays(taps: readonly TapBinding[] | undefined): Tap
       text: TAP_COUNT_DOT.repeat(tap.count) + tap.glyph + (tap.toggle ? TAP_TOGGLE_RING : ""),
     }));
 }
+
+/** What the hollow ring means, spelled out wherever a latch appears in prose. */
+export const LATCH_NOTE = "stays on until pressed again";
 
 /** One row of the key detail tooltip's state matrix — a label and its value, plus an optional latch note. */
 export interface TooltipRow {
@@ -169,7 +197,12 @@ export function resolveTooltipRows(
 
   const holdDisplay = resolveHoldDisplay(legend.hold, layers);
   if (holdDisplay) {
-    rows.push({ label: "hold", value: holdDisplay.text });
+    const holdName = legend.hold && isLayerHold(legend.hold) ? legend.hold.layer : legend.hold?.glyph;
+    rows.push({
+      label: "hold",
+      value: holdName ?? holdDisplay.text,
+      ...(legend.hold?.toggle ? { note: LATCH_NOTE } : {}),
+    });
     if (legend.hold && !isLayerHold(legend.hold) && legend.hold.shifted) {
       rows.push({ label: "⇧ + hold", value: legend.hold.shifted });
     }
@@ -180,7 +213,7 @@ export function resolveTooltipRows(
     rows.push({
       label: `${tap.count}× tap`,
       value: tap.glyph,
-      ...(tap.toggle ? { note: "stays on until pressed again" } : {}),
+      ...(tap.toggle ? { note: LATCH_NOTE } : {}),
     });
   }
 
@@ -196,12 +229,15 @@ function pruneLegend(legend: KeyLegend): KeyLegend {
     const value = legend[slot];
     if (value) pruned[slot] = value;
   }
+  const latch = legend.hold?.toggle ? { toggle: true as const } : {};
   if (legend.hold && isLayerHold(legend.hold)) {
-    if (legend.hold.layer) pruned.hold = { layer: legend.hold.layer };
+    if (legend.hold.layer) pruned.hold = { layer: legend.hold.layer, ...latch };
   } else if (legend.hold?.glyph) {
-    pruned.hold = legend.hold.shifted
-      ? { glyph: legend.hold.glyph, shifted: legend.hold.shifted }
-      : { glyph: legend.hold.glyph };
+    pruned.hold = {
+      glyph: legend.hold.glyph,
+      ...(legend.hold.shifted ? { shifted: legend.hold.shifted } : {}),
+      ...latch,
+    };
   }
   if (legend.macro) pruned.macro = legend.macro;
   if (legend.taps?.length) {
@@ -236,6 +272,43 @@ export function serialize(doc: KeymapDocument): string {
   return JSON.stringify(normalized, null, 2);
 }
 
+function isHoldBinding(value: unknown): value is HoldBinding {
+  if (typeof value !== "object" || value === null) return false;
+  const v = value as Record<string, unknown>;
+  if (v.toggle !== undefined && typeof v.toggle !== "boolean") return false;
+  if (typeof v.layer === "string") return true;
+  return typeof v.glyph === "string" && (v.shifted === undefined || typeof v.shifted === "string");
+}
+
+function isTapBinding(value: unknown): value is TapBinding {
+  if (typeof value !== "object" || value === null) return false;
+  const v = value as Record<string, unknown>;
+  return (
+    typeof v.count === "number" &&
+    Number.isInteger(v.count) &&
+    v.count >= 2 &&
+    typeof v.glyph === "string" &&
+    (v.toggle === undefined || typeof v.toggle === "boolean")
+  );
+}
+
+/**
+ * Validates a persisted key legend — the per-key `hold`, `taps`, and `macro`
+ * structures the parser otherwise let through untouched, so malformed input
+ * surfaced as a render-time crash instead of the "malformed" error every
+ * other document-level structure raises on load.
+ */
+function isKeyLegend(value: unknown): value is KeyLegend {
+  if (typeof value !== "object" || value === null) return false;
+  const v = value as Record<string, unknown>;
+  for (const slot of ["primary", "shifted", "altgr", "color", "macro"] as const) {
+    if (v[slot] !== undefined && typeof v[slot] !== "string") return false;
+  }
+  if (v.hold !== undefined && !isHoldBinding(v.hold)) return false;
+  if (v.taps !== undefined && (!Array.isArray(v.taps) || !v.taps.every(isTapBinding))) return false;
+  return true;
+}
+
 function isLayer(value: unknown): value is Layer {
   return (
     typeof value === "object" &&
@@ -243,7 +316,8 @@ function isLayer(value: unknown): value is Layer {
     typeof (value as Layer).name === "string" &&
     typeof (value as Layer).color === "string" &&
     typeof (value as Layer).keys === "object" &&
-    (value as Layer).keys !== null
+    (value as Layer).keys !== null &&
+    Object.values((value as Layer).keys).every(isKeyLegend)
   );
 }
 
@@ -269,6 +343,28 @@ function isMacroRegistry(value: unknown): value is MacroRegistry {
     value !== null &&
     Object.values(value as Record<string, unknown>).every(isMacroDef)
   );
+}
+
+/**
+ * Drops `hold.layer` and `macro` references that name a layer or registry
+ * entry absent from this document, and any key left with no other visible
+ * content once cleaned — the same cleanup the reducer already applies on
+ * rename/delete, extended to cover files loaded from disk (hand-edited or
+ * exported by an older version) rather than only in-app edits.
+ */
+function cleanDanglingReferences(layers: readonly Layer[], macros: MacroRegistry | undefined): Layer[] {
+  const layerNames = new Set(layers.map((layer) => layer.name));
+  const macroNames = new Set(Object.keys(macros ?? {}));
+  return layers.map((layer) => {
+    const keys: Record<string, KeyLegend> = {};
+    for (const [id, legend] of Object.entries(layer.keys)) {
+      const next = { ...legend };
+      if (next.hold && isLayerHold(next.hold) && !layerNames.has(next.hold.layer)) delete next.hold;
+      if (next.macro && !macroNames.has(next.macro)) delete next.macro;
+      if (hasVisibleContent(next)) keys[id] = next;
+    }
+    return { ...layer, keys };
+  });
 }
 
 export function parse(json: string): KeymapDocument {
@@ -301,6 +397,6 @@ export function parse(json: string): KeymapDocument {
     schemaVersion: SCHEMA_VERSION,
     ...(raw.board !== undefined ? { board: raw.board as Board } : {}),
     ...(raw.macros !== undefined ? { macros: raw.macros as MacroRegistry } : {}),
-    layers: raw.layers as Layer[],
+    layers: cleanDanglingReferences(raw.layers as Layer[], raw.macros as MacroRegistry | undefined),
   };
 }

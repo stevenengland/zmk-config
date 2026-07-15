@@ -156,27 +156,6 @@ export function KeyEditorPanel({
     input.select();
   }, [keyId, activeIndex]);
 
-  if (keyId === null) {
-    return (
-      <aside style={panel} aria-label="Key editor">
-        <h2 style={{ fontSize: 18, fontWeight: 600, margin: "0 0 4px" }}>Sofle Choc</h2>
-        <p
-          style={{
-            margin: "0 0 16px",
-            fontFamily: "JetBrains Mono, monospace",
-            fontSize: 11,
-            letterSpacing: "0.04em",
-            color: ON_SURFACE_VARIANT,
-          }}
-        >
-          {boardGeometry.length} keys · {layerCount} layer{layerCount === 1 ? "" : "s"}
-        </p>
-        <p style={{ color: ON_SURFACE_VARIANT, fontSize: 14 }}>Select a key to edit its legends.</p>
-        <MacroManager macros={macros} onAdd={onAddMacro} onUpdate={onUpdateMacro} onDelete={onDeleteMacro} onError={onError} />
-      </aside>
-    );
-  }
-
   const commit = (slot: LegendSlot, raw: string) => {
     const result = convertLegendInput(raw);
     if (!result.ok) {
@@ -190,110 +169,144 @@ export function KeyEditorPanel({
 
   return (
     <aside style={panel} aria-label="Key editor">
-      <h2 style={{ fontSize: 20, fontWeight: 600, margin: "0 0 2px" }}>
-        {legend.primary ? `“${legend.primary}”` : "Empty key"}
-      </h2>
-      {/* Raw id kept visible (not the headline) — this audience cross-references
-          it against firmware/matrix maps, per docs/design/stitch.md's brief. */}
-      <p
-        style={{
-          margin: "0 0 16px",
-          fontFamily: "JetBrains Mono, monospace",
-          fontSize: 11,
-          letterSpacing: "0.04em",
-          color: ON_SURFACE_VARIANT,
-        }}
-      >
-        {describeElementId(keyId)} · {keyId}
-      </p>
-
-      <label style={{ ...label, display: "flex", alignItems: "center", gap: 8 }}>
-        <input
-          type="checkbox"
-          aria-label="Homing key"
-          checked={homing}
-          onChange={onToggleHoming}
-        />
-        Homing key
-      </label>
-
-      {SLOTS.map(({ slot, label: text }) => (
-        <label key={slot} style={label}>
-          {text}
-          <input
-            ref={slot === "primary" ? primaryInputRef : undefined}
-            aria-label={`${text} legend`}
-            style={field}
-            value={fields[slot]}
-            onFocus={() => setActiveSlot(slot)}
-            onChange={(e) => setFields((prev) => ({ ...prev, [slot]: e.target.value }))}
-            onBlur={(e) => commit(slot, e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") commit(slot, e.currentTarget.value);
+      {keyId === null ? (
+        <>
+          <h2 style={{ fontSize: 18, fontWeight: 600, margin: "0 0 4px" }}>Sofle Choc</h2>
+          <p
+            style={{
+              margin: "0 0 16px",
+              fontFamily: "JetBrains Mono, monospace",
+              fontSize: 11,
+              letterSpacing: "0.04em",
+              color: ON_SURFACE_VARIANT,
             }}
+          >
+            {boardGeometry.length} keys · {layerCount} layer{layerCount === 1 ? "" : "s"}
+          </p>
+          <p style={{ color: ON_SURFACE_VARIANT, fontSize: 14 }}>Select a key to edit its legends.</p>
+        </>
+      ) : (
+        <>
+          <h2 style={{ fontSize: 20, fontWeight: 600, margin: "0 0 2px" }}>
+            {legend.primary ? `“${legend.primary}”` : "Empty key"}
+          </h2>
+          {/* Raw id kept visible (not the headline) — this audience cross-references
+              it against firmware/matrix maps, per docs/design/stitch.md's brief. */}
+          <p
+            style={{
+              margin: "0 0 16px",
+              fontFamily: "JetBrains Mono, monospace",
+              fontSize: 11,
+              letterSpacing: "0.04em",
+              color: ON_SURFACE_VARIANT,
+            }}
+          >
+            {describeElementId(keyId)} · {keyId}
+          </p>
+
+          <label style={{ ...label, display: "flex", alignItems: "center", gap: 8 }}>
+            <input
+              type="checkbox"
+              aria-label="Homing key"
+              checked={homing}
+              onChange={onToggleHoming}
+            />
+            Homing key
+          </label>
+
+          {SLOTS.map(({ slot, label: text }) => (
+            <label key={slot} style={label}>
+              {text}
+              <input
+                ref={slot === "primary" ? primaryInputRef : undefined}
+                aria-label={`${text} legend`}
+                style={field}
+                value={fields[slot]}
+                onFocus={() => setActiveSlot(slot)}
+                onChange={(e) => setFields((prev) => ({ ...prev, [slot]: e.target.value }))}
+                onBlur={(e) => commit(slot, e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") commit(slot, e.currentTarget.value);
+                }}
+              />
+            </label>
+          ))}
+
+          <SymbolPicker onInsert={(glyph) => commit(activeSlot, glyph)} />
+
+          <span style={label}>On hold</span>
+          <BindingEditor
+            keyId={keyId}
+            hold={legend.hold}
+            onSetHold={onSetHold}
+            onError={onError}
+            layerNames={layerNames}
           />
-        </label>
-      ))}
 
-      <SymbolPicker onInsert={(glyph) => commit(activeSlot, glyph)} />
+          <label style={label}>
+            Macro
+            <select
+              aria-label="Macro"
+              value={legend.macro ?? ""}
+              onChange={(e) => onSetMacro(e.target.value || undefined)}
+              style={field}
+            >
+              <option value="">(none)</option>
+              {Object.keys(macros).map((name) => (
+                <option key={name} value={name}>
+                  {name}
+                </option>
+              ))}
+            </select>
+          </label>
 
-      <span style={label}>On hold</span>
-      <BindingEditor
-        keyId={keyId}
-        hold={legend.hold}
-        onSetHold={onSetHold}
-        macro={legend.macro}
-        onSetMacro={onSetMacro}
-        onError={onError}
-        layerNames={layerNames}
-        macroNames={Object.keys(macros)}
-      />
+          <TapDanceList
+            taps={legend.taps ?? []}
+            onAdd={onAddTap}
+            onUpdate={onUpdateTap}
+            onDelete={onDeleteTap}
+            onError={onError}
+          />
 
-      <TapDanceList
-        taps={legend.taps ?? []}
-        onAdd={onAddTap}
-        onUpdate={onUpdateTap}
-        onDelete={onDeleteTap}
-        onError={onError}
-      />
-
-      <label style={label}>
-        Primary color
-        <input
-          aria-label="Primary color"
-          type="color"
-          value={legend.color ?? DEFAULT_PRIMARY_COLOR}
-          onChange={(e) => onSetColor(e.target.value)}
-          style={{
-            width: 40,
-            height: 32,
-            padding: 0,
-            border: `1px solid ${OUTLINE}`,
-            borderRadius: 4,
-            background: "transparent",
-            cursor: "pointer",
-          }}
-        />
-      </label>
-      <button
-        type="button"
-        className="km-btn"
-        onClick={() => onSetColor("")}
-        style={{
-          appearance: "none",
-          marginTop: 8,
-          background: "#1a1d22",
-          border: `1px solid ${OUTLINE_VARIANT}`,
-          borderRadius: 4,
-          color: legend.color ? ON_SURFACE : ON_SURFACE_VARIANT,
-          height: 28,
-          padding: "0 10px",
-          cursor: "pointer",
-          outlineColor: TEAL,
-        }}
-      >
-        Reset color
-      </button>
+          <label style={label}>
+            Primary color
+            <input
+              aria-label="Primary color"
+              type="color"
+              value={legend.color ?? DEFAULT_PRIMARY_COLOR}
+              onChange={(e) => onSetColor(e.target.value)}
+              style={{
+                width: 40,
+                height: 32,
+                padding: 0,
+                border: `1px solid ${OUTLINE}`,
+                borderRadius: 4,
+                background: "transparent",
+                cursor: "pointer",
+              }}
+            />
+          </label>
+          <button
+            type="button"
+            className="km-btn"
+            onClick={() => onSetColor("")}
+            style={{
+              appearance: "none",
+              marginTop: 8,
+              background: "#1a1d22",
+              border: `1px solid ${OUTLINE_VARIANT}`,
+              borderRadius: 4,
+              color: legend.color ? ON_SURFACE : ON_SURFACE_VARIANT,
+              height: 28,
+              padding: "0 10px",
+              cursor: "pointer",
+              outlineColor: TEAL,
+            }}
+          >
+            Reset color
+          </button>
+        </>
+      )}
 
       <MacroManager macros={macros} onAdd={onAddMacro} onUpdate={onUpdateMacro} onDelete={onDeleteMacro} onError={onError} />
     </aside>

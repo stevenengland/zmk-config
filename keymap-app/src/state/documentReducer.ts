@@ -1,4 +1,5 @@
 import {
+  hasVisibleContent,
   isLayerHold,
   SCHEMA_VERSION,
   type HoldBinding,
@@ -76,23 +77,6 @@ function replaceLayer(
     i === index ? update(layer) : layer,
   );
   return { ...state, document: { ...state.document, layers } };
-}
-
-function hasVisibleHold(hold: HoldBinding | undefined): boolean {
-  if (!hold) return false;
-  return isLayerHold(hold) ? Boolean(hold.layer) : Boolean(hold.glyph);
-}
-
-/** A legend with no glyph slots renders nothing, even if `color` is set. */
-function hasVisibleContent(legend: KeyLegend): boolean {
-  return Boolean(
-    legend.primary ||
-      legend.shifted ||
-      legend.altgr ||
-      hasVisibleHold(legend.hold) ||
-      legend.macro ||
-      legend.taps?.length,
-  );
 }
 
 /**
@@ -193,6 +177,7 @@ export function documentReducer(state: DocumentState, action: DocumentAction): D
       return { ...state, document: { ...state.document, layers }, activeIndex: layers.length - 1 };
     }
     case "rename": {
+      if (action.index < 0 || action.index >= state.document.layers.length) return state;
       const oldName = state.document.layers[action.index].name;
       const renamed = replaceLayer(state, action.index, (layer) => ({ ...layer, name: action.name }));
       const layers = rewriteLayerHoldReferences(renamed.document.layers, oldName, action.name);
@@ -202,6 +187,7 @@ export function documentReducer(state: DocumentState, action: DocumentAction): D
       return replaceLayer(state, action.index, (layer) => ({ ...layer, color: action.color }));
     case "delete": {
       if (state.document.layers.length <= 1) return state;
+      if (action.index < 0 || action.index >= state.document.layers.length) return state;
       const deletedName = state.document.layers[action.index].name;
       const layers = clearLayerHoldReferences(
         state.document.layers.filter((_, i) => i !== action.index),
@@ -226,25 +212,19 @@ export function documentReducer(state: DocumentState, action: DocumentAction): D
         return next;
       });
     case "set-hold":
+      // `hold` and `macro` are independent per-key fields: a key can tap a
+      // macro and hold a layer at once, so neither clears the other.
       return updateActiveKey(state, action.keyId, (legend) => {
         const next = { ...legend };
-        if (action.hold) {
-          next.hold = action.hold;
-          delete next.macro;
-        } else {
-          delete next.hold;
-        }
+        if (action.hold) next.hold = action.hold;
+        else delete next.hold;
         return next;
       });
     case "set-macro":
       return updateActiveKey(state, action.keyId, (legend) => {
         const next = { ...legend };
-        if (action.macro) {
-          next.macro = action.macro;
-          delete next.hold;
-        } else {
-          delete next.macro;
-        }
+        if (action.macro) next.macro = action.macro;
+        else delete next.macro;
         return next;
       });
     case "add-tap":

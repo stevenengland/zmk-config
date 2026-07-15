@@ -1,6 +1,9 @@
-import { Fragment, type CSSProperties } from "react";
+import { Fragment, useLayoutEffect, useRef, useState, type CSSProperties } from "react";
 import { resolveTooltipRows, type KeyLegend, type Layer, type MacroRegistry } from "../model/schema";
 import { MONO_FONT } from "../model/renderStyle";
+
+// Gap between the tooltip and the key it describes, on whichever side it lands.
+const VIEWPORT_MARGIN = 6;
 
 // "Engineering Chic" colorset (docs/design/stitch.md), matching KeyEditorPanel.
 const SURFACE = "#131313";
@@ -49,10 +52,35 @@ const tooltip: CSSProperties = {
  */
 export function KeyTooltip({ keyId, legend, macros, layers, anchorRect }: KeyTooltipProps) {
   const rows = resolveTooltipRows(legend, macros, layers);
+  const ref = useRef<HTMLDivElement>(null);
+  const [placement, setPlacement] = useState({ left: anchorRect.left, top: anchorRect.bottom + VIEWPORT_MARGIN });
+
+  // Measured after the tooltip is in the DOM (but before paint), so a key near
+  // the viewport's bottom or right edge — the thumb cluster and outer pinky
+  // columns, which carry the deepest hold/tap-dance stacks — never clips.
+  useLayoutEffect(() => {
+    if (!ref.current) return;
+    const { width, height } = ref.current.getBoundingClientRect();
+
+    let left = anchorRect.left;
+    if (left + width > window.innerWidth) left = window.innerWidth - width - VIEWPORT_MARGIN;
+
+    let top = anchorRect.bottom + VIEWPORT_MARGIN;
+    if (top + height > window.innerHeight) top = anchorRect.top - height - VIEWPORT_MARGIN;
+
+    setPlacement({ left, top });
+  }, [anchorRect.left, anchorRect.top, anchorRect.bottom]);
+
   if (rows.length === 0) return null;
 
   return (
-    <div role="tooltip" data-tooltip-for={keyId} style={{ ...tooltip, left: anchorRect.left, top: anchorRect.bottom + 6 }}>
+    <div
+      ref={ref}
+      role="tooltip"
+      id={`key-tooltip-${keyId}`}
+      data-tooltip-for={keyId}
+      style={{ ...tooltip, left: placement.left, top: placement.top }}
+    >
       {rows.map((row, index) => (
         <Fragment key={`${row.label}-${index}`}>
           <span style={{ color: ON_SURFACE_VARIANT }}>{row.label}</span>

@@ -154,24 +154,38 @@ describe("KeyEditorPanel", () => {
     expect((screen.getByLabelText(/target layer/i) as HTMLSelectElement).value).toBe("Nav");
   });
 
-  it("forwards the registry's names to the binding editor's Macro-mode picker, bound to the key's macro reference", () => {
+  it("presets the standalone Macro picker to the key's macro reference, independent of the hold binding mode", () => {
     renderPanel(
       "R-r2-c1",
-      { macro: "copy" },
-      { macros: { copy: { glyph: "⌃C", label: "Copy", steps: "" }, paste: { glyph: "⌃V", label: "Paste", steps: "" } } },
+      { macro: "copy", hold: { layer: "Nav" } },
+      {
+        macros: { copy: { glyph: "⌃C", label: "Copy", steps: "" }, paste: { glyph: "⌃V", label: "Paste", steps: "" } },
+        layerNames: ["Base", "Nav"],
+      },
     );
 
-    expect((screen.getByLabelText(/binding mode/i) as HTMLSelectElement).value).toBe("macro");
+    // Macro is its own control now, not a mode of the "On hold" binding editor —
+    // so a key can hold a layer and tap a macro at once.
     expect((screen.getByLabelText(/^macro$/i) as HTMLSelectElement).value).toBe("copy");
+    expect((screen.getByLabelText(/binding mode/i) as HTMLSelectElement).value).toBe("layer");
   });
 
-  it("commits a macro reference via onSetMacro", () => {
+  it("commits a macro reference via onSetMacro when the Macro picker changes", () => {
     const onSetMacro = vi.fn();
     renderPanel("R-r2-c1", {}, { onSetMacro, macros: { copy: { glyph: "⌃C", label: "Copy", steps: "" } } });
 
-    fireEvent.change(screen.getByLabelText(/binding mode/i), { target: { value: "macro" } });
+    fireEvent.change(screen.getByLabelText(/^macro$/i), { target: { value: "copy" } });
 
     expect(onSetMacro).toHaveBeenCalledWith("copy");
+  });
+
+  it("clears a key's macro reference when the Macro picker returns to none", () => {
+    const onSetMacro = vi.fn();
+    renderPanel("R-r2-c1", { macro: "copy" }, { onSetMacro, macros: { copy: { glyph: "⌃C", label: "Copy", steps: "" } } });
+
+    fireEvent.change(screen.getByLabelText(/^macro$/i), { target: { value: "" } });
+
+    expect(onSetMacro).toHaveBeenCalledWith(undefined);
   });
 
   it("shows the Macros manager with every registry entry, regardless of the selected key", () => {

@@ -1,5 +1,6 @@
 import {
   parse,
+  resolveHoldDisplay,
   resolveTapDisplays,
   resolveTooltipRows,
   serialize,
@@ -130,6 +131,128 @@ describe("schema serialize/parse", () => {
     expect(() => parse(json)).toThrow(/layer/);
   });
 
+  it("rejects a key whose hold is neither a glyph nor a layer binding", () => {
+    const json = JSON.stringify({
+      schemaVersion: 2,
+      layers: [{ name: "Base", color: "#00e5ff", keys: { "L-r0-c0": { hold: { nope: true } } } }],
+    });
+
+    expect(() => parse(json)).toThrow(/malformed/);
+  });
+
+  it("rejects a key whose tap-dance count is not a number", () => {
+    const json = JSON.stringify({
+      schemaVersion: 2,
+      layers: [{ name: "Base", color: "#00e5ff", keys: { "L-r0-c0": { taps: [{ count: "2", glyph: "x" }] } } }],
+    });
+
+    expect(() => parse(json)).toThrow(/malformed/);
+  });
+
+  it("rejects a key whose tap-dance count is below the two-tap minimum", () => {
+    const json = JSON.stringify({
+      schemaVersion: 2,
+      layers: [{ name: "Base", color: "#00e5ff", keys: { "L-r0-c0": { taps: [{ count: 1, glyph: "x" }] } } }],
+    });
+
+    expect(() => parse(json)).toThrow(/malformed/);
+  });
+
+  it("rejects a key whose macro reference is not a string", () => {
+    const json = JSON.stringify({
+      schemaVersion: 2,
+      layers: [{ name: "Base", color: "#00e5ff", keys: { "L-r0-c0": { macro: 5 } } }],
+    });
+
+    expect(() => parse(json)).toThrow(/malformed/);
+  });
+
+  it("accepts a well-formed v2 key legend with hold, taps, and macro", () => {
+    const json = JSON.stringify({
+      schemaVersion: 2,
+      macros: { copy: { glyph: "⌃C", label: "Copy", steps: "" } },
+      layers: [
+        {
+          name: "Base",
+          color: "#00e5ff",
+          keys: {
+            "L-r0-c0": { primary: "a", hold: { layer: "Base", toggle: true }, taps: [{ count: 2, glyph: "b" }], macro: "copy" },
+          },
+        },
+      ],
+    });
+
+    expect(() => parse(json)).not.toThrow();
+  });
+
+  it("drops a hold binding that targets a layer missing from the document, cleaning the dangling reference on load", () => {
+    const json = JSON.stringify({
+      schemaVersion: 2,
+      layers: [
+        {
+          name: "Base",
+          color: "#00e5ff",
+          keys: { "L-r0-c0": { primary: "a", hold: { layer: "Ghost" } } },
+        },
+      ],
+    });
+
+    const parsed = parse(json);
+
+    expect(parsed.layers[0].keys["L-r0-c0"].hold).toBeUndefined();
+    expect(parsed.layers[0].keys["L-r0-c0"].primary).toBe("a");
+  });
+
+  it("drops a macro reference missing from the registry, cleaning the dangling reference on load", () => {
+    const json = JSON.stringify({
+      schemaVersion: 2,
+      macros: { copy: { glyph: "⌃C", label: "Copy", steps: "" } },
+      layers: [
+        {
+          name: "Base",
+          color: "#00e5ff",
+          keys: { "L-r0-c0": { primary: "a", macro: "ghost" } },
+        },
+      ],
+    });
+
+    const parsed = parse(json);
+
+    expect(parsed.layers[0].keys["L-r0-c0"].macro).toBeUndefined();
+    expect(parsed.layers[0].keys["L-r0-c0"].primary).toBe("a");
+  });
+
+  it("drops a key entirely when cleaning its only dangling reference leaves no visible content", () => {
+    const json = JSON.stringify({
+      schemaVersion: 2,
+      layers: [
+        {
+          name: "Base",
+          color: "#00e5ff",
+          keys: { "L-r0-c0": { macro: "ghost" } },
+        },
+      ],
+    });
+
+    const parsed = parse(json);
+
+    expect(parsed.layers[0].keys["L-r0-c0"]).toBeUndefined();
+  });
+
+  it("keeps a hold binding that targets another layer declared later in the same document", () => {
+    const json = JSON.stringify({
+      schemaVersion: 2,
+      layers: [
+        { name: "Base", color: "#00e5ff", keys: { "L-r0-c0": { primary: "␣", hold: { layer: "Nav" } } } },
+        { name: "Nav", color: "#fec931", keys: {} },
+      ],
+    });
+
+    const parsed = parse(json);
+
+    expect(parsed.layers[0].keys["L-r0-c0"].hold).toEqual({ layer: "Nav" });
+  });
+
   it("round-trips a hold glyph with its shifted variant", () => {
     const doc: KeymapDocument = {
       schemaVersion: SCHEMA_VERSION,
@@ -171,6 +294,40 @@ describe("schema serialize/parse", () => {
     const parsed = parse(serialize(doc));
 
     expect(parsed.layers[0].keys["L-r4-c4"].hold).toEqual({ layer: "Nav" });
+  });
+
+  it("round-trips a latching glyph hold", () => {
+    const doc: KeymapDocument = {
+      schemaVersion: SCHEMA_VERSION,
+      layers: [{ name: "Base", color: "#00e5ff", keys: { "L-r2-c0": { primary: "a", hold: { glyph: "⇧", toggle: true } } } }],
+    };
+
+    const parsed = parse(serialize(doc));
+
+    expect(parsed.layers[0].keys["L-r2-c0"].hold).toEqual({ glyph: "⇧", toggle: true });
+  });
+
+  it("round-trips a latching layer hold", () => {
+    const doc: KeymapDocument = {
+      schemaVersion: SCHEMA_VERSION,
+      layers: [
+        { name: "Base", color: "#00e5ff", keys: { "L-r4-c4": { hold: { layer: "Nav", toggle: true } } } },
+        { name: "Nav", color: "#fec931", keys: {} },
+      ],
+    };
+
+    const parsed = parse(serialize(doc));
+
+    expect(parsed.layers[0].keys["L-r4-c4"].hold).toEqual({ layer: "Nav", toggle: true });
+  });
+
+  it("omits a false toggle flag from the persisted JSON", () => {
+    const doc: KeymapDocument = {
+      schemaVersion: SCHEMA_VERSION,
+      layers: [{ name: "Base", color: "#00e5ff", keys: { "L-r2-c0": { hold: { glyph: "⇧", toggle: false } } } }],
+    };
+
+    expect(serialize(doc)).not.toContain("toggle");
   });
 
   it("round-trips the macro registry and a key's macro reference", () => {
@@ -362,5 +519,42 @@ describe("resolveTooltipRows", () => {
     expect(rows).toEqual([
       { label: "2× tap", value: "⇧", note: "stays on until pressed again" },
     ]);
+  });
+
+  it("shows the latch note on a toggle-flagged hold row", () => {
+    const rows = resolveTooltipRows({ hold: { glyph: "⇧", toggle: true } }, {}, []);
+
+    expect(rows).toEqual([
+      { label: "hold", value: "⇧", note: "stays on until pressed again" },
+    ]);
+  });
+
+  it("shows the latch note on a toggle-flagged layer hold", () => {
+    const layers = [{ name: "Nav", color: "#fec931", keys: {} }];
+    const rows = resolveTooltipRows({ hold: { layer: "Nav", toggle: true } }, {}, layers);
+
+    expect(rows).toEqual([
+      { label: "hold", value: "Nav", note: "stays on until pressed again" },
+    ]);
+  });
+});
+
+describe("resolveHoldDisplay", () => {
+  it("suffixes a latching glyph hold with the hollow ring", () => {
+    expect(resolveHoldDisplay({ glyph: "⇧", toggle: true }, [])).toEqual({ text: "⇧◦" });
+  });
+
+  it("suffixes a latching layer hold with the ring, leaving the jump target intact", () => {
+    const layers = [{ name: "Nav", color: "#fec931", keys: {} }];
+
+    expect(resolveHoldDisplay({ layer: "Nav", toggle: true }, layers)).toEqual({
+      text: "Nav◦",
+      layerName: "Nav",
+      color: "#fec931",
+    });
+  });
+
+  it("leaves a momentary hold unmarked", () => {
+    expect(resolveHoldDisplay({ glyph: "⇧" }, [])).toEqual({ text: "⇧" });
   });
 });
