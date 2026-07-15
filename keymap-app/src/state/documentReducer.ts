@@ -1,4 +1,5 @@
 import {
+  hasVisibleContent,
   isLayerHold,
   SCHEMA_VERSION,
   type HoldBinding,
@@ -76,23 +77,6 @@ function replaceLayer(
     i === index ? update(layer) : layer,
   );
   return { ...state, document: { ...state.document, layers } };
-}
-
-function hasVisibleHold(hold: HoldBinding | undefined): boolean {
-  if (!hold) return false;
-  return isLayerHold(hold) ? Boolean(hold.layer) : Boolean(hold.glyph);
-}
-
-/** A legend with no glyph slots renders nothing, even if `color` is set. */
-function hasVisibleContent(legend: KeyLegend): boolean {
-  return Boolean(
-    legend.primary ||
-      legend.shifted ||
-      legend.altgr ||
-      hasVisibleHold(legend.hold) ||
-      legend.macro ||
-      legend.taps?.length,
-  );
 }
 
 /**

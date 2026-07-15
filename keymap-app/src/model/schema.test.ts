@@ -185,6 +185,74 @@ describe("schema serialize/parse", () => {
     expect(() => parse(json)).not.toThrow();
   });
 
+  it("drops a hold binding that targets a layer missing from the document, cleaning the dangling reference on load", () => {
+    const json = JSON.stringify({
+      schemaVersion: 2,
+      layers: [
+        {
+          name: "Base",
+          color: "#00e5ff",
+          keys: { "L-r0-c0": { primary: "a", hold: { layer: "Ghost" } } },
+        },
+      ],
+    });
+
+    const parsed = parse(json);
+
+    expect(parsed.layers[0].keys["L-r0-c0"].hold).toBeUndefined();
+    expect(parsed.layers[0].keys["L-r0-c0"].primary).toBe("a");
+  });
+
+  it("drops a macro reference missing from the registry, cleaning the dangling reference on load", () => {
+    const json = JSON.stringify({
+      schemaVersion: 2,
+      macros: { copy: { glyph: "⌃C", label: "Copy", steps: "" } },
+      layers: [
+        {
+          name: "Base",
+          color: "#00e5ff",
+          keys: { "L-r0-c0": { primary: "a", macro: "ghost" } },
+        },
+      ],
+    });
+
+    const parsed = parse(json);
+
+    expect(parsed.layers[0].keys["L-r0-c0"].macro).toBeUndefined();
+    expect(parsed.layers[0].keys["L-r0-c0"].primary).toBe("a");
+  });
+
+  it("drops a key entirely when cleaning its only dangling reference leaves no visible content", () => {
+    const json = JSON.stringify({
+      schemaVersion: 2,
+      layers: [
+        {
+          name: "Base",
+          color: "#00e5ff",
+          keys: { "L-r0-c0": { macro: "ghost" } },
+        },
+      ],
+    });
+
+    const parsed = parse(json);
+
+    expect(parsed.layers[0].keys["L-r0-c0"]).toBeUndefined();
+  });
+
+  it("keeps a hold binding that targets another layer declared later in the same document", () => {
+    const json = JSON.stringify({
+      schemaVersion: 2,
+      layers: [
+        { name: "Base", color: "#00e5ff", keys: { "L-r0-c0": { primary: "␣", hold: { layer: "Nav" } } } },
+        { name: "Nav", color: "#fec931", keys: {} },
+      ],
+    });
+
+    const parsed = parse(json);
+
+    expect(parsed.layers[0].keys["L-r0-c0"].hold).toEqual({ layer: "Nav" });
+  });
+
   it("round-trips a hold glyph with its shifted variant", () => {
     const doc: KeymapDocument = {
       schemaVersion: SCHEMA_VERSION,

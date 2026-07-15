@@ -50,7 +50,7 @@ export interface KeyLegend {
   altgr?: string;
   color?: string;
   hold?: HoldBinding;
-  /** References a `macros` registry entry by name; mutually exclusive with `hold`. */
+  /** References a `macros` registry entry by name; independent of `hold` — a key can tap a macro and hold a layer at once. */
   macro?: string;
   taps?: TapBinding[];
 }
@@ -111,6 +111,18 @@ export function resolveHoldDisplay(
     return { text: hold.layer + mark, layerName: hold.layer, color: target?.color };
   }
   return hold.glyph ? { text: hold.glyph + mark } : undefined;
+}
+
+function hasVisibleHold(hold: HoldBinding | undefined): boolean {
+  if (!hold) return false;
+  return isLayerHold(hold) ? Boolean(hold.layer) : Boolean(hold.glyph);
+}
+
+/** A legend with no glyph slots renders nothing, even if `color` is set. Shared by the reducer and `parse`. */
+export function hasVisibleContent(legend: KeyLegend): boolean {
+  return Boolean(
+    legend.primary || legend.shifted || legend.altgr || hasVisibleHold(legend.hold) || legend.macro || legend.taps?.length,
+  );
 }
 
 /**
@@ -333,6 +345,28 @@ function isMacroRegistry(value: unknown): value is MacroRegistry {
   );
 }
 
+/**
+ * Drops `hold.layer` and `macro` references that name a layer or registry
+ * entry absent from this document, and any key left with no other visible
+ * content once cleaned — the same cleanup the reducer already applies on
+ * rename/delete, extended to cover files loaded from disk (hand-edited or
+ * exported by an older version) rather than only in-app edits.
+ */
+function cleanDanglingReferences(layers: readonly Layer[], macros: MacroRegistry | undefined): Layer[] {
+  const layerNames = new Set(layers.map((layer) => layer.name));
+  const macroNames = new Set(Object.keys(macros ?? {}));
+  return layers.map((layer) => {
+    const keys: Record<string, KeyLegend> = {};
+    for (const [id, legend] of Object.entries(layer.keys)) {
+      const next = { ...legend };
+      if (next.hold && isLayerHold(next.hold) && !layerNames.has(next.hold.layer)) delete next.hold;
+      if (next.macro && !macroNames.has(next.macro)) delete next.macro;
+      if (hasVisibleContent(next)) keys[id] = next;
+    }
+    return { ...layer, keys };
+  });
+}
+
 export function parse(json: string): KeymapDocument {
   const raw = JSON.parse(json) as {
     schemaVersion?: unknown;
@@ -363,6 +397,6 @@ export function parse(json: string): KeymapDocument {
     schemaVersion: SCHEMA_VERSION,
     ...(raw.board !== undefined ? { board: raw.board as Board } : {}),
     ...(raw.macros !== undefined ? { macros: raw.macros as MacroRegistry } : {}),
-    layers: raw.layers as Layer[],
+    layers: cleanDanglingReferences(raw.layers as Layer[], raw.macros as MacroRegistry | undefined),
   };
 }
