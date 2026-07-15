@@ -445,7 +445,7 @@ describe("documentReducer", () => {
     });
   });
 
-  it("assigns a macro reference to a key, clearing any hold binding on it", () => {
+  it("assigns a macro reference alongside a key's hold binding — a key can tap a macro and hold a layer", () => {
     const withHold = documentReducer(createInitialState(), {
       type: "set-hold",
       keyId: "R-r2-c1",
@@ -454,10 +454,10 @@ describe("documentReducer", () => {
 
     const state = documentReducer(withHold, { type: "set-macro", keyId: "R-r2-c1", macro: "copy" });
 
-    expect(state.document.layers[0].keys["R-r2-c1"]).toEqual({ macro: "copy" });
+    expect(state.document.layers[0].keys["R-r2-c1"]).toEqual({ hold: { glyph: "ä" }, macro: "copy" });
   });
 
-  it("setting a hold binding clears a key's macro reference", () => {
+  it("setting a hold binding leaves a key's macro reference intact", () => {
     const withMacro = documentReducer(createInitialState(), {
       type: "set-macro",
       keyId: "R-r2-c1",
@@ -470,7 +470,7 @@ describe("documentReducer", () => {
       hold: { glyph: "ä" },
     });
 
-    expect(state.document.layers[0].keys["R-r2-c1"]).toEqual({ hold: { glyph: "ä" } });
+    expect(state.document.layers[0].keys["R-r2-c1"]).toEqual({ macro: "copy", hold: { glyph: "ä" } });
   });
 
   it("editing a macro's glyph and label updates every key referencing it, across layers", () => {

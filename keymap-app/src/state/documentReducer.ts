@@ -226,25 +226,19 @@ export function documentReducer(state: DocumentState, action: DocumentAction): D
         return next;
       });
     case "set-hold":
+      // `hold` and `macro` are independent per-key fields: a key can tap a
+      // macro and hold a layer at once, so neither clears the other.
       return updateActiveKey(state, action.keyId, (legend) => {
         const next = { ...legend };
-        if (action.hold) {
-          next.hold = action.hold;
-          delete next.macro;
-        } else {
-          delete next.hold;
-        }
+        if (action.hold) next.hold = action.hold;
+        else delete next.hold;
         return next;
       });
     case "set-macro":
       return updateActiveKey(state, action.keyId, (legend) => {
         const next = { ...legend };
-        if (action.macro) {
-          next.macro = action.macro;
-          delete next.hold;
-        } else {
-          delete next.macro;
-        }
+        if (action.macro) next.macro = action.macro;
+        else delete next.macro;
         return next;
       });
     case "add-tap":

@@ -242,12 +242,26 @@ export function KeyEditorPanel({
         keyId={keyId}
         hold={legend.hold}
         onSetHold={onSetHold}
-        macro={legend.macro}
-        onSetMacro={onSetMacro}
         onError={onError}
         layerNames={layerNames}
-        macroNames={Object.keys(macros)}
       />
+
+      <label style={label}>
+        Macro
+        <select
+          aria-label="Macro"
+          value={legend.macro ?? ""}
+          onChange={(e) => onSetMacro(e.target.value || undefined)}
+          style={field}
+        >
+          <option value="">(none)</option>
+          {Object.keys(macros).map((name) => (
+            <option key={name} value={name}>
+              {name}
+            </option>
+          ))}
+        </select>
+      </label>
 
       <TapDanceList
         taps={legend.taps ?? []}
