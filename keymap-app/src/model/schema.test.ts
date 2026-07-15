@@ -131,6 +131,60 @@ describe("schema serialize/parse", () => {
     expect(() => parse(json)).toThrow(/layer/);
   });
 
+  it("rejects a key whose hold is neither a glyph nor a layer binding", () => {
+    const json = JSON.stringify({
+      schemaVersion: 2,
+      layers: [{ name: "Base", color: "#00e5ff", keys: { "L-r0-c0": { hold: { nope: true } } } }],
+    });
+
+    expect(() => parse(json)).toThrow(/malformed/);
+  });
+
+  it("rejects a key whose tap-dance count is not a number", () => {
+    const json = JSON.stringify({
+      schemaVersion: 2,
+      layers: [{ name: "Base", color: "#00e5ff", keys: { "L-r0-c0": { taps: [{ count: "2", glyph: "x" }] } } }],
+    });
+
+    expect(() => parse(json)).toThrow(/malformed/);
+  });
+
+  it("rejects a key whose tap-dance count is below the two-tap minimum", () => {
+    const json = JSON.stringify({
+      schemaVersion: 2,
+      layers: [{ name: "Base", color: "#00e5ff", keys: { "L-r0-c0": { taps: [{ count: 1, glyph: "x" }] } } }],
+    });
+
+    expect(() => parse(json)).toThrow(/malformed/);
+  });
+
+  it("rejects a key whose macro reference is not a string", () => {
+    const json = JSON.stringify({
+      schemaVersion: 2,
+      layers: [{ name: "Base", color: "#00e5ff", keys: { "L-r0-c0": { macro: 5 } } }],
+    });
+
+    expect(() => parse(json)).toThrow(/malformed/);
+  });
+
+  it("accepts a well-formed v2 key legend with hold, taps, and macro", () => {
+    const json = JSON.stringify({
+      schemaVersion: 2,
+      macros: { copy: { glyph: "⌃C", label: "Copy", steps: "" } },
+      layers: [
+        {
+          name: "Base",
+          color: "#00e5ff",
+          keys: {
+            "L-r0-c0": { primary: "a", hold: { layer: "Base", toggle: true }, taps: [{ count: 2, glyph: "b" }], macro: "copy" },
+          },
+        },
+      ],
+    });
+
+    expect(() => parse(json)).not.toThrow();
+  });
+
   it("round-trips a hold glyph with its shifted variant", () => {
     const doc: KeymapDocument = {
       schemaVersion: SCHEMA_VERSION,

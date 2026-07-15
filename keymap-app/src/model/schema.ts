@@ -260,6 +260,43 @@ export function serialize(doc: KeymapDocument): string {
   return JSON.stringify(normalized, null, 2);
 }
 
+function isHoldBinding(value: unknown): value is HoldBinding {
+  if (typeof value !== "object" || value === null) return false;
+  const v = value as Record<string, unknown>;
+  if (v.toggle !== undefined && typeof v.toggle !== "boolean") return false;
+  if (typeof v.layer === "string") return true;
+  return typeof v.glyph === "string" && (v.shifted === undefined || typeof v.shifted === "string");
+}
+
+function isTapBinding(value: unknown): value is TapBinding {
+  if (typeof value !== "object" || value === null) return false;
+  const v = value as Record<string, unknown>;
+  return (
+    typeof v.count === "number" &&
+    Number.isInteger(v.count) &&
+    v.count >= 2 &&
+    typeof v.glyph === "string" &&
+    (v.toggle === undefined || typeof v.toggle === "boolean")
+  );
+}
+
+/**
+ * Validates a persisted key legend — the per-key `hold`, `taps`, and `macro`
+ * structures the parser otherwise let through untouched, so malformed input
+ * surfaced as a render-time crash instead of the "malformed" error every
+ * other document-level structure raises on load.
+ */
+function isKeyLegend(value: unknown): value is KeyLegend {
+  if (typeof value !== "object" || value === null) return false;
+  const v = value as Record<string, unknown>;
+  for (const slot of ["primary", "shifted", "altgr", "color", "macro"] as const) {
+    if (v[slot] !== undefined && typeof v[slot] !== "string") return false;
+  }
+  if (v.hold !== undefined && !isHoldBinding(v.hold)) return false;
+  if (v.taps !== undefined && (!Array.isArray(v.taps) || !v.taps.every(isTapBinding))) return false;
+  return true;
+}
+
 function isLayer(value: unknown): value is Layer {
   return (
     typeof value === "object" &&
@@ -267,7 +304,8 @@ function isLayer(value: unknown): value is Layer {
     typeof (value as Layer).name === "string" &&
     typeof (value as Layer).color === "string" &&
     typeof (value as Layer).keys === "object" &&
-    (value as Layer).keys !== null
+    (value as Layer).keys !== null &&
+    Object.values((value as Layer).keys).every(isKeyLegend)
   );
 }
 
