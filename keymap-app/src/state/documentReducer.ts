@@ -177,6 +177,7 @@ export function documentReducer(state: DocumentState, action: DocumentAction): D
       return { ...state, document: { ...state.document, layers }, activeIndex: layers.length - 1 };
     }
     case "rename": {
+      if (action.index < 0 || action.index >= state.document.layers.length) return state;
       const oldName = state.document.layers[action.index].name;
       const renamed = replaceLayer(state, action.index, (layer) => ({ ...layer, name: action.name }));
       const layers = rewriteLayerHoldReferences(renamed.document.layers, oldName, action.name);
@@ -186,6 +187,7 @@ export function documentReducer(state: DocumentState, action: DocumentAction): D
       return replaceLayer(state, action.index, (layer) => ({ ...layer, color: action.color }));
     case "delete": {
       if (state.document.layers.length <= 1) return state;
+      if (action.index < 0 || action.index >= state.document.layers.length) return state;
       const deletedName = state.document.layers[action.index].name;
       const layers = clearLayerHoldReferences(
         state.document.layers.filter((_, i) => i !== action.index),

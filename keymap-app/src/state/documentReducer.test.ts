@@ -154,6 +154,22 @@ describe("documentReducer", () => {
     expect(state).toBe(start);
   });
 
+  it("leaves state unchanged when renaming a layer at an out-of-range index", () => {
+    const start = createInitialState();
+
+    const state = documentReducer(start, { type: "rename", index: 5, name: "Ghost" });
+
+    expect(state).toBe(start);
+  });
+
+  it("leaves state unchanged when deleting a layer at an out-of-range index", () => {
+    const two = documentReducer(createInitialState(), { type: "add", name: "L2", color: "#fff" });
+
+    const state = documentReducer(two, { type: "delete", index: 5 });
+
+    expect(state).toBe(two);
+  });
+
   it("treats the previous state as immutable", () => {
     const start = createInitialState();
 
