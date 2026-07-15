@@ -63,6 +63,16 @@ export function KeyboardCanvas({
           if (related && target.contains(related)) return;
           setHover(null);
         }}
+        onFocus={(e) => {
+          const target = (e.target as Element).closest("[data-key-id]");
+          if (!target) return;
+          setHover({ id: target.getAttribute("data-key-id")!, rect: target.getBoundingClientRect() });
+        }}
+        onBlur={(e) => {
+          const target = (e.target as Element).closest("[data-key-id]");
+          if (!target) return;
+          setHover(null);
+        }}
       >
         {[...keys, ...encoders].map((element) => (
           <Keycap
@@ -76,6 +86,7 @@ export function KeyboardCanvas({
             layers={layers}
             onJumpToLayer={onJumpToLayer}
             macros={macros}
+            hasTooltip={hover?.id === element.id && Boolean(hoveredLegend)}
           />
         ))}
       </svg>
