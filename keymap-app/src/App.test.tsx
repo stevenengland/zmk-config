@@ -3,6 +3,10 @@ import { App } from "./App";
 import { KEY_STROKE, SYMBOL_FONT_FAMILY } from "./model/renderStyle";
 
 describe("App", () => {
+  afterEach(() => {
+    Object.defineProperty(window, "innerWidth", { configurable: true, value: 1024 });
+  });
+
   it("mounts the keyboard board", () => {
     const { container } = render(<App />);
     expect(container.querySelector('svg[aria-label="Sofle Choc keyboard"]')).not.toBeNull();
@@ -64,6 +68,25 @@ describe("App", () => {
 
     const legend = Array.from(container.querySelectorAll("text")).map((t) => t.textContent);
     expect(legend).toContain("⌘");
+  });
+
+  it("edits a selected board position in the narrow-screen modal and keeps the result after close", () => {
+    Object.defineProperty(window, "innerWidth", { configurable: true, value: 390 });
+    const { container } = render(<App />);
+    const key = container.querySelector('[data-key-id="L-r0-c0"]')!;
+
+    fireEvent.click(key);
+
+    const editor = screen.getByRole("dialog", { name: /key editor/i });
+    expect(editor).toBeInTheDocument();
+    const input = screen.getByLabelText(/primary legend/i);
+    fireEvent.change(input, { target: { value: "U+2318" } });
+    fireEvent.blur(input);
+    fireEvent.click(screen.getByRole("button", { name: /close key editor/i }));
+
+    expect(screen.queryByRole("dialog", { name: /key editor/i })).not.toBeInTheDocument();
+    expect(key).toHaveAttribute("aria-pressed", "true");
+    expect(Array.from(container.querySelectorAll("text"), (node) => node.textContent)).toContain("⌘");
   });
 
   it("creates a macro in the Macros manager, assigns it to a key, and renders the glyph in a dashed chip on the board", () => {

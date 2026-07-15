@@ -1,0 +1,74 @@
+.km-responsive-shell {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  position: relative;
+}
+
+.km-canvas-region {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+}
+
+.km-docked-editor {
+  flex: 0 0 320px;
+  min-width: 0;
+  overflow-y: auto;
+}
+
+.km-editor-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  background: rgb(0 0 0 / 58%);
+}
+
+.km-editor-sheet {
+  width: min(100%, 680px);
+  max-height: 80dvh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid var(--km-outline-variant, #3b494c);
+  border-radius: 14px 14px 0 0;
+  background: var(--km-surface, #131313);
+}
+
+.km-editor-sheet__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--km-outline-variant, #3b494c);
+}
+
+.km-editor-sheet__body {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.km-editor-sheet__body > aside,
+.km-docked-editor > aside {
+  width: 100% !important;
+  min-height: 100%;
+}
+
+.km-editor-sheet__body > aside {
+  border-left: 0 !important;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .km-editor-sheet {
+    animation: km-sheet-enter 180ms ease-out;
+  }
+}
+
+@keyframes km-sheet-enter {
+  from { transform: translateY(12px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}

@@ -3,6 +3,7 @@ import { KeyboardCanvas } from "./components/KeyboardCanvas";
 import { KeyEditorPanel } from "./components/KeyEditorPanel";
 import { LayerOverview } from "./components/LayerOverview";
 import { LayerTabs } from "./components/LayerTabs";
+import { ResponsiveAppShell } from "./components/ResponsiveAppShell";
 import { StatusBar, type StatusMessage } from "./components/StatusBar";
 import { Toolbar } from "./components/Toolbar";
 import { DocumentContext } from "./state/documentContext";
@@ -22,6 +23,7 @@ function isTextEditable(target: EventTarget | null): boolean {
 export function App() {
   const [historyState, dispatch] = useReducer(documentHistoryReducer, undefined, createInitialHistoryState);
   const [status, setStatus] = useState<StatusMessage | null>(null);
+  const [mobileEditorOpen, setMobileEditorOpen] = useState(false);
   const store = useMemo(() => ({ state: historyState, dispatch }), [historyState]);
 
   const state = historyState.present;
@@ -45,6 +47,7 @@ export function App() {
   const selectKey = (id: string) => {
     setStatus(null);
     dispatch({ type: "select-key", keyId: id });
+    setMobileEditorOpen(true);
   };
 
   useEffect(() => {
@@ -101,7 +104,58 @@ export function App() {
           onRecolor={(index, color) => dispatch({ type: "recolor", index, color })}
           onDelete={(index) => dispatch({ type: "delete", index })}
         />
-        <div style={{ display: "flex", flex: 1, minHeight: 0 }}>
+        <ResponsiveAppShell
+          editorOpen={mobileEditorOpen && selectedKeyId !== null}
+          onCloseEditor={() => setMobileEditorOpen(false)}
+          editor={(
+            <KeyEditorPanel
+              keyId={selectedKeyId}
+              activeIndex={state.activeIndex}
+              legend={selectedLegend}
+              layerCount={state.document.layers.length}
+              layerNames={state.document.layers.map((l) => l.name)}
+              onSetSlot={(slot, glyph) => {
+                if (!selectedKeyId) return;
+                setStatus(null);
+                dispatch({ type: "set-slot", keyId: selectedKeyId, slot, value: glyph });
+              }}
+              onSetColor={(color) => {
+                if (!selectedKeyId) return;
+                dispatch({ type: "set-key-color", keyId: selectedKeyId, color });
+              }}
+              onError={(text) => setStatus({ text, tone: "error" })}
+              homing={selectedKeyId ? homingKeys.has(selectedKeyId) : false}
+              onToggleHoming={() => {
+                if (!selectedKeyId) return;
+                dispatch({ type: "toggle-homing", keyId: selectedKeyId });
+              }}
+              onSetHold={(hold) => {
+                if (!selectedKeyId) return;
+                dispatch({ type: "set-hold", keyId: selectedKeyId, hold });
+              }}
+              onSetMacro={(macro) => {
+                if (!selectedKeyId) return;
+                dispatch({ type: "set-macro", keyId: selectedKeyId, macro });
+              }}
+              onAddTap={() => {
+                if (!selectedKeyId) return;
+                dispatch({ type: "add-tap", keyId: selectedKeyId });
+              }}
+              onUpdateTap={(index, tap) => {
+                if (!selectedKeyId) return;
+                dispatch({ type: "update-tap", keyId: selectedKeyId, index, tap });
+              }}
+              onDeleteTap={(index) => {
+                if (!selectedKeyId) return;
+                dispatch({ type: "delete-tap", keyId: selectedKeyId, index });
+              }}
+              macros={state.document.macros ?? {}}
+              onAddMacro={(name, def) => dispatch({ type: "add-macro", name, def })}
+              onUpdateMacro={(name, def) => dispatch({ type: "update-macro", name, def })}
+              onDeleteMacro={(name) => dispatch({ type: "delete-macro", name })}
+            />
+          )}
+        >
           {state.viewMode === "overview" ? (
             <div style={{ flex: 1, minHeight: 0 }}>
               <LayerOverview
@@ -154,53 +208,7 @@ export function App() {
               </div>
             </div>
           )}
-          <KeyEditorPanel
-            keyId={selectedKeyId}
-            activeIndex={state.activeIndex}
-            legend={selectedLegend}
-            layerCount={state.document.layers.length}
-            layerNames={state.document.layers.map((l) => l.name)}
-            onSetSlot={(slot, glyph) => {
-              if (!selectedKeyId) return;
-              setStatus(null);
-              dispatch({ type: "set-slot", keyId: selectedKeyId, slot, value: glyph });
-            }}
-            onSetColor={(color) => {
-              if (!selectedKeyId) return;
-              dispatch({ type: "set-key-color", keyId: selectedKeyId, color });
-            }}
-            onError={(text) => setStatus({ text, tone: "error" })}
-            homing={selectedKeyId ? homingKeys.has(selectedKeyId) : false}
-            onToggleHoming={() => {
-              if (!selectedKeyId) return;
-              dispatch({ type: "toggle-homing", keyId: selectedKeyId });
-            }}
-            onSetHold={(hold) => {
-              if (!selectedKeyId) return;
-              dispatch({ type: "set-hold", keyId: selectedKeyId, hold });
-            }}
-            onSetMacro={(macro) => {
-              if (!selectedKeyId) return;
-              dispatch({ type: "set-macro", keyId: selectedKeyId, macro });
-            }}
-            onAddTap={() => {
-              if (!selectedKeyId) return;
-              dispatch({ type: "add-tap", keyId: selectedKeyId });
-            }}
-            onUpdateTap={(index, tap) => {
-              if (!selectedKeyId) return;
-              dispatch({ type: "update-tap", keyId: selectedKeyId, index, tap });
-            }}
-            onDeleteTap={(index) => {
-              if (!selectedKeyId) return;
-              dispatch({ type: "delete-tap", keyId: selectedKeyId, index });
-            }}
-            macros={state.document.macros ?? {}}
-            onAddMacro={(name, def) => dispatch({ type: "add-macro", name, def })}
-            onUpdateMacro={(name, def) => dispatch({ type: "update-macro", name, def })}
-            onDeleteMacro={(name) => dispatch({ type: "delete-macro", name })}
-          />
-        </div>
+        </ResponsiveAppShell>
         <StatusBar message={status} />
       </main>
     </DocumentContext.Provider>
