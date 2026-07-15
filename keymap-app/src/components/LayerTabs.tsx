@@ -80,8 +80,8 @@ export function LayerTabs({
   };
 
   return (
-    <div style={strip}>
-      <div role="tablist" style={{ display: "flex", flex: 1, overflowX: "auto" }}>
+    <div className="km-layer-controls" role="toolbar" aria-label="Layer controls" style={strip}>
+      <div className="km-layer-tabs" role="tablist" style={{ display: "flex", flex: 1, overflowX: "auto" }}>
         <button
           role="tab"
           type="button"

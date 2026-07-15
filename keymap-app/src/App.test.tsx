@@ -3,6 +3,10 @@ import { App } from "./App";
 import { KEY_STROKE, SYMBOL_FONT_FAMILY } from "./model/renderStyle";
 
 describe("App", () => {
+  afterEach(() => {
+    Object.defineProperty(window, "innerWidth", { configurable: true, value: 1024 });
+  });
+
   it("mounts the keyboard board", () => {
     const { container } = render(<App />);
     expect(container.querySelector('svg[aria-label="Sofle Choc keyboard"]')).not.toBeNull();
@@ -51,6 +55,21 @@ describe("App", () => {
     expect(container.querySelectorAll('svg[aria-label="Sofle Choc keyboard"]')).toHaveLength(1);
   });
 
+  it("uses the same Fit and zoom controls in Edit and Overview without clearing selection", () => {
+    // Given a selected key in Edit with shared viewport controls
+    const { container } = render(<App />);
+    const key = container.querySelector('[data-key-id="L-r0-c0"]')!;
+    fireEvent.click(key);
+    expect(screen.getByRole("button", { name: /^fit$/i })).toBeInTheDocument();
+
+    // When the user switches to Overview
+    fireEvent.click(screen.getByRole("tab", { name: /all/i }));
+
+    // Then the shared controls and selection remain available
+    expect(screen.getByRole("button", { name: /^fit$/i })).toBeInTheDocument();
+    expect(container.querySelector('[data-key-id="L-r0-c0"][aria-pressed="true"]')).not.toBeNull();
+  });
+
   it("binds the editor to a clicked key and renders a committed legend on the board", () => {
     const { container } = render(<App />);
 
@@ -64,6 +83,44 @@ describe("App", () => {
 
     const legend = Array.from(container.querySelectorAll("text")).map((t) => t.textContent);
     expect(legend).toContain("⌘");
+  });
+
+  it("edits a selected board position in the narrow-screen modal and keeps the result after close", () => {
+    // Given a selected board position at a phone width
+    Object.defineProperty(window, "innerWidth", { configurable: true, value: 390 });
+    const { container } = render(<App />);
+    const key = container.querySelector('[data-key-id="L-r0-c0"]')!;
+
+    fireEvent.click(key);
+
+    const editor = screen.getByRole("dialog", { name: /key editor/i });
+    expect(editor).toBeInTheDocument();
+
+    // When the legend is edited and the sheet is closed
+    const input = screen.getByLabelText(/primary legend/i);
+    fireEvent.change(input, { target: { value: "U+2318" } });
+    fireEvent.blur(input);
+    fireEvent.click(screen.getByRole("button", { name: /close key editor/i }));
+
+    // Then the edit and selection remain visible on the board
+    expect(screen.queryByRole("dialog", { name: /key editor/i })).not.toBeInTheDocument();
+    expect(key).toHaveAttribute("aria-pressed", "true");
+    expect(Array.from(container.querySelectorAll("text"), (node) => node.textContent)).toContain("⌘");
+  });
+
+  it("keeps global and layer controls reachable through named toolbars at narrow widths", () => {
+    // Given a phone viewport
+    Object.defineProperty(window, "innerWidth", { configurable: true, value: 390 });
+
+    // When the app is rendered
+    render(<App />);
+
+    const globalControls = screen.getByRole("toolbar", { name: /global controls/i });
+    const layerControls = screen.getByRole("toolbar", { name: /layer controls/i });
+
+    // Then primary global and layer actions remain reachable
+    expect(globalControls).toContainElement(screen.getByRole("button", { name: /^save$/i }));
+    expect(layerControls).toContainElement(screen.getByRole("button", { name: /add layer/i }));
   });
 
   it("creates a macro in the Macros manager, assigns it to a key, and renders the glyph in a dashed chip on the board", () => {
