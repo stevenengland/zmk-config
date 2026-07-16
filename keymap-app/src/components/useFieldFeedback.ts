@@ -10,21 +10,21 @@ export interface FieldInputProps {
   "aria-describedby"?: string;
 }
 
-export interface FieldFeedback {
+export interface FieldFeedback<Name extends string> {
   /** Marks `name` invalid and shows `message` beside its control. */
-  report: (name: string, message: string) => void;
+  report: (name: Name, message: string) => void;
   /** Drops the error association for `name`; a no-op when it is already valid. */
-  clear: (name: string) => void;
+  clear: (name: Name) => void;
   /** Drops every error association at once, e.g. when the editor rebinds to another key. */
   reset: () => void;
-  error: (name: string) => { id: string; message: string } | undefined;
+  error: (name: Name) => { id: string; message: string } | undefined;
   /**
    * Input props for `name`, merged onto `base`. The error border is applied here
    * rather than in a stylesheet because the controls style themselves inline,
    * which outranks any class rule; it restates the whole `border` shorthand
    * because mixing it with `borderColor` breaks when the error clears.
    */
-  fieldProps: (name: string, base: CSSProperties) => FieldInputProps;
+  fieldProps: (name: Name, base: CSSProperties) => FieldInputProps;
 }
 
 /**
@@ -33,15 +33,15 @@ export interface FieldFeedback {
  * is handed on to the document (PRD #45 decision anchor D6 — field feedback
  * belongs at the field; the status bar carries operation results).
  */
-export function useFieldFeedback(): FieldFeedback {
+export function useFieldFeedback<Name extends string>(): FieldFeedback<Name> {
   const scope = useId();
-  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [errors, setErrors] = useState<Partial<Record<Name, string>>>({});
 
-  const report = useCallback((name: string, message: string) => {
+  const report = useCallback((name: Name, message: string) => {
     setErrors((prev) => (prev[name] === message ? prev : { ...prev, [name]: message }));
   }, []);
 
-  const clear = useCallback((name: string) => {
+  const clear = useCallback((name: Name) => {
     setErrors((prev) => {
       if (!(name in prev)) return prev;
       const next = { ...prev };
@@ -54,12 +54,12 @@ export function useFieldFeedback(): FieldFeedback {
     setErrors((prev) => (Object.keys(prev).length === 0 ? prev : {}));
   }, []);
 
-  const error = (name: string) => {
+  const error = (name: Name) => {
     const message = errors[name];
     return message === undefined ? undefined : { id: `${scope}${name}-error`, message };
   };
 
-  const fieldProps = (name: string, base: CSSProperties): FieldInputProps => {
+  const fieldProps = (name: Name, base: CSSProperties): FieldInputProps => {
     const current = error(name);
     if (!current) return { style: base };
     return {

@@ -4,6 +4,7 @@ import { BindingEditor } from "./BindingEditor";
 import type { HoldBinding } from "../model/schema";
 
 const handlers = {
+  activeIndex: 0,
   onSetHold: () => {},
   onSetMacro: () => {},
 };
@@ -135,6 +136,25 @@ describe("BindingEditor", () => {
     rerender(<BindingEditor {...handlers} keyId="L-r2-c2" hold={{ glyph: "ö" }} />);
 
     expect(screen.getByLabelText(/hold glyph/i)).toHaveValue("ö");
+  });
+
+  it("drops an invalid draft when the same board position is selected on another layer", () => {
+    const { rerender } = renderEditor("L-r2-c1", { glyph: "ä" }, { activeIndex: 0 });
+    const input = screen.getByLabelText(/hold glyph/i);
+    fireEvent.change(input, { target: { value: "U+ZZZZ" } });
+    fireEvent.blur(input);
+
+    rerender(
+      <BindingEditor
+        {...handlers}
+        keyId="L-r2-c1"
+        activeIndex={1}
+        hold={{ glyph: "ö" }}
+      />,
+    );
+
+    expect(screen.getByLabelText(/hold glyph/i)).toHaveValue("ö");
+    expect(screen.getByLabelText(/hold glyph/i)).not.toHaveAttribute("aria-invalid");
   });
 
   it("presets the mode select to Glyph, with Layer selectable and no Macro option — macro is not a hold action", () => {

@@ -48,6 +48,7 @@ const latchLabel: CSSProperties = {
 
 interface BindingEditorProps {
   keyId: string | null;
+  activeIndex: number;
   hold?: HoldBinding;
   onSetHold: (hold: HoldBinding | undefined) => void;
   /** Layer mode's target picker — every layer in the document, in document order. */
@@ -80,24 +81,26 @@ function fieldsFromBinding(hold: HoldBinding | undefined): Fields {
  */
 export function BindingEditor({
   keyId,
+  activeIndex,
   hold,
   onSetHold,
   layerNames = [],
 }: BindingEditorProps) {
   const [mode, setMode] = useState<Mode>(() => modeFromBinding(hold));
   const [fields, setFields] = useState<Fields>(() => fieldsFromBinding(hold));
-  const feedback = useFieldFeedback();
+  const feedback = useFieldFeedback<"glyph" | "shifted">();
   const feedbackRef = useRef(feedback);
   feedbackRef.current = feedback;
-  const boundToRef = useRef(keyId);
+  const boundToRef = useRef(`${keyId}:${activeIndex}`);
 
   // Re-bind on a key change or a committed hold change. A field holding an
   // invalid draft keeps it — the correction happens there, so its sibling
   // committing must not discard it.
   useEffect(() => {
     setMode(modeFromBinding(hold));
-    if (boundToRef.current !== keyId) {
-      boundToRef.current = keyId;
+    const boundTo = `${keyId}:${activeIndex}`;
+    if (boundToRef.current !== boundTo) {
+      boundToRef.current = boundTo;
       feedbackRef.current.reset();
       setFields(fieldsFromBinding(hold));
       return;
@@ -109,7 +112,7 @@ export function BindingEditor({
       }
       return bound;
     });
-  }, [keyId, hold]);
+  }, [keyId, activeIndex, hold]);
 
   // A latch is a property of the binding, not of a mode: it survives edits to
   // the glyph and to the layer target, so every hold commit carries it along.

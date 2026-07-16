@@ -4,6 +4,7 @@ import { TapDanceList } from "./TapDanceList";
 import type { TapBinding } from "../model/schema";
 
 const handlers = {
+  editorId: "L-r0-c0:0",
   onAdd: () => {},
   onUpdate: () => {},
   onDelete: () => {},
@@ -79,6 +80,38 @@ describe("TapDanceList", () => {
     expect(onUpdate).toHaveBeenCalledWith(0, { count: 2, glyph: "⌘" });
     expect(input).not.toHaveAttribute("aria-invalid");
     expect(input).toHaveAccessibleDescription("");
+  });
+
+  it("drops an invalid row draft when the editor binds to another key or layer", () => {
+    const { rerender } = renderList([{ count: 2, glyph: "⇪" }]);
+    const input = screen.getByLabelText(/tap row 1 glyph/i);
+    fireEvent.change(input, { target: { value: "U+ZZZZ" } });
+    fireEvent.blur(input);
+
+    rerender(
+      <TapDanceList
+        {...handlers}
+        editorId="L-r0-c0:1"
+        taps={[{ count: 2, glyph: "⌘" }]}
+      />,
+    );
+
+    expect(screen.getByLabelText(/tap row 1 glyph/i)).toHaveValue("⌘");
+    expect(screen.getByLabelText(/tap row 1 glyph/i)).not.toHaveAttribute("aria-invalid");
+  });
+
+  it("keeps an invalid draft with its row when an earlier row is deleted", () => {
+    const first = { count: 2, glyph: "⇪" };
+    const second = { count: 3, glyph: "⇧" };
+    const { rerender } = renderList([first, second]);
+    const input = screen.getByLabelText(/tap row 2 glyph/i);
+    fireEvent.change(input, { target: { value: "U+ZZZZ" } });
+    fireEvent.blur(input);
+
+    rerender(<TapDanceList {...handlers} taps={[second]} />);
+
+    expect(screen.getByLabelText(/tap row 1 glyph/i)).toHaveValue("U+ZZZZ");
+    expect(screen.getByLabelText(/tap row 1 glyph/i)).toHaveAttribute("aria-invalid", "true");
   });
 
   it("commits a count edit on blur, clamped to a minimum of 2", () => {
