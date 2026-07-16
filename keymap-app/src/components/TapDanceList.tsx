@@ -55,6 +55,7 @@ function withToggle(tap: TapBinding, toggle: boolean): TapBinding {
 }
 
 interface TapRowProps {
+  editorId: string;
   index: number;
   tap: TapBinding;
   onUpdate: (index: number, tap: TapBinding) => void;
@@ -62,18 +63,25 @@ interface TapRowProps {
 }
 
 /** One tap-dance row: tap count (≥ 2), the fired glyph, and the toggle/latch flag. */
-function TapRow({ index, tap, onUpdate, onDelete }: TapRowProps) {
+function TapRow({ editorId, index, tap, onUpdate, onDelete }: TapRowProps) {
   const [fields, setFields] = useState<TapBinding>(tap);
   const label1 = index + 1;
-  const feedback = useFieldFeedback();
+  const feedback = useFieldFeedback<"glyph">();
   const feedbackRef = useRef(feedback);
   feedbackRef.current = feedback;
+  const boundToRef = useRef(editorId);
 
   // An invalid glyph draft survives a committed change to this row's other
   // fields; the correction happens at the glyph field itself.
   useEffect(() => {
+    if (boundToRef.current !== editorId) {
+      boundToRef.current = editorId;
+      feedbackRef.current.reset();
+      setFields(tap);
+      return;
+    }
     setFields((prev) => (feedbackRef.current.error("glyph") ? { ...tap, glyph: prev.glyph } : tap));
-  }, [index, tap]);
+  }, [editorId, index, tap]);
 
   const commitCount = (raw: string) => {
     const next = { ...fields, count: clampCount(raw) };
@@ -165,6 +173,7 @@ function TapRow({ index, tap, onUpdate, onDelete }: TapRowProps) {
 }
 
 interface TapDanceListProps {
+  editorId: string;
   taps: readonly TapBinding[];
   onAdd: () => void;
   onUpdate: (index: number, tap: TapBinding) => void;
@@ -177,12 +186,29 @@ interface TapDanceListProps {
  * anchor D9's mark vocabulary). Ordering on the cap is resolved separately
  * by `resolveTapDisplays`; rows here stay in document order.
  */
-export function TapDanceList({ taps, onAdd, onUpdate, onDelete }: TapDanceListProps) {
+export function TapDanceList({ editorId, taps, onAdd, onUpdate, onDelete }: TapDanceListProps) {
+  const rowIdsRef = useRef(new WeakMap<TapBinding, number>());
+  const nextRowIdRef = useRef(0);
+  const rowId = (tap: TapBinding) => {
+    const existing = rowIdsRef.current.get(tap);
+    if (existing !== undefined) return existing;
+    const created = nextRowIdRef.current++;
+    rowIdsRef.current.set(tap, created);
+    return created;
+  };
+
   return (
     <div>
       <span style={label}>Tap dance</span>
       {taps.map((tap, index) => (
-        <TapRow key={index} index={index} tap={tap} onUpdate={onUpdate} onDelete={onDelete} />
+        <TapRow
+          key={rowId(tap)}
+          editorId={editorId}
+          index={index}
+          tap={tap}
+          onUpdate={onUpdate}
+          onDelete={onDelete}
+        />
       ))}
       <button
         type="button"

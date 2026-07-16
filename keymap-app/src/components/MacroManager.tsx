@@ -51,7 +51,7 @@ interface MacroRowProps {
 /** One registry entry: name is fixed at creation, glyph/label/steps commit on blur or Enter. */
 function MacroRow({ name, def, onUpdate, onDelete }: MacroRowProps) {
   const [fields, setFields] = useState<MacroDef>(def);
-  const feedback = useFieldFeedback();
+  const feedback = useFieldFeedback<"glyph">();
   const feedbackRef = useRef(feedback);
   feedbackRef.current = feedback;
 
@@ -163,7 +163,7 @@ interface MacroManagerProps {
 export function MacroManager({ macros, onAdd, onUpdate, onDelete }: MacroManagerProps) {
   const [newName, setNewName] = useState("");
   const [newGlyph, setNewGlyph] = useState("");
-  const feedback = useFieldFeedback();
+  const feedback = useFieldFeedback<"new-name" | "new-glyph">();
 
   const addMacro = () => {
     const name = newName.trim();

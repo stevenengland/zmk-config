@@ -131,7 +131,7 @@ export function KeyEditorPanel({
   const [fields, setFields] = useState<Fields>(() => fieldsFromLegend(legend));
   // The slot a picked symbol lands in; follows field focus, primary by default.
   const [activeSlot, setActiveSlot] = useState<LegendSlot>("primary");
-  const feedback = useFieldFeedback();
+  const feedback = useFieldFeedback<LegendSlot>();
   const primaryInputRef = useRef<HTMLInputElement | null>(null);
   // Mirrors the latest legend without being a focus-effect dependency, so
   // focus-on-select re-fires only on an actual key change, never on a
@@ -262,6 +262,7 @@ export function KeyEditorPanel({
           <span style={label}>On hold</span>
           <BindingEditor
             keyId={keyId}
+            activeIndex={activeIndex}
             hold={legend.hold}
             onSetHold={onSetHold}
             layerNames={layerNames}
@@ -285,6 +286,7 @@ export function KeyEditorPanel({
           </label>
 
           <TapDanceList
+            editorId={`${keyId}:${activeIndex}`}
             taps={legend.taps ?? []}
             onAdd={onAddTap}
             onUpdate={onUpdateTap}
