@@ -14,6 +14,7 @@ services:
       # Shared agent-tooling config persists across container rebuilds.
       - claude-config:/home/vscode/.claude
       - copilot-config:/home/vscode/.config/github-copilot
+      - codex-config:/home/vscode/.codex
       - vscode-server:/home/vscode/.vscode-server
     command: sleep infinity
 
@@ -25,5 +26,7 @@ volumes:
     name: claude-config
   copilot-config:
     name: copilot-config
+  codex-config:
+    name: codex-config
   vscode-server:
     name: vscode-server
