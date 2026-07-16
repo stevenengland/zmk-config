@@ -9,6 +9,7 @@
   color-scheme: dark;
   --km-surface: #131313;
   --km-outline-variant: #3b494c;
+  --km-error: #ffb4ab;
 }
 
 html,

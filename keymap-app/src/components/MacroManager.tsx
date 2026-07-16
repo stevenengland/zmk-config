@@ -1,6 +1,8 @@
-import { useEffect, useState, type CSSProperties } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 import type { MacroDef, MacroRegistry } from "../model/schema";
 import { convertLegendInput } from "../model/codepoint";
+import { FieldError } from "./FieldError";
+import { useFieldFeedback } from "./useFieldFeedback";
 
 // Colors drawn from the "Engineering Chic" colorset (docs/design/stitch.md), matching KeyEditorPanel/BindingEditor.
 const FIELD_BG = "#0e0e0e";
@@ -44,24 +46,29 @@ interface MacroRowProps {
   def: MacroDef;
   onUpdate: (name: string, def: MacroDef) => void;
   onDelete: (name: string) => void;
-  onError: (message: string) => void;
 }
 
 /** One registry entry: name is fixed at creation, glyph/label/steps commit on blur or Enter. */
-function MacroRow({ name, def, onUpdate, onDelete, onError }: MacroRowProps) {
+function MacroRow({ name, def, onUpdate, onDelete }: MacroRowProps) {
   const [fields, setFields] = useState<MacroDef>(def);
+  const feedback = useFieldFeedback();
+  const feedbackRef = useRef(feedback);
+  feedbackRef.current = feedback;
 
+  // An invalid glyph draft survives a committed change to this entry's other
+  // fields; the correction happens at the glyph field itself.
   useEffect(() => {
-    setFields(def);
+    setFields((prev) => (feedbackRef.current.error("glyph") ? { ...def, glyph: prev.glyph } : def));
   }, [name, def]);
 
   const commitGlyph = (raw: string) => {
     const result = convertLegendInput(raw);
     if (!result.ok) {
-      onError(result.error);
-      setFields(def);
+      feedback.report("glyph", result.error);
+      setFields((prev) => ({ ...prev, glyph: raw }));
       return;
     }
+    feedback.clear("glyph");
     const next = { ...fields, glyph: result.glyph };
     setFields(next);
     onUpdate(name, next);
@@ -99,7 +106,7 @@ function MacroRow({ name, def, onUpdate, onDelete, onError }: MacroRowProps) {
         Glyph
         <input
           aria-label={`${name} glyph`}
-          style={field}
+          {...feedback.fieldProps("glyph", field)}
           value={fields.glyph}
           onChange={(e) => setFields((prev) => ({ ...prev, glyph: e.target.value }))}
           onBlur={(e) => commitGlyph(e.target.value)}
@@ -108,6 +115,7 @@ function MacroRow({ name, def, onUpdate, onDelete, onError }: MacroRowProps) {
           }}
         />
       </label>
+      <FieldError feedback={feedback} name="glyph" />
       <label style={label}>
         Label
         <input
@@ -143,7 +151,6 @@ interface MacroManagerProps {
   onAdd: (name: string, def: MacroDef) => void;
   onUpdate: (name: string, def: MacroDef) => void;
   onDelete: (name: string) => void;
-  onError: (message: string) => void;
 }
 
 /**
@@ -153,25 +160,28 @@ interface MacroManagerProps {
  * referencing key by the shared by-name lookup; deleting an entry is handled
  * by the caller's `onDelete`, which also clears every reference to it.
  */
-export function MacroManager({ macros, onAdd, onUpdate, onDelete, onError }: MacroManagerProps) {
+export function MacroManager({ macros, onAdd, onUpdate, onDelete }: MacroManagerProps) {
   const [newName, setNewName] = useState("");
   const [newGlyph, setNewGlyph] = useState("");
+  const feedback = useFieldFeedback();
 
   const addMacro = () => {
     const name = newName.trim();
     if (!name) {
-      onError("Macro name is required");
+      feedback.report("new-name", "Macro name is required");
       return;
     }
     if (macros[name]) {
-      onError(`Macro "${name}" already exists`);
+      feedback.report("new-name", `Macro "${name}" already exists`);
       return;
     }
+    feedback.clear("new-name");
     const result = convertLegendInput(newGlyph);
     if (!result.ok) {
-      onError(result.error);
+      feedback.report("new-glyph", result.error);
       return;
     }
+    feedback.clear("new-glyph");
     onAdd(name, { glyph: result.glyph, label: "", steps: "" });
     setNewName("");
     setNewGlyph("");
@@ -181,26 +191,28 @@ export function MacroManager({ macros, onAdd, onUpdate, onDelete, onError }: Mac
     <div>
       <span style={label}>Macros</span>
       {Object.entries(macros).map(([name, def]) => (
-        <MacroRow key={name} name={name} def={def} onUpdate={onUpdate} onDelete={onDelete} onError={onError} />
+        <MacroRow key={name} name={name} def={def} onUpdate={onUpdate} onDelete={onDelete} />
       ))}
       <label style={label}>
         New macro name
         <input
           aria-label="New macro name"
-          style={field}
+          {...feedback.fieldProps("new-name", field)}
           value={newName}
           onChange={(e) => setNewName(e.target.value)}
         />
       </label>
+      <FieldError feedback={feedback} name="new-name" />
       <label style={label}>
         New macro glyph
         <input
           aria-label="New macro glyph"
-          style={field}
+          {...feedback.fieldProps("new-glyph", field)}
           value={newGlyph}
           onChange={(e) => setNewGlyph(e.target.value)}
         />
       </label>
+      <FieldError feedback={feedback} name="new-glyph" />
       <button
         type="button"
         className="km-btn"

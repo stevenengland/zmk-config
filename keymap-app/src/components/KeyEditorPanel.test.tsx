@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import { describe, it, expect, vi } from "vitest";
 import { KeyEditorPanel } from "./KeyEditorPanel";
 import type { KeyLegend } from "../model/schema";
@@ -10,7 +10,6 @@ const handlers = {
   activeIndex: 0,
   onSetSlot: () => {},
   onSetColor: () => {},
-  onError: () => {},
   homing: false,
   onToggleHoming: () => {},
   onSetHold: () => {},
@@ -67,18 +66,45 @@ describe("KeyEditorPanel", () => {
     expect(onSetSlot).toHaveBeenCalledWith("shifted", "⌘");
   });
 
-  it("routes an invalid codepoint to the error handler and leaves the slot unchanged", () => {
+  it("keeps an invalid codepoint editable and explains it at the field without committing", () => {
     const onSetSlot = vi.fn();
-    const onError = vi.fn();
-    renderPanel("L-r0-c0", { primary: "A" }, { onSetSlot, onError });
+    renderPanel("L-r0-c0", { primary: "A" }, { onSetSlot });
 
     const input = screen.getByLabelText(/primary legend/i);
     fireEvent.change(input, { target: { value: "U+ZZZZ" } });
     fireEvent.blur(input);
 
-    expect(onError).toHaveBeenCalled();
     expect(onSetSlot).not.toHaveBeenCalled();
-    expect(input).toHaveValue("A");
+    expect(input).toHaveValue("U+ZZZZ");
+    expect(input).toHaveAttribute("aria-invalid", "true");
+    expect(input).toHaveAccessibleDescription(/invalid codepoint/i);
+  });
+
+  it("commits the converted glyph and drops the error association once corrected", () => {
+    const onSetSlot = vi.fn();
+    renderPanel("L-r0-c0", { primary: "A" }, { onSetSlot });
+
+    const input = screen.getByLabelText(/primary legend/i);
+    fireEvent.change(input, { target: { value: "U+ZZZZ" } });
+    fireEvent.blur(input);
+    fireEvent.change(input, { target: { value: "U+2318" } });
+    fireEvent.blur(input);
+
+    expect(onSetSlot).toHaveBeenCalledWith("primary", "⌘");
+    expect(input).toHaveValue("⌘");
+    expect(input).not.toHaveAttribute("aria-invalid");
+    expect(input).toHaveAccessibleDescription("");
+  });
+
+  it("leaves focus in the edited field when its value is invalid", () => {
+    renderPanel("L-r0-c0", { shifted: "!" });
+
+    const input = screen.getByLabelText(/shifted legend/i);
+    act(() => input.focus());
+    fireEvent.change(input, { target: { value: "U+ZZZZ" } });
+    fireEvent.keyDown(input, { key: "Enter" });
+
+    expect(input).toHaveFocus();
   });
 
   it("clears a slot by committing an empty field", () => {

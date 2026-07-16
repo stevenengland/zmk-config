@@ -6,7 +6,6 @@ import type { HoldBinding } from "../model/schema";
 const handlers = {
   onSetHold: () => {},
   onSetMacro: () => {},
-  onError: () => {},
 };
 
 function renderEditor(keyId: string | null, hold: HoldBinding | undefined, overrides = {}) {
@@ -90,18 +89,33 @@ describe("BindingEditor", () => {
     expect(onSetHold).toHaveBeenCalledWith({ glyph: "ä" });
   });
 
-  it("routes an invalid codepoint to the error handler and leaves the field unchanged", () => {
+  it("keeps an invalid codepoint editable and explains it at the field without committing", () => {
     const onSetHold = vi.fn();
-    const onError = vi.fn();
-    renderEditor("L-r2-c1", { glyph: "ä" }, { onSetHold, onError });
+    renderEditor("L-r2-c1", { glyph: "ä" }, { onSetHold });
 
     const input = screen.getByLabelText(/hold glyph/i);
     fireEvent.change(input, { target: { value: "U+ZZZZ" } });
     fireEvent.blur(input);
 
-    expect(onError).toHaveBeenCalled();
     expect(onSetHold).not.toHaveBeenCalled();
-    expect(input).toHaveValue("ä");
+    expect(input).toHaveValue("U+ZZZZ");
+    expect(input).toHaveAttribute("aria-invalid", "true");
+    expect(input).toHaveAccessibleDescription(/invalid codepoint/i);
+  });
+
+  it("commits the converted hold glyph and drops the error association once corrected", () => {
+    const onSetHold = vi.fn();
+    renderEditor("L-r2-c1", { glyph: "ä" }, { onSetHold });
+
+    const input = screen.getByLabelText(/hold glyph/i);
+    fireEvent.change(input, { target: { value: "U+ZZZZ" } });
+    fireEvent.blur(input);
+    fireEvent.change(input, { target: { value: "U+2318" } });
+    fireEvent.blur(input);
+
+    expect(onSetHold).toHaveBeenCalledWith({ glyph: "⌘" });
+    expect(input).not.toHaveAttribute("aria-invalid");
+    expect(input).toHaveAccessibleDescription("");
   });
 
   it("clears the whole hold binding when the glyph field is committed empty", () => {
