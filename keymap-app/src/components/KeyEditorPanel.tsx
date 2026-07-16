@@ -4,6 +4,8 @@ import type { LegendSlot } from "../state/documentReducer";
 import { convertLegendInput } from "../model/codepoint";
 import { boardGeometry, describeElementId } from "../model/geometry";
 import { BindingEditor } from "./BindingEditor";
+import { FieldError } from "./FieldError";
+import { useFieldFeedback } from "./useFieldFeedback";
 import { MacroManager } from "./MacroManager";
 import { SymbolPicker } from "./SymbolPicker";
 import { TapDanceList } from "./TapDanceList";
@@ -103,9 +105,9 @@ function fieldsFromLegend(legend: KeyLegend): Fields {
 
 /**
  * Side panel bound to the selected key. Each slot field commits on blur or
- * Enter: `U+XXXX` input converts to its glyph, an invalid codepoint routes to
- * the status bar and leaves the slot untouched, and an empty field clears the
- * slot. The color control recolors the key's primary legend.
+ * Enter: `U+XXXX` input converts to its glyph, an invalid codepoint stays in the
+ * field with its explanation beside it and leaves the slot untouched, and an
+ * empty field clears the slot. The color control recolors the key's primary legend.
  */
 export function KeyEditorPanel({
   keyId,
@@ -131,17 +133,38 @@ export function KeyEditorPanel({
   const [fields, setFields] = useState<Fields>(() => fieldsFromLegend(legend));
   // The slot a picked symbol lands in; follows field focus, primary by default.
   const [activeSlot, setActiveSlot] = useState<LegendSlot>("primary");
+  const feedback = useFieldFeedback();
   const primaryInputRef = useRef<HTMLInputElement | null>(null);
   // Mirrors the latest legend without being a focus-effect dependency, so
   // focus-on-select re-fires only on an actual key change, never on a
   // same-key legend update.
   const legendRef = useRef(legend);
   legendRef.current = legend;
+  const feedbackRef = useRef(feedback);
+  feedbackRef.current = feedback;
+  // The key-and-layer pair the fields are currently bound to; a change means a
+  // fresh set of drafts, the same pair the focus effect below treats as a move.
+  const boundToRef = useRef(`${keyId}:${activeIndex}`);
 
   // Re-bind the fields whenever the selected key or its committed legend changes.
+  // A slot holding an invalid draft keeps it, because the correction happens at
+  // that field: a sibling slot committing must not discard it.
   useEffect(() => {
-    setFields(fieldsFromLegend(legend));
-  }, [keyId, legend]);
+    const boundTo = `${keyId}:${activeIndex}`;
+    if (boundToRef.current !== boundTo) {
+      boundToRef.current = boundTo;
+      feedbackRef.current.reset();
+      setFields(fieldsFromLegend(legend));
+      return;
+    }
+    setFields((prev) => {
+      const bound = fieldsFromLegend(legend);
+      for (const { slot } of SLOTS) {
+        if (feedbackRef.current.error(slot)) bound[slot] = prev[slot];
+      }
+      return bound;
+    });
+  }, [keyId, activeIndex, legend]);
 
   // Focus-on-select: move focus into the primary field and select its text
   // each time the selected key changes, so typing overwrites immediately. The
@@ -159,10 +182,11 @@ export function KeyEditorPanel({
   const commit = (slot: LegendSlot, raw: string) => {
     const result = convertLegendInput(raw);
     if (!result.ok) {
-      onError(result.error);
-      setFields(fieldsFromLegend(legend));
+      feedback.report(slot, result.error);
+      setFields((prev) => ({ ...prev, [slot]: raw }));
       return;
     }
+    feedback.clear(slot);
     setFields((prev) => ({ ...prev, [slot]: result.glyph }));
     onSetSlot(slot, result.glyph);
   };
@@ -215,21 +239,24 @@ export function KeyEditorPanel({
           </label>
 
           {SLOTS.map(({ slot, label: text }) => (
-            <label key={slot} style={label}>
-              {text}
-              <input
-                ref={slot === "primary" ? primaryInputRef : undefined}
-                aria-label={`${text} legend`}
-                style={field}
-                value={fields[slot]}
-                onFocus={() => setActiveSlot(slot)}
-                onChange={(e) => setFields((prev) => ({ ...prev, [slot]: e.target.value }))}
-                onBlur={(e) => commit(slot, e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") commit(slot, e.currentTarget.value);
-                }}
-              />
-            </label>
+            <div key={slot}>
+              <label style={label}>
+                {text}
+                <input
+                  ref={slot === "primary" ? primaryInputRef : undefined}
+                  aria-label={`${text} legend`}
+                  {...feedback.fieldProps(slot, field)}
+                  value={fields[slot]}
+                  onFocus={() => setActiveSlot(slot)}
+                  onChange={(e) => setFields((prev) => ({ ...prev, [slot]: e.target.value }))}
+                  onBlur={(e) => commit(slot, e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") commit(slot, e.currentTarget.value);
+                  }}
+                />
+              </label>
+              <FieldError feedback={feedback} name={slot} />
+            </div>
           ))}
 
           <SymbolPicker onInsert={(glyph) => commit(activeSlot, glyph)} />
