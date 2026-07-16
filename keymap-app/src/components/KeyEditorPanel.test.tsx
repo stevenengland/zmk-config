@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import { describe, it, expect, vi } from "vitest";
 import { KeyEditorPanel } from "./KeyEditorPanel";
 import type { KeyLegend } from "../model/schema";
@@ -10,7 +10,6 @@ const handlers = {
   activeIndex: 0,
   onSetSlot: () => {},
   onSetColor: () => {},
-  onError: () => {},
   homing: false,
   onToggleHoming: () => {},
   onSetHold: () => {},
@@ -101,7 +100,7 @@ describe("KeyEditorPanel", () => {
     renderPanel("L-r0-c0", { shifted: "!" });
 
     const input = screen.getByLabelText(/shifted legend/i);
-    input.focus();
+    act(() => input.focus());
     fireEvent.change(input, { target: { value: "U+ZZZZ" } });
     fireEvent.keyDown(input, { key: "Enter" });
 

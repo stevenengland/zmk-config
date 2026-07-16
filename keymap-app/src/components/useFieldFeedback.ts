@@ -21,7 +21,8 @@ export interface FieldFeedback {
   /**
    * Input props for `name`, merged onto `base`. The error border is applied here
    * rather than in a stylesheet because the controls style themselves inline,
-   * which outranks any class rule.
+   * which outranks any class rule; it restates the whole `border` shorthand
+   * because mixing it with `borderColor` breaks when the error clears.
    */
   fieldProps: (name: string, base: CSSProperties) => FieldInputProps;
 }
@@ -62,7 +63,7 @@ export function useFieldFeedback(): FieldFeedback {
     const current = error(name);
     if (!current) return { style: base };
     return {
-      style: { ...base, borderColor: ERROR },
+      style: { ...base, border: `1px solid ${ERROR}` },
       "aria-invalid": true,
       "aria-describedby": current.id,
     };

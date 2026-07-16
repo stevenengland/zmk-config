@@ -1,6 +1,8 @@
-import { useEffect, useState, type CSSProperties } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 import type { TapBinding } from "../model/schema";
 import { convertLegendInput } from "../model/codepoint";
+import { FieldError } from "./FieldError";
+import { useFieldFeedback } from "./useFieldFeedback";
 
 // Colors drawn from the "Engineering Chic" colorset (docs/design/stitch.md), matching MacroManager/BindingEditor.
 const FIELD_BG = "#0e0e0e";
@@ -57,16 +59,20 @@ interface TapRowProps {
   tap: TapBinding;
   onUpdate: (index: number, tap: TapBinding) => void;
   onDelete: (index: number) => void;
-  onError: (message: string) => void;
 }
 
 /** One tap-dance row: tap count (≥ 2), the fired glyph, and the toggle/latch flag. */
-function TapRow({ index, tap, onUpdate, onDelete, onError }: TapRowProps) {
+function TapRow({ index, tap, onUpdate, onDelete }: TapRowProps) {
   const [fields, setFields] = useState<TapBinding>(tap);
   const label1 = index + 1;
+  const feedback = useFieldFeedback();
+  const feedbackRef = useRef(feedback);
+  feedbackRef.current = feedback;
 
+  // An invalid glyph draft survives a committed change to this row's other
+  // fields; the correction happens at the glyph field itself.
   useEffect(() => {
-    setFields(tap);
+    setFields((prev) => (feedbackRef.current.error("glyph") ? { ...tap, glyph: prev.glyph } : tap));
   }, [index, tap]);
 
   const commitCount = (raw: string) => {
@@ -78,10 +84,11 @@ function TapRow({ index, tap, onUpdate, onDelete, onError }: TapRowProps) {
   const commitGlyph = (raw: string) => {
     const result = convertLegendInput(raw);
     if (!result.ok) {
-      onError(result.error);
-      setFields(tap);
+      feedback.report("glyph", result.error);
+      setFields((prev) => ({ ...prev, glyph: raw }));
       return;
     }
+    feedback.clear("glyph");
     const next = { ...fields, glyph: result.glyph };
     setFields(next);
     onUpdate(index, next);
@@ -134,7 +141,7 @@ function TapRow({ index, tap, onUpdate, onDelete, onError }: TapRowProps) {
         Glyph
         <input
           aria-label={`Tap row ${label1} glyph`}
-          style={field}
+          {...feedback.fieldProps("glyph", field)}
           value={fields.glyph}
           onChange={(e) => setFields((prev) => ({ ...prev, glyph: e.target.value }))}
           onBlur={(e) => commitGlyph(e.target.value)}
@@ -143,6 +150,7 @@ function TapRow({ index, tap, onUpdate, onDelete, onError }: TapRowProps) {
           }}
         />
       </label>
+      <FieldError feedback={feedback} name="glyph" />
       <label style={{ ...label, display: "flex", alignItems: "center", gap: 8 }}>
         <input
           type="checkbox"
@@ -161,7 +169,6 @@ interface TapDanceListProps {
   onAdd: () => void;
   onUpdate: (index: number, tap: TapBinding) => void;
   onDelete: (index: number) => void;
-  onError: (message: string) => void;
 }
 
 /**
@@ -170,12 +177,12 @@ interface TapDanceListProps {
  * anchor D9's mark vocabulary). Ordering on the cap is resolved separately
  * by `resolveTapDisplays`; rows here stay in document order.
  */
-export function TapDanceList({ taps, onAdd, onUpdate, onDelete, onError }: TapDanceListProps) {
+export function TapDanceList({ taps, onAdd, onUpdate, onDelete }: TapDanceListProps) {
   return (
     <div>
       <span style={label}>Tap dance</span>
       {taps.map((tap, index) => (
-        <TapRow key={index} index={index} tap={tap} onUpdate={onUpdate} onDelete={onDelete} onError={onError} />
+        <TapRow key={index} index={index} tap={tap} onUpdate={onUpdate} onDelete={onDelete} />
       ))}
       <button
         type="button"

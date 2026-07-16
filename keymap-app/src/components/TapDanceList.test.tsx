@@ -7,7 +7,6 @@ const handlers = {
   onAdd: () => {},
   onUpdate: () => {},
   onDelete: () => {},
-  onError: () => {},
 };
 
 function renderList(taps: readonly TapBinding[] = [], overrides = {}) {
@@ -40,18 +39,46 @@ describe("TapDanceList", () => {
     expect(onUpdate).toHaveBeenCalledWith(0, { count: 2, glyph: "⇧" });
   });
 
-  it("routes an invalid glyph codepoint to the error handler and leaves the field unchanged", () => {
+  it("keeps an invalid glyph codepoint editable and explains it at the row's field without committing", () => {
     const onUpdate = vi.fn();
-    const onError = vi.fn();
-    renderList([{ count: 2, glyph: "⇪" }], { onUpdate, onError });
+    renderList([{ count: 2, glyph: "⇪" }], { onUpdate });
 
     const input = screen.getByLabelText(/tap row 1 glyph/i);
     fireEvent.change(input, { target: { value: "U+ZZZZ" } });
     fireEvent.blur(input);
 
-    expect(onError).toHaveBeenCalled();
     expect(onUpdate).not.toHaveBeenCalled();
-    expect(input).toHaveValue("⇪");
+    expect(input).toHaveValue("U+ZZZZ");
+    expect(input).toHaveAttribute("aria-invalid", "true");
+    expect(input).toHaveAccessibleDescription(/invalid codepoint/i);
+  });
+
+  it("explains an invalid glyph only on the row being edited", () => {
+    renderList([
+      { count: 2, glyph: "⇪" },
+      { count: 3, glyph: "⇧" },
+    ]);
+
+    const input = screen.getByLabelText(/tap row 1 glyph/i);
+    fireEvent.change(input, { target: { value: "U+ZZZZ" } });
+    fireEvent.blur(input);
+
+    expect(screen.getByLabelText(/tap row 2 glyph/i)).not.toHaveAttribute("aria-invalid");
+  });
+
+  it("commits the converted tap glyph and drops the error association once corrected", () => {
+    const onUpdate = vi.fn();
+    renderList([{ count: 2, glyph: "⇪" }], { onUpdate });
+
+    const input = screen.getByLabelText(/tap row 1 glyph/i);
+    fireEvent.change(input, { target: { value: "U+ZZZZ" } });
+    fireEvent.blur(input);
+    fireEvent.change(input, { target: { value: "U+2318" } });
+    fireEvent.blur(input);
+
+    expect(onUpdate).toHaveBeenCalledWith(0, { count: 2, glyph: "⌘" });
+    expect(input).not.toHaveAttribute("aria-invalid");
+    expect(input).toHaveAccessibleDescription("");
   });
 
   it("commits a count edit on blur, clamped to a minimum of 2", () => {

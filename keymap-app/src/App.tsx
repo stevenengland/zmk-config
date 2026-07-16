@@ -120,14 +120,12 @@ export function App() {
               layerNames={state.document.layers.map((l) => l.name)}
               onSetSlot={(slot, glyph) => {
                 if (!selectedKeyId) return;
-                setStatus(null);
                 dispatch({ type: "set-slot", keyId: selectedKeyId, slot, value: glyph });
               }}
               onSetColor={(color) => {
                 if (!selectedKeyId) return;
                 dispatch({ type: "set-key-color", keyId: selectedKeyId, color });
               }}
-              onError={(text) => setStatus({ text, tone: "error" })}
               homing={selectedKeyId ? homingKeys.has(selectedKeyId) : false}
               onToggleHoming={() => {
                 if (!selectedKeyId) return;

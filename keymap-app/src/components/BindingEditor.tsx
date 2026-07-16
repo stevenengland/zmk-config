@@ -1,6 +1,8 @@
-import { useEffect, useState, type CSSProperties } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { isLayerHold, LATCH_NOTE, type HoldBinding } from "../model/schema";
 import { convertLegendInput } from "../model/codepoint";
+import { FieldError } from "./FieldError";
+import { useFieldFeedback } from "./useFieldFeedback";
 
 // Colors drawn from the "Engineering Chic" colorset (docs/design/stitch.md), matching KeyEditorPanel.
 const FIELD_BG = "#0e0e0e";
@@ -48,7 +50,6 @@ interface BindingEditorProps {
   keyId: string | null;
   hold?: HoldBinding;
   onSetHold: (hold: HoldBinding | undefined) => void;
-  onError: (message: string) => void;
   /** Layer mode's target picker — every layer in the document, in document order. */
   layerNames?: readonly string[];
 }
@@ -81,15 +82,33 @@ export function BindingEditor({
   keyId,
   hold,
   onSetHold,
-  onError,
   layerNames = [],
 }: BindingEditorProps) {
   const [mode, setMode] = useState<Mode>(() => modeFromBinding(hold));
   const [fields, setFields] = useState<Fields>(() => fieldsFromBinding(hold));
+  const feedback = useFieldFeedback();
+  const feedbackRef = useRef(feedback);
+  feedbackRef.current = feedback;
+  const boundToRef = useRef(keyId);
 
+  // Re-bind on a key change or a committed hold change. A field holding an
+  // invalid draft keeps it — the correction happens there, so its sibling
+  // committing must not discard it.
   useEffect(() => {
     setMode(modeFromBinding(hold));
-    setFields(fieldsFromBinding(hold));
+    if (boundToRef.current !== keyId) {
+      boundToRef.current = keyId;
+      feedbackRef.current.reset();
+      setFields(fieldsFromBinding(hold));
+      return;
+    }
+    setFields((prev) => {
+      const bound = fieldsFromBinding(hold);
+      for (const name of ["glyph", "shifted"] as const) {
+        if (feedbackRef.current.error(name)) bound[name] = prev[name];
+      }
+      return bound;
+    });
   }, [keyId, hold]);
 
   // A latch is a property of the binding, not of a mode: it survives edits to
@@ -99,10 +118,11 @@ export function BindingEditor({
   const commit = (field: "glyph" | "shifted", raw: string) => {
     const result = convertLegendInput(raw);
     if (!result.ok) {
-      onError(result.error);
-      setFields(fieldsFromBinding(hold));
+      feedback.report(field, result.error);
+      setFields((prev) => ({ ...prev, [field]: raw }));
       return;
     }
+    feedback.clear(field);
     const next = { ...fields, [field]: result.glyph };
     setFields(next);
     if (!next.glyph) {
@@ -175,7 +195,7 @@ export function BindingEditor({
             Hold glyph
             <input
               aria-label="Hold glyph"
-              style={field}
+              {...feedback.fieldProps("glyph", field)}
               value={fields.glyph}
               onChange={(e) => setFields((prev) => ({ ...prev, glyph: e.target.value }))}
               onBlur={(e) => commit("glyph", e.target.value)}
@@ -184,11 +204,12 @@ export function BindingEditor({
               }}
             />
           </label>
+          <FieldError feedback={feedback} name="glyph" />
           <label style={label}>
             Hold shifted glyph
             <input
               aria-label="Hold shifted glyph"
-              style={field}
+              {...feedback.fieldProps("shifted", field)}
               value={fields.shifted}
               onChange={(e) => setFields((prev) => ({ ...prev, shifted: e.target.value }))}
               onBlur={(e) => commit("shifted", e.target.value)}
@@ -197,6 +218,7 @@ export function BindingEditor({
               }}
             />
           </label>
+          <FieldError feedback={feedback} name="shifted" />
         </>
       )}
       <label style={latchLabel}>

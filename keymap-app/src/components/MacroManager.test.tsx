@@ -7,7 +7,6 @@ const handlers = {
   onAdd: () => {},
   onUpdate: () => {},
   onDelete: () => {},
-  onError: () => {},
 };
 
 function renderManager(macros: MacroRegistry = {}, overrides = {}) {
@@ -57,21 +56,36 @@ describe("MacroManager", () => {
     });
   });
 
-  it("routes an invalid glyph codepoint to the error handler and leaves the field unchanged", () => {
+  it("keeps an invalid glyph codepoint editable and explains it at the field without committing", () => {
     const onUpdate = vi.fn();
-    const onError = vi.fn();
     renderManager(
       { copy: { glyph: "⌃C", label: "Copy", steps: "hold Ctrl · tap C" } },
-      { onUpdate, onError },
+      { onUpdate },
     );
 
     const input = screen.getByLabelText(/copy glyph/i);
     fireEvent.change(input, { target: { value: "U+ZZZZ" } });
     fireEvent.blur(input);
 
-    expect(onError).toHaveBeenCalled();
     expect(onUpdate).not.toHaveBeenCalled();
-    expect(input).toHaveValue("⌃C");
+    expect(input).toHaveValue("U+ZZZZ");
+    expect(input).toHaveAttribute("aria-invalid", "true");
+    expect(input).toHaveAccessibleDescription(/invalid codepoint/i);
+  });
+
+  it("commits the converted macro glyph and drops the error association once corrected", () => {
+    const onUpdate = vi.fn();
+    renderManager({ copy: { glyph: "⌃C", label: "Copy", steps: "" } }, { onUpdate });
+
+    const input = screen.getByLabelText(/copy glyph/i);
+    fireEvent.change(input, { target: { value: "U+ZZZZ" } });
+    fireEvent.blur(input);
+    fireEvent.change(input, { target: { value: "U+2318" } });
+    fireEvent.blur(input);
+
+    expect(onUpdate).toHaveBeenCalledWith("copy", { glyph: "⌘", label: "Copy", steps: "" });
+    expect(input).not.toHaveAttribute("aria-invalid");
+    expect(input).toHaveAccessibleDescription("");
   });
 
   it("commits a label edit on blur", () => {
@@ -124,27 +138,45 @@ describe("MacroManager", () => {
     expect(onAdd).toHaveBeenCalledWith("paste", { glyph: "⌃V", label: "", steps: "" });
   });
 
-  it("rejects adding a macro with an empty name", () => {
+  it("rejects adding a macro with an empty name and explains it at the name field", () => {
     const onAdd = vi.fn();
-    const onError = vi.fn();
-    renderManager({}, { onAdd, onError });
+    renderManager({}, { onAdd });
 
     fireEvent.change(screen.getByLabelText(/new macro glyph/i), { target: { value: "⌃V" } });
     fireEvent.click(screen.getByRole("button", { name: /add macro/i }));
 
-    expect(onError).toHaveBeenCalled();
     expect(onAdd).not.toHaveBeenCalled();
+    const name = screen.getByLabelText(/new macro name/i);
+    expect(name).toHaveAttribute("aria-invalid", "true");
+    expect(name).toHaveAccessibleDescription(/name is required/i);
   });
 
-  it("rejects adding a macro whose name already exists in the registry", () => {
+  it("rejects adding a macro whose name already exists and explains it at the name field", () => {
     const onAdd = vi.fn();
-    const onError = vi.fn();
-    renderManager({ copy: { glyph: "⌃C", label: "Copy", steps: "" } }, { onAdd, onError });
+    renderManager({ copy: { glyph: "⌃C", label: "Copy", steps: "" } }, { onAdd });
 
     fireEvent.change(screen.getByLabelText(/new macro name/i), { target: { value: "copy" } });
     fireEvent.click(screen.getByRole("button", { name: /add macro/i }));
 
-    expect(onError).toHaveBeenCalled();
     expect(onAdd).not.toHaveBeenCalled();
+    const name = screen.getByLabelText(/new macro name/i);
+    expect(name).toHaveAttribute("aria-invalid", "true");
+    expect(name).toHaveAccessibleDescription(/already exists/i);
+  });
+
+  it("clears the name error and adds the macro once the name is corrected", () => {
+    const onAdd = vi.fn();
+    renderManager({ copy: { glyph: "⌃C", label: "Copy", steps: "" } }, { onAdd });
+
+    const name = screen.getByLabelText(/new macro name/i);
+    fireEvent.change(name, { target: { value: "copy" } });
+    fireEvent.click(screen.getByRole("button", { name: /add macro/i }));
+    fireEvent.change(name, { target: { value: "paste" } });
+    fireEvent.change(screen.getByLabelText(/new macro glyph/i), { target: { value: "⌃V" } });
+    fireEvent.click(screen.getByRole("button", { name: /add macro/i }));
+
+    expect(onAdd).toHaveBeenCalledWith("paste", { glyph: "⌃V", label: "", steps: "" });
+    expect(name).not.toHaveAttribute("aria-invalid");
+    expect(name).toHaveAccessibleDescription("");
   });
 });

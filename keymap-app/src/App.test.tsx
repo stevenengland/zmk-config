@@ -245,7 +245,7 @@ describe("App", () => {
     expect(keyGroup.querySelector(`rect[fill="${KEY_STROKE}"]`)).toBeNull();
   });
 
-  it("reports an invalid codepoint on the status bar", () => {
+  it("explains an invalid codepoint at the field and leaves the status bar alone", () => {
     const { container } = render(<App />);
 
     fireEvent.click(container.querySelector('[data-key-id="L-r0-c0"]')!);
@@ -253,7 +253,8 @@ describe("App", () => {
     fireEvent.change(input, { target: { value: "U+ZZZZ" } });
     fireEvent.blur(input);
 
-    expect(screen.getByRole("status")).toHaveTextContent(/invalid codepoint/i);
+    expect(input).toHaveAccessibleDescription(/invalid codepoint/i);
+    expect(screen.getByRole("status")).toHaveTextContent("");
   });
 
   it("starts with undo/redo disabled and enables undo after an edit", () => {

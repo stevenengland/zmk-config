@@ -39,7 +39,6 @@ interface KeyEditorPanelProps {
   legend: KeyLegend;
   onSetSlot: (slot: LegendSlot, glyph: string) => void;
   onSetColor: (color: string) => void;
-  onError: (message: string) => void;
   /** Board-wide: whether this key is a homing key (renders on every layer). */
   homing: boolean;
   onToggleHoming: () => void;
@@ -115,7 +114,6 @@ export function KeyEditorPanel({
   legend,
   onSetSlot,
   onSetColor,
-  onError,
   homing,
   onToggleHoming,
   onSetHold,
@@ -266,7 +264,6 @@ export function KeyEditorPanel({
             keyId={keyId}
             hold={legend.hold}
             onSetHold={onSetHold}
-            onError={onError}
             layerNames={layerNames}
           />
 
@@ -292,7 +289,6 @@ export function KeyEditorPanel({
             onAdd={onAddTap}
             onUpdate={onUpdateTap}
             onDelete={onDeleteTap}
-            onError={onError}
           />
 
           <label style={label}>
@@ -335,7 +331,7 @@ export function KeyEditorPanel({
         </>
       )}
 
-      <MacroManager macros={macros} onAdd={onAddMacro} onUpdate={onUpdateMacro} onDelete={onDeleteMacro} onError={onError} />
+      <MacroManager macros={macros} onAdd={onAddMacro} onUpdate={onUpdateMacro} onDelete={onDeleteMacro} />
     </aside>
   );
 }
