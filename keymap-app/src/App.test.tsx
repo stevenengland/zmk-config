@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import { App } from "./App";
 import { KEY_STROKE, SYMBOL_FONT_FAMILY } from "./model/renderStyle";
 
@@ -25,6 +25,25 @@ describe("App", () => {
     // Then contextual guidance clears while the board summary remains
     expect(screen.queryByText(/use arrow keys to move/i)).not.toBeInTheDocument();
     expect(screen.getByText("58 keys · 2 encoders")).toBeInTheDocument();
+  });
+
+  it("arrow navigation followed by Enter opens the selected position editor", () => {
+    // Given the board at a phone width with focus on its single Tab stop
+    Object.defineProperty(window, "innerWidth", { configurable: true, value: 390 });
+    const { container } = render(<App />);
+    const entry = container.querySelector<SVGGElement>('[data-key-id="L-r0-c0"]')!;
+    act(() => entry.focus());
+
+    // When the user moves right and activates the focused position
+    fireEvent.keyDown(entry, { key: "ArrowRight" });
+    fireEvent.keyDown(document.activeElement!, { key: "Enter" });
+
+    // Then the selected position opens in the editor
+    expect(screen.getByRole("dialog", { name: /key editor/i })).toBeInTheDocument();
+    expect(container.querySelector('[data-key-id="L-r0-c1"]')).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
   });
 
   it("embeds the symbol font globally, independent of the picker's mount state", () => {

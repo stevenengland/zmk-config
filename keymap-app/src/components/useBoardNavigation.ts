@@ -3,6 +3,13 @@ import type { BoardElement } from "../model/geometry";
 
 type Direction = "up" | "down" | "left" | "right";
 
+const DIRECTION_BY_KEY: Partial<Record<string, Direction>> = {
+  ArrowUp: "up",
+  ArrowDown: "down",
+  ArrowLeft: "left",
+  ArrowRight: "right",
+};
+
 interface UseBoardNavigationOptions {
   elements: readonly BoardElement[];
   selectedId?: string | null;
@@ -59,13 +66,7 @@ export function useBoardNavigation({
   };
 
   const handleKeyDown = (event: KeyboardEvent<SVGGElement>, id: string) => {
-    const directionByKey: Partial<Record<string, Direction>> = {
-      ArrowUp: "up",
-      ArrowDown: "down",
-      ArrowLeft: "left",
-      ArrowRight: "right",
-    };
-    const direction = directionByKey[event.key];
+    const direction = DIRECTION_BY_KEY[event.key];
     if (direction) {
       event.preventDefault();
       focusPosition(id, direction);

@@ -62,6 +62,7 @@ describe("KeyboardCanvas", () => {
     // When the user moves right and activates the reached encoder
     fireEvent.keyDown(start, { key: "ArrowRight" });
     const encoder = container.querySelector<SVGGElement>('[data-encoder-id="L-enc"]')!;
+    const rightEncoder = container.querySelector<SVGGElement>('[data-encoder-id="R-enc"]')!;
     fireEvent.keyDown(encoder, { key: " " });
 
     // Then the encoder is the roving focus anchor and is selected by its descriptive control
@@ -69,6 +70,8 @@ describe("KeyboardCanvas", () => {
     expect(encoder.getAttribute("aria-label")).toBe("Left encoder");
     expect(encoder.getAttribute("tabindex")).toBe("0");
     expect(onSelectKey).toHaveBeenCalledWith("L-enc");
+    expect(rightEncoder.getAttribute("aria-label")).toBe("Right encoder");
+    expect(rightEncoder.hasAttribute("tabindex")).toBe(true);
   });
 
   it("renders the full board: 58 key shapes and 2 encoder circles", () => {
