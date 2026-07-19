@@ -25,6 +25,8 @@ interface KeyboardCanvasProps {
   onJumpToLayer?: (layerName: string) => void;
   /** Document-level macro registry, used to resolve a key's macro reference to its display glyph. */
   macros?: MacroRegistry;
+  /** Shows first-session keyboard guidance when true; when false, keeps only the board summary. */
+  guidanceVisible?: boolean;
 }
 
 type Direction = "up" | "down" | "left" | "right";
@@ -69,6 +71,7 @@ export function KeyboardCanvas({
   layers,
   onJumpToLayer,
   macros,
+  guidanceVisible,
 }: KeyboardCanvasProps = {}) {
   // Hover tracking is delegated on the <svg> rather than wired per-Keycap, so
   // the tooltip's DOM-rect anchoring stays independent of the SVG render tree.
@@ -161,6 +164,23 @@ export function KeyboardCanvas({
           />
         ))}
       </svg>
+      {guidanceVisible !== undefined ? (
+        <div
+          aria-label="Board navigation"
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            gap: 16,
+            paddingTop: 10,
+            color: "#bac9cc",
+            fontFamily: "Inter, system-ui, sans-serif",
+            fontSize: 12,
+          }}
+        >
+          <strong style={{ color: "#e5e2e1" }}>58 keys · 2 encoders</strong>
+          {guidanceVisible ? <span>Use arrow keys to move; press Enter or Space to edit.</span> : null}
+        </div>
+      ) : null}
       {hover ? (
         <KeyTooltip
           keyId={hover.id}

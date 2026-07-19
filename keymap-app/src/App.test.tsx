@@ -12,6 +12,21 @@ describe("App", () => {
     expect(container.querySelector('svg[aria-label="Sofle Choc keyboard"]')).not.toBeNull();
   });
 
+  it("guides the first board selection and keeps the board summary visible afterward", () => {
+    // Given a fresh app session
+    const { container } = render(<App />);
+
+    expect(screen.getByText("58 keys · 2 encoders")).toBeInTheDocument();
+    expect(screen.getByText(/use arrow keys to move/i)).toBeInTheDocument();
+
+    // When the first board position is selected
+    fireEvent.click(container.querySelector('[data-key-id="L-r0-c0"]')!);
+
+    // Then contextual guidance clears while the board summary remains
+    expect(screen.queryByText(/use arrow keys to move/i)).not.toBeInTheDocument();
+    expect(screen.getByText("58 keys · 2 encoders")).toBeInTheDocument();
+  });
+
   it("embeds the symbol font globally, independent of the picker's mount state", () => {
     const { container } = render(<App />);
 
