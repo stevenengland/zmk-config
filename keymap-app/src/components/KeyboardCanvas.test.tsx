@@ -1,7 +1,31 @@
-import { render, fireEvent, screen } from "@testing-library/react";
+import { act, render, fireEvent, screen } from "@testing-library/react";
 import { KeyboardCanvas } from "./KeyboardCanvas";
 
 describe("KeyboardCanvas", () => {
+  it("one Tab enters the board and keyboard activation selects the focused position", () => {
+    // Given a board with one roving Tab stop
+    const onSelectKey = vi.fn();
+    const { container } = render(<KeyboardCanvas onSelectKey={onSelectKey} />);
+    const positions = Array.from(
+      container.querySelectorAll<SVGGElement>("[data-key-id], [data-encoder-id]"),
+    );
+    const entry = positions[0];
+
+    expect(positions.filter((position) => position.getAttribute("tabindex") === "0")).toHaveLength(1);
+    expect(entry.getAttribute("tabindex")).toBe("0");
+
+    // When the user moves right and activates the focused position
+    act(() => entry.focus());
+    fireEvent.keyDown(entry, { key: "ArrowRight" });
+    fireEvent.keyDown(positions[1], { key: "Enter" });
+
+    // Then the new position is selected through the board's public callback
+    expect(document.activeElement?.getAttribute("data-key-id")).toBe(
+      positions[1].getAttribute("data-key-id"),
+    );
+    expect(onSelectKey).toHaveBeenCalledWith(positions[1].getAttribute("data-key-id"));
+  });
+
   it("renders the full board: 58 key shapes and 2 encoder circles", () => {
     const { container } = render(<KeyboardCanvas />);
 

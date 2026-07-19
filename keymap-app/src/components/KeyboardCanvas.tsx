@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState, type KeyboardEvent } from "react";
 import { boardGeometry, keys, encoders } from "../model/geometry";
 import type { KeyLegend, Layer, MacroRegistry } from "../model/schema";
 import { BACKGROUND, boardViewBox } from "../model/renderStyle";
@@ -41,6 +41,29 @@ export function KeyboardCanvas({
   // Hover tracking is delegated on the <svg> rather than wired per-Keycap, so
   // the tooltip's DOM-rect anchoring stays independent of the SVG render tree.
   const [hover, setHover] = useState<{ id: string; rect: DOMRect } | null>(null);
+  const [focusAnchorId, setFocusAnchorId] = useState(selectedKeyId ?? boardGeometry[0].id);
+  const positionRefs = useRef(new Map<string, SVGGElement>());
+
+  const moveFocus = (id: string, offset: number) => {
+    const index = boardGeometry.findIndex((element) => element.id === id);
+    const next = boardGeometry[index + offset];
+    if (!next) return;
+    setFocusAnchorId(next.id);
+    positionRefs.current.get(next.id)?.focus();
+  };
+
+  const handlePositionKeyDown = (event: KeyboardEvent<SVGGElement>, id: string) => {
+    if (event.key === "ArrowRight" || event.key === "ArrowDown") {
+      event.preventDefault();
+      moveFocus(id, 1);
+    } else if (event.key === "ArrowLeft" || event.key === "ArrowUp") {
+      event.preventDefault();
+      moveFocus(id, -1);
+    } else if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      onSelectKey?.(id);
+    }
+  };
 
   const hoveredLegend = hover ? legends[hover.id] : undefined;
 
@@ -87,6 +110,13 @@ export function KeyboardCanvas({
             onJumpToLayer={onJumpToLayer}
             macros={macros}
             hasTooltip={hover?.id === element.id && Boolean(hoveredLegend)}
+            tabIndex={element.id === focusAnchorId ? 0 : -1}
+            onFocus={setFocusAnchorId}
+            onKeyDown={handlePositionKeyDown}
+            elementRef={(node) => {
+              if (node) positionRefs.current.set(element.id, node);
+              else positionRefs.current.delete(element.id);
+            }}
           />
         ))}
       </svg>
