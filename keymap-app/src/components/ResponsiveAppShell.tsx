@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 import "./ResponsiveAppShell.css";
 
 const MODAL_BREAKPOINT = 900;
@@ -24,7 +24,7 @@ export function ResponsiveAppShell({
   const [width, setWidth] = useState(viewportWidth);
   const narrow = width < MODAL_BREAKPOINT;
   const dialogRef = useRef<HTMLElement>(null);
-  const returnFocusRef = useRef<HTMLElement | null>(null);
+  const returnFocusRef = useRef<HTMLElement | SVGElement | null>(null);
 
   useEffect(() => {
     const updateWidth = () => setWidth(viewportWidth());
@@ -32,9 +32,12 @@ export function ResponsiveAppShell({
     return () => window.removeEventListener("resize", updateWidth);
   }, []);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!narrow || !editorOpen) return;
-    returnFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    returnFocusRef.current =
+      document.activeElement instanceof HTMLElement || document.activeElement instanceof SVGElement
+        ? document.activeElement
+        : null;
     const focusable = dialogRef.current?.querySelector<HTMLElement>(FOCUSABLE);
     focusable?.focus();
   }, [editorOpen, narrow]);

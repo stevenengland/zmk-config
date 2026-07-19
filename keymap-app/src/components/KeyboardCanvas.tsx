@@ -102,6 +102,12 @@ export function KeyboardCanvas({
     }
   };
 
+  const selectPosition = (id: string) => {
+    setFocusAnchorId(id);
+    positionRefs.current.get(id)?.focus();
+    onSelectKey?.(id);
+  };
+
   const hoveredLegend = hover ? legends[hover.id] : undefined;
 
   return (
@@ -140,7 +146,7 @@ export function KeyboardCanvas({
             element={element}
             legend={legends[element.id]}
             selected={element.id === selectedKeyId}
-            onSelect={onSelectKey}
+            onSelect={selectPosition}
             layerColor={layerColor}
             homing={homingKeys?.has(element.id)}
             layers={layers}

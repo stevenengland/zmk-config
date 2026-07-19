@@ -108,6 +108,21 @@ describe("App", () => {
     expect(Array.from(container.querySelectorAll("text"), (node) => node.textContent)).toContain("⌘");
   });
 
+  it("pointer selection anchors roving focus and editor dismissal restores the selected position", () => {
+    // Given an unselected board at a phone width
+    Object.defineProperty(window, "innerWidth", { configurable: true, value: 390 });
+    const { container } = render(<App />);
+    const selectedPosition = container.querySelector<SVGGElement>('[data-key-id="R-r2-c1"]')!;
+
+    // When the position is clicked and its editor is dismissed
+    fireEvent.click(selectedPosition);
+    expect(selectedPosition.getAttribute("tabindex")).toBe("0");
+    fireEvent.click(screen.getByRole("button", { name: /close key editor/i }));
+
+    // Then keyboard navigation resumes from the selected board position
+    expect(document.activeElement?.getAttribute("data-key-id")).toBe("R-r2-c1");
+  });
+
   it("keeps global and layer controls reachable through named toolbars at narrow widths", () => {
     // Given a phone viewport
     Object.defineProperty(window, "innerWidth", { configurable: true, value: 390 });
