@@ -27,6 +27,38 @@ interface KeyboardCanvasProps {
   macros?: MacroRegistry;
 }
 
+type Direction = "up" | "down" | "left" | "right";
+
+function positionCenter(element: (typeof boardGeometry)[number]) {
+  return element.kind === "encoder"
+    ? { x: element.x, y: element.y }
+    : { x: element.x + element.w / 2, y: element.y + element.h / 2 };
+}
+
+function nearestPosition(id: string, direction: Direction) {
+  const current = boardGeometry.find((element) => element.id === id);
+  if (!current) return undefined;
+  const origin = positionCenter(current);
+
+  return boardGeometry
+    .filter((candidate) => {
+      if (candidate.id === id) return false;
+      const point = positionCenter(candidate);
+      if (direction === "up") return point.y < origin.y;
+      if (direction === "down") return point.y > origin.y;
+      if (direction === "left") return point.x < origin.x;
+      return point.x > origin.x;
+    })
+    .map((candidate) => {
+      const point = positionCenter(candidate);
+      return {
+        candidate,
+        distance: (point.x - origin.x) ** 2 + (point.y - origin.y) ** 2,
+      };
+    })
+    .sort((a, b) => a.distance - b.distance)[0]?.candidate;
+}
+
 /** Inline-SVG render of the full Sofle Choc board with selectable, legended keys. */
 export function KeyboardCanvas({
   legends = {},
@@ -44,21 +76,26 @@ export function KeyboardCanvas({
   const [focusAnchorId, setFocusAnchorId] = useState(selectedKeyId ?? boardGeometry[0].id);
   const positionRefs = useRef(new Map<string, SVGGElement>());
 
-  const moveFocus = (id: string, offset: number) => {
-    const index = boardGeometry.findIndex((element) => element.id === id);
-    const next = boardGeometry[index + offset];
+  const moveFocus = (id: string, direction: Direction) => {
+    const next = nearestPosition(id, direction);
     if (!next) return;
     setFocusAnchorId(next.id);
     positionRefs.current.get(next.id)?.focus();
   };
 
   const handlePositionKeyDown = (event: KeyboardEvent<SVGGElement>, id: string) => {
-    if (event.key === "ArrowRight" || event.key === "ArrowDown") {
+    if (event.key === "ArrowRight") {
       event.preventDefault();
-      moveFocus(id, 1);
-    } else if (event.key === "ArrowLeft" || event.key === "ArrowUp") {
+      moveFocus(id, "right");
+    } else if (event.key === "ArrowDown") {
       event.preventDefault();
-      moveFocus(id, -1);
+      moveFocus(id, "down");
+    } else if (event.key === "ArrowLeft") {
+      event.preventDefault();
+      moveFocus(id, "left");
+    } else if (event.key === "ArrowUp") {
+      event.preventDefault();
+      moveFocus(id, "up");
     } else if (event.key === "Enter" || event.key === " ") {
       event.preventDefault();
       onSelectKey?.(id);

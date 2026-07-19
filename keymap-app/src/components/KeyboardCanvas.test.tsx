@@ -26,6 +26,32 @@ describe("KeyboardCanvas", () => {
     expect(onSelectKey).toHaveBeenCalledWith(positions[1].getAttribute("data-key-id"));
   });
 
+  it("arrow navigation moves to the nearest visual position in the requested direction", () => {
+    // Given focus on the top-left position
+    const { container } = render(<KeyboardCanvas />);
+    const start = container.querySelector<SVGGElement>('[data-key-id="L-r0-c0"]')!;
+    act(() => start.focus());
+
+    // When the user moves down
+    fireEvent.keyDown(start, { key: "ArrowDown" });
+
+    // Then focus moves to the position directly below, not the next DOM sibling
+    expect(document.activeElement?.getAttribute("data-key-id")).toBe("L-r1-c0");
+  });
+
+  it("arrow navigation stays on the current position at a board edge", () => {
+    // Given focus on the leftmost position
+    const { container } = render(<KeyboardCanvas />);
+    const edge = container.querySelector<SVGGElement>('[data-key-id="L-r0-c0"]')!;
+    act(() => edge.focus());
+
+    // When the user moves left with no candidate in that direction
+    fireEvent.keyDown(edge, { key: "ArrowLeft" });
+
+    // Then focus remains at the board edge
+    expect(document.activeElement?.getAttribute("data-key-id")).toBe("L-r0-c0");
+  });
+
   it("renders the full board: 58 key shapes and 2 encoder circles", () => {
     const { container } = render(<KeyboardCanvas />);
 
