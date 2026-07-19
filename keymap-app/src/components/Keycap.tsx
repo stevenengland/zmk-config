@@ -1,5 +1,5 @@
 import type { KeyboardEvent } from "react";
-import type { BoardElement } from "../model/geometry";
+import { describeElementId, type BoardElement } from "../model/geometry";
 import {
   resolveHoldDisplay,
   resolveMacroDisplay,
@@ -256,7 +256,7 @@ export function Keycap({
       {...idAttr}
       transform={transform}
       role="button"
-      aria-label={element.id}
+      aria-label={describeElementId(element.id)}
       aria-pressed={selected ?? false}
       aria-describedby={hasTooltip ? `key-tooltip-${element.id}` : undefined}
       tabIndex={tabIndex}
