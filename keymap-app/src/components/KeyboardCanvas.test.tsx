@@ -86,6 +86,7 @@ describe("KeyboardCanvas", () => {
     const key = container.querySelector('[data-key-id="L-r2-c1"]')!;
 
     fireEvent.mouseOver(key);
+    expect(screen.getByRole("tooltip")).toHaveTextContent("Left · row 3 · col 2");
     expect(screen.getByRole("tooltip")).toHaveTextContent("a");
     expect(screen.getByRole("tooltip")).toHaveTextContent("A");
 
@@ -93,13 +94,19 @@ describe("KeyboardCanvas", () => {
     expect(screen.queryByRole("tooltip")).toBeNull();
   });
 
-  it("shows no tooltip for a key with no legend", () => {
+  it("shows position and empty legend and behavior guidance for an unpopulated position", () => {
+    // Given an unpopulated board position
     const { container } = render(<KeyboardCanvas legends={{}} />);
     const key = container.querySelector('[data-key-id="L-r2-c1"]')!;
 
+    // When the position is hovered
     fireEvent.mouseOver(key);
 
-    expect(screen.queryByRole("tooltip")).toBeNull();
+    // Then its position and empty state are explained
+    const tooltip = screen.getByRole("tooltip");
+    expect(tooltip).toHaveTextContent("Left · row 3 · col 2");
+    expect(tooltip).toHaveTextContent("legendEmpty");
+    expect(tooltip).toHaveTextContent("behaviorNone");
   });
 
   it("shows the state-matrix tooltip on focus and hides it on blur, for keyboard and touch users", () => {

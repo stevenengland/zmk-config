@@ -108,8 +108,6 @@ export function KeyboardCanvas({
     onSelectKey?.(id);
   };
 
-  const hoveredLegend = hover ? legends[hover.id] : undefined;
-
   return (
     <>
       <svg
@@ -152,7 +150,7 @@ export function KeyboardCanvas({
             layers={layers}
             onJumpToLayer={onJumpToLayer}
             macros={macros}
-            hasTooltip={hover?.id === element.id && Boolean(hoveredLegend)}
+            hasTooltip={hover?.id === element.id}
             tabIndex={element.id === focusAnchorId ? 0 : -1}
             onFocus={setFocusAnchorId}
             onKeyDown={handlePositionKeyDown}
@@ -163,10 +161,10 @@ export function KeyboardCanvas({
           />
         ))}
       </svg>
-      {hover && hoveredLegend ? (
+      {hover ? (
         <KeyTooltip
           keyId={hover.id}
-          legend={hoveredLegend}
+          legend={legends[hover.id]}
           macros={macros ?? {}}
           layers={layers ?? []}
           anchorRect={hover.rect}

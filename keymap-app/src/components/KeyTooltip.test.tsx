@@ -21,12 +21,17 @@ function stubViewport(tooltipSize: { width: number; height: number }, viewport: 
 }
 
 describe("KeyTooltip", () => {
-  it("renders nothing for a key with no legends", () => {
-    const { container } = render(
+  it("explains the position and empty state for a key with no legends", () => {
+    // Given a board position with no configured legend or behavior
+    render(
       <KeyTooltip keyId="L-r0-c0" legend={{}} macros={{}} layers={[]} anchorRect={anchorRect} />,
     );
 
-    expect(container).toBeEmptyDOMElement();
+    // Then the tooltip identifies the position and its empty state
+    const tooltip = screen.getByRole("tooltip");
+    expect(tooltip).toHaveTextContent("Left · row 1 · col 1");
+    expect(tooltip).toHaveTextContent("legendEmpty");
+    expect(tooltip).toHaveTextContent("behaviorNone");
   });
 
   it("never intercepts pointer events, so it can never block clicking or selecting the key", () => {

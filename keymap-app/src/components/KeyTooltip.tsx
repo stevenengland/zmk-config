@@ -1,4 +1,5 @@
 import { Fragment, useLayoutEffect, useRef, useState, type CSSProperties } from "react";
+import { describeElementId } from "../model/geometry";
 import { resolveTooltipRows, type KeyLegend, type Layer, type MacroRegistry } from "../model/schema";
 import { MONO_FONT } from "../model/renderStyle";
 
@@ -20,7 +21,7 @@ interface AnchorRect {
 
 interface KeyTooltipProps {
   keyId: string;
-  legend: KeyLegend;
+  legend?: KeyLegend;
   macros: MacroRegistry;
   layers: readonly Layer[];
   anchorRect: AnchorRect;
@@ -51,7 +52,13 @@ const tooltip: CSSProperties = {
  * never block clicking or selecting the key underneath it.
  */
 export function KeyTooltip({ keyId, legend, macros, layers, anchorRect }: KeyTooltipProps) {
-  const rows = resolveTooltipRows(legend, macros, layers);
+  const resolvedRows = legend ? resolveTooltipRows(legend, macros, layers) : [];
+  const rows = resolvedRows.length > 0
+    ? resolvedRows
+    : [
+        { label: "legend", value: "Empty" },
+        { label: "behavior", value: "None" },
+      ];
   const ref = useRef<HTMLDivElement>(null);
   const [placement, setPlacement] = useState({ left: anchorRect.left, top: anchorRect.bottom + VIEWPORT_MARGIN });
 
@@ -71,8 +78,6 @@ export function KeyTooltip({ keyId, legend, macros, layers, anchorRect }: KeyToo
     setPlacement({ left, top });
   }, [anchorRect.left, anchorRect.top, anchorRect.bottom]);
 
-  if (rows.length === 0) return null;
-
   return (
     <div
       ref={ref}
@@ -81,6 +86,8 @@ export function KeyTooltip({ keyId, legend, macros, layers, anchorRect }: KeyToo
       data-tooltip-for={keyId}
       style={{ ...tooltip, left: placement.left, top: placement.top }}
     >
+      <span style={{ color: ON_SURFACE_VARIANT }}>position</span>
+      <span>{describeElementId(keyId)}</span>
       {rows.map((row, index) => (
         <Fragment key={`${row.label}-${index}`}>
           <span style={{ color: ON_SURFACE_VARIANT }}>{row.label}</span>
