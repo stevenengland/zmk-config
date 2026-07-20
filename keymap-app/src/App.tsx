@@ -5,7 +5,8 @@ import { LayerOverview } from "./components/LayerOverview";
 import { LayerTabs } from "./components/LayerTabs";
 import { ResponsiveAppShell } from "./components/ResponsiveAppShell";
 import { ZoomPanViewport } from "./components/ZoomPanViewport";
-import { FeedbackProvider, useFeedback } from "./components/FeedbackProvider";
+import { FeedbackProvider } from "./components/FeedbackProvider";
+import { useFeedback } from "./components/feedbackContext";
 import type { StatusMessage } from "./components/StatusBar";
 import { Toolbar } from "./components/Toolbar";
 import { DocumentContext } from "./state/documentContext";
@@ -79,7 +80,7 @@ export function App() {
   }, []);
 
   return (
-    <FeedbackProvider sheetOpen={mobileEditorOpen && window.innerWidth < 900}>
+    <FeedbackProvider sheetOpen={mobileEditorOpen}>
       <DocumentContext.Provider value={store}>
         <main
         style={{

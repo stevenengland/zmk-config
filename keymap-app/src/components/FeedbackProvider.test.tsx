@@ -1,7 +1,8 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { act } from "react";
 import { afterEach, vi } from "vitest";
-import { FeedbackProvider, useFeedback } from "./FeedbackProvider";
+import { FeedbackProvider } from "./FeedbackProvider";
+import { useFeedback } from "./feedbackContext";
 
 afterEach(() => vi.useRealTimers());
 

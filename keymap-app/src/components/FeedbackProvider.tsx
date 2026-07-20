@@ -1,4 +1,5 @@
-import { createContext, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { FeedbackContext, type FeedbackActions } from "./feedbackContext";
 import "./FeedbackProvider.css";
 
 type FeedbackTone = "success" | "error";
@@ -8,18 +9,10 @@ interface FeedbackNotice {
   tone: FeedbackTone;
 }
 
-interface FeedbackActions {
-  success: (text: string) => void;
-  error: (text: string) => void;
-  clear: () => void;
-}
-
 interface FeedbackProviderProps {
   children: ReactNode;
   sheetOpen: boolean;
 }
-
-const FeedbackContext = createContext<FeedbackActions | null>(null);
 
 export function FeedbackProvider({ children, sheetOpen }: FeedbackProviderProps) {
   const [notice, setNotice] = useState<FeedbackNotice | null>(null);
@@ -57,7 +50,12 @@ export function FeedbackProvider({ children, sheetOpen }: FeedbackProviderProps)
   const resumeDismissal = (source: "hover" | "focus") => {
     if (source === "hover") hoverPausedRef.current = false;
     else focusPausedRef.current = false;
-    if (hoverPausedRef.current || focusPausedRef.current || notice?.tone !== "success") return;
+    if (
+      hoverPausedRef.current
+      || focusPausedRef.current
+      || notice?.tone !== "success"
+      || timeoutRef.current !== null
+    ) return;
     deadlineRef.current = Date.now() + remainingRef.current;
     timeoutRef.current = window.setTimeout(() => setNotice(null), remainingRef.current);
   };
@@ -92,10 +90,4 @@ export function FeedbackProvider({ children, sheetOpen }: FeedbackProviderProps)
       ) : null}
     </FeedbackContext.Provider>
   );
-}
-
-export function useFeedback(): FeedbackActions {
-  const feedback = useContext(FeedbackContext);
-  if (!feedback) throw new Error("useFeedback must be used within FeedbackProvider");
-  return feedback;
 }

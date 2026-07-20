@@ -30,5 +30,11 @@
 }
 
 .km-feedback--sheet-open {
-  bottom: calc(80dvh + 16px);
+  bottom: 24px;
+}
+
+@media (max-width: 899px) {
+  .km-feedback--sheet-open {
+    bottom: calc(80dvh + 16px);
+  }
 }
