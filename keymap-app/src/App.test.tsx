@@ -8,7 +8,13 @@ vi.mock("./io/persistence", () => ({
   saveDocument: vi.fn(),
 }));
 
-import { saveDocument } from "./io/persistence";
+import { openDocument, saveDocument } from "./io/persistence";
+import { SCHEMA_VERSION, type KeymapDocument } from "./model/schema";
+
+const OPENED_DOCUMENT: KeymapDocument = {
+  schemaVersion: SCHEMA_VERSION,
+  layers: [{ name: "Opened", color: "#fec931", keys: {} }],
+};
 
 describe("App", () => {
   afterEach(() => {
@@ -30,6 +36,27 @@ describe("App", () => {
     await waitFor(() => expect(screen.queryByText(/Unsaved changes/)).not.toBeInTheDocument());
     expect(screen.getByRole("status")).toHaveTextContent("Saved keymap");
   });
+
+  it("restores an opened document's saved state through undo and redo", async () => {
+    // Given a named document opened from persistence
+    vi.mocked(openDocument).mockResolvedValue({
+      document: OPENED_DOCUMENT,
+      handle: null,
+      filename: "workshop.json",
+    });
+    render(<App />);
+    fireEvent.click(screen.getByRole("button", { name: /^open$/i }));
+    await screen.findByText("workshop.json");
+
+    // When an edit is undone exactly to the opened content
+    fireEvent.click(screen.getByRole("button", { name: /add layer/i }));
+    fireEvent.click(screen.getByRole("button", { name: /^undo$/i }));
+
+    // Then the saved state returns, while redo restores the edit and dirty state
+    expect(screen.queryByText(/Unsaved changes/)).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /^redo$/i }));
+    expect(screen.getByText(/Unsaved changes/)).toBeInTheDocument();
+  }, 10_000);
 
   it("mounts the keyboard board", () => {
     const { container } = render(<App />);
