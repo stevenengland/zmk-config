@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, vi } from "vitest";
 import { LayerTabs } from "./LayerTabs";
 import type { Layer } from "../model/schema";
@@ -106,20 +106,22 @@ describe("LayerTabs", () => {
 
   it("deletes the active layer only after confirmation", () => {
     const onDelete = vi.fn();
-    vi.spyOn(window, "confirm").mockReturnValue(true);
     render(<LayerTabs {...handlers} onDelete={onDelete} layers={layers("Base", "Symbols")} activeIndex={1} />);
 
     fireEvent.click(screen.getByRole("button", { name: /delete layer/i }));
+    const confirmation = screen.getByRole("alertdialog", { name: /delete layer/i });
+    expect(confirmation).toHaveTextContent('Delete layer "Symbols"?');
+    fireEvent.click(within(confirmation).getByRole("button", { name: /^delete layer$/i }));
 
     expect(onDelete).toHaveBeenCalledWith(1);
   });
 
   it("keeps the layer when deletion is cancelled", () => {
     const onDelete = vi.fn();
-    vi.spyOn(window, "confirm").mockReturnValue(false);
     render(<LayerTabs {...handlers} onDelete={onDelete} layers={layers("Base", "Symbols")} activeIndex={1} />);
 
     fireEvent.click(screen.getByRole("button", { name: /delete layer/i }));
+    fireEvent.click(screen.getByRole("button", { name: /^cancel$/i }));
 
     expect(onDelete).not.toHaveBeenCalled();
   });
