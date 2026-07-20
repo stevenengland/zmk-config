@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { vi } from "vitest";
 import { App } from "./App";
 import { KEY_STROKE, SYMBOL_FONT_FAMILY } from "./model/renderStyle";
@@ -276,14 +276,65 @@ describe("App", () => {
     expect(layerControls).toContainElement(screen.getByRole("button", { name: /add layer/i }));
   });
 
+  it("opens the Macro library from the global toolbar with focus inside", () => {
+    // Given the keymap editor is open
+    render(<App />);
+
+    // When document-wide macro management is requested
+    fireEvent.click(screen.getByRole("button", { name: /manage macros/i }));
+
+    // Then the Macro library opens and receives focus
+    const dialog = screen.getByRole("dialog", { name: /macro library/i });
+    expect(dialog).toBeInTheDocument();
+    expect(dialog).toContainElement(document.activeElement as HTMLElement);
+  });
+
+  it("restores focus to Manage Macros when the Macro library closes", () => {
+    // Given the Macro library was opened from its toolbar trigger
+    render(<App />);
+    const trigger = screen.getByRole("button", { name: /manage macros/i });
+    act(() => trigger.focus());
+    fireEvent.click(trigger);
+
+    // When the Macro library is closed
+    fireEvent.click(screen.getByRole("button", { name: /^close$/i }));
+
+    // Then focus returns to the invoking control
+    expect(trigger).toHaveFocus();
+  });
+
+  it("adds a library macro to per-key assignment choices without embedding its form in the key editor", () => {
+    // Given a selected position with its Behaviors task open
+    const { container } = render(<App />);
+    fireEvent.click(container.querySelector('[data-key-id="R-r2-c1"]')!);
+    fireEvent.click(screen.getByRole("tab", { name: "Behaviors" }));
+    const editor = screen.getByRole("region", { name: /docked key editor/i });
+
+    // When a macro is created in the document-wide library
+    fireEvent.click(screen.getByRole("button", { name: /manage macros/i }));
+    const dialog = screen.getByRole("dialog", { name: /macro library/i });
+    fireEvent.change(within(dialog).getByLabelText(/new macro name/i), { target: { value: "copy" } });
+    fireEvent.change(within(dialog).getByLabelText(/new macro glyph/i), { target: { value: "⌃C" } });
+    fireEvent.click(within(dialog).getByRole("button", { name: /add macro/i }));
+    fireEvent.click(within(dialog).getByRole("button", { name: /^close$/i }));
+
+    // Then the key can assign it without containing the global macro form
+    expect(within(editor).getByRole("option", { name: "copy" })).toBeInTheDocument();
+    expect(within(editor).queryByLabelText(/new macro name/i)).not.toBeInTheDocument();
+  });
+
   it("creates a macro in the Macros manager, assigns it to a key, and renders the glyph in a dashed chip on the board", () => {
     const { container } = render(<App />);
 
-    fireEvent.change(screen.getByLabelText(/new macro name/i), { target: { value: "copy" } });
-    fireEvent.change(screen.getByLabelText(/new macro glyph/i), { target: { value: "U+2303" } });
-    fireEvent.click(screen.getByRole("button", { name: /add macro/i }));
+    fireEvent.click(screen.getByRole("button", { name: /manage macros/i }));
+    const dialog = screen.getByRole("dialog", { name: /macro library/i });
+    fireEvent.change(within(dialog).getByLabelText(/new macro name/i), { target: { value: "copy" } });
+    fireEvent.change(within(dialog).getByLabelText(/new macro glyph/i), { target: { value: "U+2303" } });
+    fireEvent.click(within(dialog).getByRole("button", { name: /add macro/i }));
+    fireEvent.click(within(dialog).getByRole("button", { name: /^close$/i }));
 
     fireEvent.click(container.querySelector('[data-key-id="R-r2-c1"]')!);
+    fireEvent.click(screen.getByRole("tab", { name: "Behaviors" }));
     fireEvent.change(screen.getByLabelText(/^macro$/i), { target: { value: "copy" } });
 
     const legend = Array.from(container.querySelectorAll("text")).map((t) => t.textContent);
@@ -291,10 +342,35 @@ describe("App", () => {
     expect(container.querySelector('[data-key-id="R-r2-c1"] rect[stroke-dasharray]')).not.toBeNull();
   });
 
+  it("reports the number of assigned board positions before macro deletion", () => {
+    // Given one key is assigned to a library macro
+    const { container } = render(<App />);
+    fireEvent.click(screen.getByRole("button", { name: /manage macros/i }));
+    let dialog = screen.getByRole("dialog", { name: /macro library/i });
+    fireEvent.change(within(dialog).getByLabelText(/new macro name/i), { target: { value: "copy" } });
+    fireEvent.change(within(dialog).getByLabelText(/new macro glyph/i), { target: { value: "⌃C" } });
+    fireEvent.click(within(dialog).getByRole("button", { name: /add macro/i }));
+    fireEvent.click(within(dialog).getByRole("button", { name: /^close$/i }));
+    fireEvent.click(container.querySelector('[data-key-id="R-r2-c1"]')!);
+    fireEvent.click(screen.getByRole("tab", { name: "Behaviors" }));
+    fireEvent.change(screen.getByLabelText(/^macro$/i), { target: { value: "copy" } });
+    fireEvent.click(screen.getByRole("button", { name: /manage macros/i }));
+    dialog = screen.getByRole("dialog", { name: /macro library/i });
+
+    // When deletion is requested
+    fireEvent.click(within(dialog).getByRole("button", { name: /delete copy/i }));
+
+    // Then the confirmation reports the assignment that will be cleared
+    expect(screen.getByRole("alertdialog", { name: /delete macro/i })).toHaveTextContent(
+      "1 board position will have this macro assignment cleared",
+    );
+  });
+
   it("adds a tap-dance row on a selected key and renders the dot-prefixed glyph on the board", () => {
     const { container } = render(<App />);
 
     fireEvent.click(container.querySelector('[data-key-id="L-r2-c1"]')!);
+    fireEvent.click(screen.getByRole("tab", { name: "Behaviors" }));
     fireEvent.click(screen.getByRole("button", { name: /add tap row/i }));
 
     const glyphInput = screen.getByLabelText(/tap row 1 glyph/i);
@@ -309,6 +385,7 @@ describe("App", () => {
     const { container } = render(<App />);
 
     fireEvent.click(container.querySelector('[data-key-id="L-r2-c1"]')!);
+    fireEvent.click(screen.getByRole("tab", { name: "Behaviors" }));
     fireEvent.click(screen.getByRole("button", { name: /add tap row/i }));
     const glyphInput = screen.getByLabelText(/tap row 1 glyph/i);
     fireEvent.change(glyphInput, { target: { value: "U+2328" } });
@@ -358,7 +435,7 @@ describe("App", () => {
 
     // A real browser click blurs the field; jsdom does not, so blur explicitly
     // to prove the follow-up pick is what re-focuses.
-    first.blur();
+    act(() => first.blur());
     expect(document.activeElement).not.toBe(first);
 
     // Second pick: the SAME position on the other layer's block. selectedKeyId
@@ -374,6 +451,7 @@ describe("App", () => {
     const { container } = render(<App />);
     fireEvent.click(screen.getByRole("button", { name: /add layer/i }));
     fireEvent.click(container.querySelector('[data-key-id="L-r0-c0"]')!);
+    fireEvent.click(screen.getByRole("tab", { name: "Properties" }));
 
     fireEvent.click(screen.getByLabelText(/homing key/i));
 
@@ -388,6 +466,7 @@ describe("App", () => {
   it("unchecking homing removes the bar and the checkbox stays in sync per key", () => {
     const { container } = render(<App />);
     fireEvent.click(container.querySelector('[data-key-id="L-r0-c0"]')!);
+    fireEvent.click(screen.getByRole("tab", { name: "Properties" }));
     fireEvent.click(screen.getByLabelText(/homing key/i));
     expect(screen.getByLabelText(/homing key/i)).toBeChecked();
 
@@ -440,13 +519,13 @@ describe("App", () => {
     render(<App />);
 
     fireEvent.click(screen.getByRole("button", { name: /add layer/i }));
-    expect(screen.getAllByRole("tab")).toHaveLength(3);
+    expect(within(screen.getByRole("toolbar", { name: /layer controls/i })).getAllByRole("tab")).toHaveLength(3);
 
     fireEvent.keyDown(window, { key: "z", ctrlKey: true });
-    expect(screen.getAllByRole("tab")).toHaveLength(2);
+    expect(within(screen.getByRole("toolbar", { name: /layer controls/i })).getAllByRole("tab")).toHaveLength(2);
 
     fireEvent.keyDown(window, { key: "z", ctrlKey: true, shiftKey: true });
-    expect(screen.getAllByRole("tab")).toHaveLength(3);
+    expect(within(screen.getByRole("toolbar", { name: /layer controls/i })).getAllByRole("tab")).toHaveLength(3);
   });
 
   it("undoes the same edit via the toolbar button as via the keyboard shortcut", () => {
@@ -455,7 +534,7 @@ describe("App", () => {
     fireEvent.click(screen.getByRole("button", { name: /add layer/i }));
     fireEvent.click(screen.getByRole("button", { name: /^undo$/i }));
 
-    expect(screen.getAllByRole("tab")).toHaveLength(2);
+    expect(within(screen.getByRole("toolbar", { name: /layer controls/i })).getAllByRole("tab")).toHaveLength(2);
   });
 
   it("clears the redo stack once a new edit follows an undo", () => {
@@ -479,6 +558,6 @@ describe("App", () => {
 
     // The layer add is still on the undo stack — the shortcut didn't fire
     // while focus was inside a text field.
-    expect(screen.getAllByRole("tab")).toHaveLength(3);
+    expect(within(screen.getByRole("toolbar", { name: /layer controls/i })).getAllByRole("tab")).toHaveLength(3);
   });
 });

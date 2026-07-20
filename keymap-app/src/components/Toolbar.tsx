@@ -22,6 +22,7 @@ interface ToolbarProps {
   onRedo: () => void;
   canUndo: boolean;
   canRedo: boolean;
+  onManageMacros: () => void;
 }
 
 // 56px top bar for global actions per the layout spec (docs/design/stitch.md).
@@ -96,6 +97,7 @@ export function Toolbar({
   onRedo,
   canUndo,
   canRedo,
+  onManageMacros,
 }: ToolbarProps) {
   const [handle, setHandle] = useState<SaveTarget>(null);
 
@@ -178,6 +180,14 @@ export function Toolbar({
         </button>
         <button type="button" className="km-btn km-btn--primary" style={actionButton} onClick={handleSave}>
           Save
+        </button>
+      </div>
+
+      <div className="km-toolbar__divider" aria-hidden style={divider} />
+
+      <div className="km-toolbar__cluster" style={cluster}>
+        <button type="button" className="km-btn" style={actionButton} onClick={onManageMacros}>
+          Manage Macros
         </button>
       </div>
 

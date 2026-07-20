@@ -1,6 +1,7 @@
-import type { CSSProperties } from "react";
+import { useState, type CSSProperties } from "react";
 import type { Layer } from "../model/schema";
 import type { ViewMode } from "../state/documentReducer";
+import { ConfirmDialog } from "./ConfirmDialog";
 
 // Colors drawn from the "Engineering Chic" colorset (docs/design/stitch.md).
 const TEAL = "#00e5ff"; // primary-container — active accent
@@ -59,7 +60,7 @@ const controlButton: CSSProperties = {
 /**
  * Horizontal layer tab strip above the canvas. Each tab selects its layer; the
  * active layer can be renamed, recolored, or deleted. Deletion is guarded by a
- * blocking confirmation and disabled when only one layer remains.
+ * shared confirmation and disabled when only one layer remains.
  */
 export function LayerTabs({
   layers,
@@ -74,13 +75,15 @@ export function LayerTabs({
 }: LayerTabsProps) {
   const active = layers[activeIndex];
   const isLastLayer = layers.length <= 1;
+  const [pendingDelete, setPendingDelete] = useState<{ index: number; name: string } | null>(null);
 
   const requestDelete = () => {
-    if (window.confirm(`Delete layer "${active.name}"?`)) onDelete(activeIndex);
+    setPendingDelete({ index: activeIndex, name: active.name });
   };
 
   return (
-    <div className="km-layer-controls" role="toolbar" aria-label="Layer controls" style={strip}>
+    <>
+      <div className="km-layer-controls" role="toolbar" aria-label="Layer controls" style={strip}>
       <div className="km-layer-tabs" role="tablist" style={{ display: "flex", flex: 1, overflowX: "auto" }}>
         <button
           role="tab"
@@ -146,6 +149,19 @@ export function LayerTabs({
       <button type="button" className="km-btn" style={controlButton} onClick={requestDelete} disabled={isLastLayer}>
         Delete layer
       </button>
-    </div>
+      </div>
+      {pendingDelete && (
+        <ConfirmDialog
+          title={`Delete layer "${pendingDelete.name}"?`}
+          message="All key assignments on this layer will be removed."
+          confirmLabel="Delete layer"
+          onCancel={() => setPendingDelete(null)}
+          onConfirm={() => {
+            onDelete(pendingDelete.index);
+            setPendingDelete(null);
+          }}
+        />
+      )}
+    </>
   );
 }
