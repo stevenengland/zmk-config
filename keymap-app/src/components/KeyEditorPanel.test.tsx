@@ -55,6 +55,40 @@ describe("KeyEditorPanel", () => {
     expect(screen.queryByLabelText(/hold glyph/i)).not.toBeInTheDocument();
   });
 
+  it("moves focus and selection between editor tabs with arrow keys", () => {
+    // Given focus is on the active Legends tab
+    renderPanel("L-r0-c0", { primary: "A" });
+    const legendsTab = screen.getByRole("tab", { name: "Legends" });
+    act(() => legendsTab.focus());
+
+    // When the next tab is requested from the keyboard
+    fireEvent.keyDown(legendsTab, { key: "ArrowRight" });
+
+    // Then Behaviors becomes the focused active tab
+    const behaviorsTab = screen.getByRole("tab", { name: "Behaviors" });
+    expect(behaviorsTab).toHaveFocus();
+    expect(behaviorsTab).toHaveAttribute("aria-selected", "true");
+  });
+
+  it("keeps a committed legend while switching editor tabs", () => {
+    // Given a legend edit has been committed
+    const onSetSlot = vi.fn();
+    renderPanel("L-r0-c0", { primary: "A" }, { onSetSlot });
+    const input = screen.getByLabelText(/primary legend/i);
+    fireEvent.change(input, { target: { value: "Q" } });
+    fireEvent.keyDown(input, { key: "Enter" });
+
+    // When keyboard navigation switches away from Legends and back
+    const legendsTab = screen.getByRole("tab", { name: "Legends" });
+    act(() => legendsTab.focus());
+    fireEvent.keyDown(legendsTab, { key: "ArrowRight" });
+    fireEvent.keyDown(screen.getByRole("tab", { name: "Behaviors" }), { key: "ArrowLeft" });
+
+    // Then the committed edit remains available
+    expect(screen.getByLabelText(/primary legend/i)).toHaveValue("Q");
+    expect(onSetSlot).toHaveBeenCalledWith("primary", "Q");
+  });
+
   it("prompts to select a key when nothing is selected", () => {
     renderPanel(null);
 

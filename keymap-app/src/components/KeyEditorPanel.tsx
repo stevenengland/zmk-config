@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type CSSProperties } from "react";
+import { useEffect, useRef, useState, type CSSProperties, type KeyboardEvent } from "react";
 import type { HoldBinding, KeyLegend, MacroRegistry, TapBinding } from "../model/schema";
 import type { LegendSlot } from "../state/documentReducer";
 import { convertLegendInput } from "../model/codepoint";
@@ -130,6 +130,7 @@ export function KeyEditorPanel({
 }: KeyEditorPanelProps) {
   const [fields, setFields] = useState<Fields>(() => fieldsFromLegend(legend));
   const [activeTab, setActiveTab] = useState<EditorTab>("legends");
+  const tabRefs = useRef<Partial<Record<EditorTab, HTMLButtonElement>>>({});
   // The slot a picked symbol lands in; follows field focus, primary by default.
   const [activeSlot, setActiveSlot] = useState<LegendSlot>("primary");
   const feedback = useFieldFeedback<LegendSlot>();
@@ -194,6 +195,25 @@ export function KeyEditorPanel({
     onSetSlot(slot, result.glyph);
   };
 
+  const handleTabKeyDown = (event: KeyboardEvent<HTMLButtonElement>, currentTab: EditorTab) => {
+    const currentIndex = EDITOR_TABS.findIndex((tab) => tab.id === currentTab);
+    let nextIndex: number | undefined;
+    if (event.key === "ArrowRight" || event.key === "ArrowDown") {
+      nextIndex = (currentIndex + 1) % EDITOR_TABS.length;
+    } else if (event.key === "ArrowLeft" || event.key === "ArrowUp") {
+      nextIndex = (currentIndex - 1 + EDITOR_TABS.length) % EDITOR_TABS.length;
+    } else if (event.key === "Home") {
+      nextIndex = 0;
+    } else if (event.key === "End") {
+      nextIndex = EDITOR_TABS.length - 1;
+    }
+    if (nextIndex === undefined) return;
+    event.preventDefault();
+    const nextTab = EDITOR_TABS[nextIndex].id;
+    setActiveTab(nextTab);
+    tabRefs.current[nextTab]?.focus();
+  };
+
   return (
     <aside style={panel} aria-label="Key editor">
       {keyId === null ? (
@@ -235,6 +255,9 @@ export function KeyEditorPanel({
             {EDITOR_TABS.map((tab) => (
               <button
                 key={tab.id}
+                ref={(element) => {
+                  tabRefs.current[tab.id] = element ?? undefined;
+                }}
                 id={`key-editor-${tab.id}-tab`}
                 type="button"
                 role="tab"
@@ -243,6 +266,7 @@ export function KeyEditorPanel({
                 tabIndex={activeTab === tab.id ? 0 : -1}
                 className="km-btn"
                 onClick={() => setActiveTab(tab.id)}
+                onKeyDown={(event) => handleTabKeyDown(event, tab.id)}
               >
                 {tab.label}
               </button>
