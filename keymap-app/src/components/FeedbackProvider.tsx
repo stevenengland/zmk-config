@@ -77,7 +77,17 @@ export function FeedbackProvider({ children, sheetOpen }: FeedbackProviderProps)
           onFocus={() => pauseDismissal("focus")}
           onBlur={() => resumeDismissal("focus")}
         >
-          {notice.text}
+          <span>{notice.text}</span>
+          {notice.tone === "error" ? (
+            <button
+              type="button"
+              className="km-feedback__dismiss"
+              aria-label="Dismiss notification"
+              onClick={() => setNotice(null)}
+            >
+              Close
+            </button>
+          ) : null}
         </div>
       ) : null}
     </FeedbackContext.Provider>

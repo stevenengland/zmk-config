@@ -10,6 +10,11 @@ function SuccessTrigger() {
   return <button onClick={() => feedback.success("Saved keymap")}>Announce success</button>;
 }
 
+function ErrorTrigger() {
+  const feedback = useFeedback();
+  return <button onClick={() => feedback.error("Could not save file")}>Announce failure</button>;
+}
+
 it.each([
   [false, false],
   [true, true],
@@ -71,4 +76,23 @@ it.each(["hover", "focus"])("pauses success dismissal during %s", (pauseMode) =>
   else fireEvent.blur(notice);
   act(() => vi.advanceTimersByTime(2_000));
   expect(screen.queryByRole("status")).not.toBeInTheDocument();
+});
+
+it("keeps operation failures announced until they are dismissed", () => {
+  // Given a failed operation
+  vi.useFakeTimers();
+  render(
+    <FeedbackProvider sheetOpen={false}>
+      <ErrorTrigger />
+    </FeedbackProvider>,
+  );
+
+  // When the failure is announced and time passes
+  fireEvent.click(screen.getByRole("button", { name: /announce failure/i }));
+  act(() => vi.advanceTimersByTime(10_000));
+
+  // Then the alert persists until its accessible dismissal is activated
+  expect(screen.getByRole("alert")).toHaveTextContent("Could not save file");
+  fireEvent.click(screen.getByRole("button", { name: /dismiss notification/i }));
+  expect(screen.queryByRole("alert")).not.toBeInTheDocument();
 });
