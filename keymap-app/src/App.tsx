@@ -9,6 +9,7 @@ import { FeedbackProvider } from "./components/FeedbackProvider";
 import { useFeedback } from "./components/feedbackContext";
 import type { StatusMessage } from "./components/StatusBar";
 import { Toolbar } from "./components/Toolbar";
+import { MacroLibraryDialog } from "./components/MacroLibraryDialog";
 import { DocumentContext } from "./state/documentContext";
 import { createInitialHistoryState, documentHistoryReducer } from "./state/documentReducer";
 import { useFileSession } from "./state/useFileSession";
@@ -41,6 +42,7 @@ export function App() {
   const [status, setStatus] = useState<StatusMessage | null>(null);
   const [mobileEditorOpen, setMobileEditorOpen] = useState(false);
   const [hasSelectedBoardPosition, setHasSelectedBoardPosition] = useState(false);
+  const [macroLibraryOpen, setMacroLibraryOpen] = useState(false);
   const store = useMemo(() => ({ state: historyState, dispatch }), [historyState]);
 
   const state = historyState.present;
@@ -114,6 +116,7 @@ export function App() {
           onRedo={() => dispatch({ type: "redo" })}
           canUndo={canUndo(historyState)}
           canRedo={canRedo(historyState)}
+          onManageMacros={() => setMacroLibraryOpen(true)}
         />
         <LayerTabs
           layers={state.document.layers}
@@ -227,6 +230,15 @@ export function App() {
           )}
         </ResponsiveAppShell>
         </main>
+        {macroLibraryOpen && (
+          <MacroLibraryDialog
+            macros={state.document.macros ?? {}}
+            onAdd={(name, def) => dispatch({ type: "add-macro", name, def })}
+            onUpdate={(name, def) => dispatch({ type: "update-macro", name, def })}
+            onDelete={(name) => dispatch({ type: "delete-macro", name })}
+            onClose={() => setMacroLibraryOpen(false)}
+          />
+        )}
         <FeedbackStatusBridge message={status} />
       </DocumentContext.Provider>
     </FeedbackProvider>

@@ -46,6 +46,7 @@ function renderToolbar(overrides: Partial<{ canUndo: boolean; canRedo: boolean }
       onRedo={onRedo}
       canUndo={overrides.canUndo ?? false}
       canRedo={overrides.canRedo ?? false}
+      onManageMacros={vi.fn()}
     />,
   );
   return { onLoad, onStatus, onUndo, onRedo };

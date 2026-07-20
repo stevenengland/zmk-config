@@ -276,6 +276,33 @@ describe("App", () => {
     expect(layerControls).toContainElement(screen.getByRole("button", { name: /add layer/i }));
   });
 
+  it("opens the Macro library from the global toolbar with focus inside", () => {
+    // Given the keymap editor is open
+    render(<App />);
+
+    // When document-wide macro management is requested
+    fireEvent.click(screen.getByRole("button", { name: /manage macros/i }));
+
+    // Then the Macro library opens and receives focus
+    const dialog = screen.getByRole("dialog", { name: /macro library/i });
+    expect(dialog).toBeInTheDocument();
+    expect(dialog).toContainElement(document.activeElement as HTMLElement);
+  });
+
+  it("restores focus to Manage Macros when the Macro library closes", () => {
+    // Given the Macro library was opened from its toolbar trigger
+    render(<App />);
+    const trigger = screen.getByRole("button", { name: /manage macros/i });
+    act(() => trigger.focus());
+    fireEvent.click(trigger);
+
+    // When the Macro library is closed
+    fireEvent.click(screen.getByRole("button", { name: /^close$/i }));
+
+    // Then focus returns to the invoking control
+    expect(trigger).toHaveFocus();
+  });
+
   it("creates a macro in the Macros manager, assigns it to a key, and renders the glyph in a dashed chip on the board", () => {
     const { container } = render(<App />);
 
