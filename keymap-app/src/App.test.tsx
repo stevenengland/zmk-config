@@ -7,7 +7,13 @@ vi.mock("./io/persistence", () => ({
   openDocument: vi.fn(),
   saveDocument: vi.fn(),
 }));
+vi.mock("./io/export", () => ({
+  exportLayerSvg: vi.fn(),
+  exportAllLayersSvg: vi.fn(),
+  exportJson: vi.fn(),
+}));
 
+import { exportJson, exportLayerSvg } from "./io/export";
 import { openDocument, saveDocument } from "./io/persistence";
 import { SCHEMA_VERSION, type KeymapDocument } from "./model/schema";
 
@@ -72,6 +78,22 @@ describe("App", () => {
     // Then the canonical document remains clean
     expect(screen.queryByText(/Unsaved changes/)).not.toBeInTheDocument();
   }, 10_000);
+
+  it.each([
+    ["Export SVG", exportLayerSvg],
+    ["Export JSON", exportJson],
+  ])("keeps unsaved document state after using %s", (buttonName, exportOperation) => {
+    // Given a document with unsaved canonical content
+    render(<App />);
+    fireEvent.click(screen.getByRole("button", { name: /add layer/i }));
+
+    // When the document is exported
+    fireEvent.click(screen.getByRole("button", { name: buttonName }));
+
+    // Then export runs without changing the saved fingerprint
+    expect(exportOperation).toHaveBeenCalledOnce();
+    expect(screen.getByText(/Unsaved changes/)).toBeInTheDocument();
+  });
 
   it("mounts the keyboard board", () => {
     const { container } = render(<App />);
