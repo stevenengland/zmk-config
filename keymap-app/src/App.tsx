@@ -178,9 +178,6 @@ export function App() {
                 dispatch({ type: "delete-tap", keyId: selectedKeyId, index });
               }}
               macros={state.document.macros ?? {}}
-              onAddMacro={(name, def) => dispatch({ type: "add-macro", name, def })}
-              onUpdateMacro={(name, def) => dispatch({ type: "update-macro", name, def })}
-              onDeleteMacro={(name) => dispatch({ type: "delete-macro", name })}
             />
           )}
         >

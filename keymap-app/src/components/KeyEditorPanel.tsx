@@ -1,12 +1,11 @@
 import { useEffect, useRef, useState, type CSSProperties } from "react";
-import type { HoldBinding, KeyLegend, MacroDef, MacroRegistry, TapBinding } from "../model/schema";
+import type { HoldBinding, KeyLegend, MacroRegistry, TapBinding } from "../model/schema";
 import type { LegendSlot } from "../state/documentReducer";
 import { convertLegendInput } from "../model/codepoint";
 import { boardGeometry, describeElementId } from "../model/geometry";
 import { BindingEditor } from "./BindingEditor";
 import { FieldError } from "./FieldError";
 import { useFieldFeedback } from "./useFieldFeedback";
-import { MacroManager } from "./MacroManager";
 import { SymbolPicker } from "./SymbolPicker";
 import { TapDanceList } from "./TapDanceList";
 
@@ -51,11 +50,8 @@ interface KeyEditorPanelProps {
   layerCount?: number;
   /** Every layer's name, forwarded to the binding editor's Layer-mode picker. */
   layerNames?: readonly string[];
-  /** Document-level macro registry, shown in the "Macros" manager and forwarded to the Macro-mode picker. */
+  /** Document-level macro registry forwarded to the per-key Macro picker. */
   macros: MacroRegistry;
-  onAddMacro: (name: string, def: MacroDef) => void;
-  onUpdateMacro: (name: string, def: MacroDef) => void;
-  onDeleteMacro: (name: string) => void;
 }
 
 const panel: CSSProperties = {
@@ -131,9 +127,6 @@ export function KeyEditorPanel({
   layerCount = 1,
   layerNames = [],
   macros,
-  onAddMacro,
-  onUpdateMacro,
-  onDeleteMacro,
 }: KeyEditorPanelProps) {
   const [fields, setFields] = useState<Fields>(() => fieldsFromLegend(legend));
   const [activeTab, setActiveTab] = useState<EditorTab>("legends");
@@ -374,8 +367,6 @@ export function KeyEditorPanel({
           )}
         </>
       )}
-
-      <MacroManager macros={macros} onAdd={onAddMacro} onUpdate={onUpdateMacro} onDelete={onDeleteMacro} />
     </aside>
   );
 }

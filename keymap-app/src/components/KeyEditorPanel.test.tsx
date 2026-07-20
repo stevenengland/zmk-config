@@ -15,9 +15,6 @@ const handlers = {
   onSetHold: () => {},
   onSetMacro: () => {},
   macros: {},
-  onAddMacro: () => {},
-  onUpdateMacro: () => {},
-  onDeleteMacro: () => {},
   onAddTap: () => {},
   onUpdateTap: () => {},
   onDeleteTap: () => {},
@@ -248,39 +245,6 @@ describe("KeyEditorPanel", () => {
     fireEvent.change(screen.getByLabelText(/^macro$/i), { target: { value: "" } });
 
     expect(onSetMacro).toHaveBeenCalledWith(undefined);
-  });
-
-  it("shows the Macros manager with every registry entry, regardless of the selected key", () => {
-    renderPanel("L-r0-c0", {}, { macros: { copy: { glyph: "⌃C", label: "Copy", steps: "" } } });
-
-    expect(screen.getAllByText(/macros/i).length).toBeGreaterThan(0);
-    expect(screen.getByLabelText(/copy glyph/i)).toHaveValue("⌃C");
-  });
-
-  it("shows the Macros manager even when no key is selected", () => {
-    renderPanel(null, {}, { macros: { copy: { glyph: "⌃C", label: "Copy", steps: "" } } });
-
-    expect(screen.getByLabelText(/copy glyph/i)).toHaveValue("⌃C");
-  });
-
-  it("adds a macro via onAddMacro", () => {
-    const onAddMacro = vi.fn();
-    renderPanel(null, {}, { onAddMacro });
-
-    fireEvent.change(screen.getByLabelText(/new macro name/i), { target: { value: "copy" } });
-    fireEvent.change(screen.getByLabelText(/new macro glyph/i), { target: { value: "⌃C" } });
-    fireEvent.click(screen.getByRole("button", { name: /add macro/i }));
-
-    expect(onAddMacro).toHaveBeenCalledWith("copy", { glyph: "⌃C", label: "", steps: "" });
-  });
-
-  it("deletes a macro via onDeleteMacro", () => {
-    const onDeleteMacro = vi.fn();
-    renderPanel(null, {}, { onDeleteMacro, macros: { copy: { glyph: "⌃C", label: "Copy", steps: "" } } });
-
-    fireEvent.click(screen.getByLabelText(/delete copy/i));
-
-    expect(onDeleteMacro).toHaveBeenCalledWith("copy");
   });
 
   it("lists the selected key's tap-dance rows", () => {

@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { vi } from "vitest";
 import { App } from "./App";
 import { KEY_STROKE, SYMBOL_FONT_FAMILY } from "./model/renderStyle";
@@ -303,14 +303,38 @@ describe("App", () => {
     expect(trigger).toHaveFocus();
   });
 
+  it("adds a library macro to per-key assignment choices without embedding its form in the key editor", () => {
+    // Given a selected position with its Behaviors task open
+    const { container } = render(<App />);
+    fireEvent.click(container.querySelector('[data-key-id="R-r2-c1"]')!);
+    fireEvent.click(screen.getByRole("tab", { name: "Behaviors" }));
+    const editor = screen.getByRole("region", { name: /docked key editor/i });
+
+    // When a macro is created in the document-wide library
+    fireEvent.click(screen.getByRole("button", { name: /manage macros/i }));
+    const dialog = screen.getByRole("dialog", { name: /macro library/i });
+    fireEvent.change(within(dialog).getByLabelText(/new macro name/i), { target: { value: "copy" } });
+    fireEvent.change(within(dialog).getByLabelText(/new macro glyph/i), { target: { value: "⌃C" } });
+    fireEvent.click(within(dialog).getByRole("button", { name: /add macro/i }));
+    fireEvent.click(within(dialog).getByRole("button", { name: /^close$/i }));
+
+    // Then the key can assign it without containing the global macro form
+    expect(within(editor).getByRole("option", { name: "copy" })).toBeInTheDocument();
+    expect(within(editor).queryByLabelText(/new macro name/i)).not.toBeInTheDocument();
+  });
+
   it("creates a macro in the Macros manager, assigns it to a key, and renders the glyph in a dashed chip on the board", () => {
     const { container } = render(<App />);
 
-    fireEvent.change(screen.getByLabelText(/new macro name/i), { target: { value: "copy" } });
-    fireEvent.change(screen.getByLabelText(/new macro glyph/i), { target: { value: "U+2303" } });
-    fireEvent.click(screen.getByRole("button", { name: /add macro/i }));
+    fireEvent.click(screen.getByRole("button", { name: /manage macros/i }));
+    const dialog = screen.getByRole("dialog", { name: /macro library/i });
+    fireEvent.change(within(dialog).getByLabelText(/new macro name/i), { target: { value: "copy" } });
+    fireEvent.change(within(dialog).getByLabelText(/new macro glyph/i), { target: { value: "U+2303" } });
+    fireEvent.click(within(dialog).getByRole("button", { name: /add macro/i }));
+    fireEvent.click(within(dialog).getByRole("button", { name: /^close$/i }));
 
     fireEvent.click(container.querySelector('[data-key-id="R-r2-c1"]')!);
+    fireEvent.click(screen.getByRole("tab", { name: "Behaviors" }));
     fireEvent.change(screen.getByLabelText(/^macro$/i), { target: { value: "copy" } });
 
     const legend = Array.from(container.querySelectorAll("text")).map((t) => t.textContent);
