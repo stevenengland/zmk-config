@@ -1,10 +1,34 @@
-import { act, fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { vi } from "vitest";
 import { App } from "./App";
 import { KEY_STROKE, SYMBOL_FONT_FAMILY } from "./model/renderStyle";
 
+vi.mock("./io/persistence", () => ({
+  openDocument: vi.fn(),
+  saveDocument: vi.fn(),
+}));
+
+import { saveDocument } from "./io/persistence";
+
 describe("App", () => {
   afterEach(() => {
+    vi.clearAllMocks();
     Object.defineProperty(window, "innerWidth", { configurable: true, value: 1024 });
+  });
+
+  it("clears an untitled document's unsaved state after saving", async () => {
+    // Given a new document whose persistence boundary will save successfully
+    vi.mocked(saveDocument).mockResolvedValue(null);
+    render(<App />);
+
+    // When the document is edited and saved
+    fireEvent.click(screen.getByRole("button", { name: /add layer/i }));
+    expect(screen.getByText(/Unsaved changes/)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /^save$/i }));
+
+    // Then the dirty state clears and the save is visibly confirmed
+    await waitFor(() => expect(screen.queryByText(/Unsaved changes/)).not.toBeInTheDocument());
+    expect(screen.getByRole("status")).toHaveTextContent("Saved keymap");
   });
 
   it("mounts the keyboard board", () => {

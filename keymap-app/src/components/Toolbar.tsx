@@ -13,7 +13,10 @@ const OUTLINE_VARIANT = "#3b494c";
 interface ToolbarProps {
   document: KeymapDocument;
   activeLayer: Layer;
-  onLoad: (document: KeymapDocument) => void;
+  filename: string;
+  isDirty: boolean;
+  onLoad: (document: KeymapDocument, filename: string) => void;
+  onSaved: (document: KeymapDocument) => void;
   onStatus: (message: StatusMessage | null) => void;
   onUndo: () => void;
   onRedo: () => void;
@@ -84,7 +87,10 @@ function describe(error: unknown): string {
 export function Toolbar({
   document,
   activeLayer,
+  filename,
+  isDirty,
   onLoad,
+  onSaved,
   onStatus,
   onUndo,
   onRedo,
@@ -98,7 +104,7 @@ export function Toolbar({
       const result = await openDocument();
       if (!result) return;
       setHandle(result.handle);
-      onLoad(result.document);
+      onLoad(result.document, result.filename);
       onStatus({ text: "Loaded keymap", tone: "info" });
     } catch (error) {
       if (isAbort(error)) return;
@@ -109,6 +115,7 @@ export function Toolbar({
   const handleSave = async () => {
     try {
       setHandle(await saveDocument(document, handle));
+      onSaved(document);
       onStatus({ text: "Saved keymap", tone: "info" });
     } catch (error) {
       if (isAbort(error)) return;
@@ -158,6 +165,11 @@ export function Toolbar({
         >
           Keymap
         </span>
+      </div>
+
+      <div aria-label="File status" style={{ color: ON_SURFACE_VARIANT, fontSize: 12 }}>
+        <span>{filename}</span>
+        {isDirty ? <span> · Unsaved changes</span> : null}
       </div>
 
       <div className="km-toolbar__cluster km-toolbar__cluster--primary" style={cluster}>

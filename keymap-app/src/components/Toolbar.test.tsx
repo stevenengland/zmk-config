@@ -37,7 +37,10 @@ function renderToolbar(overrides: Partial<{ canUndo: boolean; canRedo: boolean }
     <Toolbar
       document={DOC}
       activeLayer={DOC.layers[0]}
+      filename="keymap.json"
+      isDirty={false}
       onLoad={onLoad}
+      onSaved={vi.fn()}
       onStatus={onStatus}
       onUndo={onUndo}
       onRedo={onRedo}
@@ -51,12 +54,12 @@ function renderToolbar(overrides: Partial<{ canUndo: boolean; canRedo: boolean }
 afterEach(() => vi.clearAllMocks());
 
 it("loads the opened document and reports success", async () => {
-  vi.mocked(openDocument).mockResolvedValue({ document: LOADED, handle: null });
+  vi.mocked(openDocument).mockResolvedValue({ document: LOADED, handle: null, filename: "loaded.json" });
   const { onLoad, onStatus } = renderToolbar();
 
   fireEvent.click(screen.getByRole("button", { name: /open/i }));
 
-  await waitFor(() => expect(onLoad).toHaveBeenCalledWith(LOADED));
+  await waitFor(() => expect(onLoad).toHaveBeenCalledWith(LOADED, "loaded.json"));
   expect(onStatus).toHaveBeenLastCalledWith({ text: "Loaded keymap", tone: "info" });
 });
 

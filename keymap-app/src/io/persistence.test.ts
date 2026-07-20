@@ -21,8 +21,8 @@ function setOrigin(protocol: string, secure: boolean): void {
 }
 
 /** A File whose text() resolves to `content`, independent of jsdom Blob support. */
-function fileWith(content: string): File {
-  return { text: () => Promise.resolve(content) } as unknown as File;
+function fileWith(content: string, name = "keymap.json"): File {
+  return { name, text: () => Promise.resolve(content) } as unknown as File;
 }
 
 afterEach(() => {
@@ -75,6 +75,7 @@ describe("baseline open (file input) and save (download)", () => {
     const result = await openDocument();
 
     expect(result?.document).toEqual(DOC);
+    expect(result?.filename).toBe("keymap.json");
     expect(result?.handle).toBeNull();
   });
 
@@ -123,6 +124,7 @@ describe("File System Access open + in-place write-back", () => {
 
     const opened = await openDocument();
     expect(opened?.document).toEqual(DOC);
+    expect(opened?.filename).toBe("keymap.json");
     expect(openPicker).toHaveBeenCalledTimes(1);
 
     const handle1 = await saveDocument(DOC, opened!.handle);

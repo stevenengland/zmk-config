@@ -9,6 +9,7 @@ import { StatusBar, type StatusMessage } from "./components/StatusBar";
 import { Toolbar } from "./components/Toolbar";
 import { DocumentContext } from "./state/documentContext";
 import { createInitialHistoryState, documentHistoryReducer } from "./state/documentReducer";
+import { useFileSession } from "./state/useFileSession";
 import { canRedo, canUndo } from "./model/history";
 import { FONT_FACE_CSS } from "./model/renderStyle";
 
@@ -29,6 +30,7 @@ export function App() {
   const store = useMemo(() => ({ state: historyState, dispatch }), [historyState]);
 
   const state = historyState.present;
+  const fileSession = useFileSession(state.document);
   const activeLayer = state.document.layers[state.activeIndex];
   const selectedKeyId = state.selectedKeyId;
   const selectedLegend = selectedKeyId ? activeLayer.keys[selectedKeyId] ?? {} : {};
@@ -84,10 +86,14 @@ export function App() {
         <Toolbar
           document={state.document}
           activeLayer={activeLayer}
-          onLoad={(document) => {
+          filename={fileSession.filename}
+          isDirty={fileSession.isDirty}
+          onLoad={(document, filename) => {
             setStatus(null);
             dispatch({ type: "load", document });
+            fileSession.markOpened(document, filename);
           }}
+          onSaved={fileSession.markSaved}
           onStatus={setStatus}
           onUndo={() => dispatch({ type: "undo" })}
           onRedo={() => dispatch({ type: "redo" })}
