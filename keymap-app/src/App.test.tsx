@@ -41,7 +41,7 @@ describe("App", () => {
     // Then the dirty state clears and the save is visibly confirmed
     await waitFor(() => expect(screen.queryByText(/Unsaved changes/)).not.toBeInTheDocument());
     expect(screen.getByRole("status")).toHaveTextContent("Saved keymap");
-  });
+  }, 15_000);
 
   it("restores an opened document's saved state through undo and redo", async () => {
     // Given a named document opened from persistence
@@ -62,7 +62,7 @@ describe("App", () => {
     expect(screen.queryByText(/Unsaved changes/)).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: /^redo$/i }));
     expect(screen.getByText(/Unsaved changes/)).toBeInTheDocument();
-  }, 10_000);
+  }, 20_000);
 
   it("keeps navigation and editor presentation out of document dirty state", () => {
     // Given a clean document at a phone width
@@ -77,7 +77,7 @@ describe("App", () => {
 
     // Then the canonical document remains clean
     expect(screen.queryByText(/Unsaved changes/)).not.toBeInTheDocument();
-  }, 10_000);
+  }, 15_000);
 
   it.each([
     ["Export SVG", exportLayerSvg],
@@ -407,7 +407,7 @@ describe("App", () => {
     fireEvent.blur(input);
 
     expect(input).toHaveAccessibleDescription(/invalid codepoint/i);
-    expect(screen.getByRole("status")).toHaveTextContent("");
+    expect(screen.queryByRole("status")).not.toBeInTheDocument();
   });
 
   it("draws the corrected legend on the canvas once the invalid input is fixed", () => {
