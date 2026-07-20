@@ -35,12 +35,9 @@ describe("SymbolPicker", () => {
   });
 
   it("renders one insert control per symbol in the data file", () => {
-    render(<SymbolPicker onInsert={() => {}} />);
-    for (const category of symbols.categories.slice(1)) {
-      fireEvent.click(screen.getByRole("button", { name: `${category.name} symbols` }));
-    }
+    const { container } = render(<SymbolPicker onInsert={() => {}} />);
 
-    const buttons = screen.getAllByRole("button", { name: /^insert /i });
+    const buttons = container.querySelectorAll('button[aria-label^="Insert "]');
     expect(buttons).toHaveLength(totalSymbols);
   });
 

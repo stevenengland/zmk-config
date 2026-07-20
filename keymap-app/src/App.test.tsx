@@ -370,6 +370,7 @@ describe("App", () => {
     const { container } = render(<App />);
 
     fireEvent.click(container.querySelector('[data-key-id="L-r2-c1"]')!);
+    fireEvent.click(screen.getByRole("tab", { name: "Behaviors" }));
     fireEvent.click(screen.getByRole("button", { name: /add tap row/i }));
 
     const glyphInput = screen.getByLabelText(/tap row 1 glyph/i);
@@ -384,6 +385,7 @@ describe("App", () => {
     const { container } = render(<App />);
 
     fireEvent.click(container.querySelector('[data-key-id="L-r2-c1"]')!);
+    fireEvent.click(screen.getByRole("tab", { name: "Behaviors" }));
     fireEvent.click(screen.getByRole("button", { name: /add tap row/i }));
     const glyphInput = screen.getByLabelText(/tap row 1 glyph/i);
     fireEvent.change(glyphInput, { target: { value: "U+2328" } });
@@ -433,7 +435,7 @@ describe("App", () => {
 
     // A real browser click blurs the field; jsdom does not, so blur explicitly
     // to prove the follow-up pick is what re-focuses.
-    first.blur();
+    act(() => first.blur());
     expect(document.activeElement).not.toBe(first);
 
     // Second pick: the SAME position on the other layer's block. selectedKeyId
@@ -449,6 +451,7 @@ describe("App", () => {
     const { container } = render(<App />);
     fireEvent.click(screen.getByRole("button", { name: /add layer/i }));
     fireEvent.click(container.querySelector('[data-key-id="L-r0-c0"]')!);
+    fireEvent.click(screen.getByRole("tab", { name: "Properties" }));
 
     fireEvent.click(screen.getByLabelText(/homing key/i));
 
@@ -463,6 +466,7 @@ describe("App", () => {
   it("unchecking homing removes the bar and the checkbox stays in sync per key", () => {
     const { container } = render(<App />);
     fireEvent.click(container.querySelector('[data-key-id="L-r0-c0"]')!);
+    fireEvent.click(screen.getByRole("tab", { name: "Properties" }));
     fireEvent.click(screen.getByLabelText(/homing key/i));
     expect(screen.getByLabelText(/homing key/i)).toBeChecked();
 
@@ -515,13 +519,13 @@ describe("App", () => {
     render(<App />);
 
     fireEvent.click(screen.getByRole("button", { name: /add layer/i }));
-    expect(screen.getAllByRole("tab")).toHaveLength(3);
+    expect(within(screen.getByRole("toolbar", { name: /layer controls/i })).getAllByRole("tab")).toHaveLength(3);
 
     fireEvent.keyDown(window, { key: "z", ctrlKey: true });
-    expect(screen.getAllByRole("tab")).toHaveLength(2);
+    expect(within(screen.getByRole("toolbar", { name: /layer controls/i })).getAllByRole("tab")).toHaveLength(2);
 
     fireEvent.keyDown(window, { key: "z", ctrlKey: true, shiftKey: true });
-    expect(screen.getAllByRole("tab")).toHaveLength(3);
+    expect(within(screen.getByRole("toolbar", { name: /layer controls/i })).getAllByRole("tab")).toHaveLength(3);
   });
 
   it("undoes the same edit via the toolbar button as via the keyboard shortcut", () => {
@@ -530,7 +534,7 @@ describe("App", () => {
     fireEvent.click(screen.getByRole("button", { name: /add layer/i }));
     fireEvent.click(screen.getByRole("button", { name: /^undo$/i }));
 
-    expect(screen.getAllByRole("tab")).toHaveLength(2);
+    expect(within(screen.getByRole("toolbar", { name: /layer controls/i })).getAllByRole("tab")).toHaveLength(2);
   });
 
   it("clears the redo stack once a new edit follows an undo", () => {
@@ -554,6 +558,6 @@ describe("App", () => {
 
     // The layer add is still on the undo stack — the shortcut didn't fire
     // while focus was inside a text field.
-    expect(screen.getAllByRole("tab")).toHaveLength(3);
+    expect(within(screen.getByRole("toolbar", { name: /layer controls/i })).getAllByRole("tab")).toHaveLength(3);
   });
 });

@@ -333,7 +333,7 @@ describe("KeyEditorPanel", () => {
     const { rerender } = renderPanel("L-r0-c0", { primary: "ABC" });
 
     const first = screen.getByLabelText(/primary legend/i) as HTMLInputElement;
-    first.blur();
+    act(() => first.blur());
     expect(first).not.toHaveFocus();
 
     rerender(

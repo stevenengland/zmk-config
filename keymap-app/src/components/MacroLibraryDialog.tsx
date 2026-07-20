@@ -44,7 +44,6 @@ export function MacroLibraryDialog({
   onClose,
 }: MacroLibraryDialogProps) {
   const [pendingDelete, setPendingDelete] = useState<string | null>(null);
-  const dialogRef = useRef<HTMLElement | null>(null);
   const closeRef = useRef<HTMLButtonElement | null>(null);
 
   useEffect(() => {
@@ -79,7 +78,6 @@ export function MacroLibraryDialog({
     <>
       <div style={backdrop} aria-hidden={pendingDelete !== null}>
       <section
-        ref={dialogRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby="macro-library-title"
