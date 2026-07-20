@@ -9,6 +9,22 @@ const totalSymbols = symbols.categories.reduce(
 );
 
 describe("SymbolPicker", () => {
+  it("opens only the first accessible symbol category and provides no search control", () => {
+    // Given the symbol picker categories
+    render(<SymbolPicker onInsert={() => {}} />);
+
+    // When the picker opens
+    const categoryControls = screen.getAllByRole("button", { name: /symbols$/i });
+
+    // Then only the first category is expanded and search is absent
+    expect(categoryControls[0].closest("details")).toHaveAttribute("open");
+    expect(categoryControls[1].closest("details")).not.toHaveAttribute("open");
+    expect(screen.queryByRole("searchbox")).not.toBeInTheDocument();
+
+    fireEvent.click(categoryControls[1]);
+    expect(categoryControls[1].closest("details")).toHaveAttribute("open");
+  });
+
   it("renders every category from the data file", () => {
     render(<SymbolPicker onInsert={() => {}} />);
 
@@ -20,6 +36,9 @@ describe("SymbolPicker", () => {
 
   it("renders one insert control per symbol in the data file", () => {
     render(<SymbolPicker onInsert={() => {}} />);
+    for (const category of symbols.categories.slice(1)) {
+      fireEvent.click(screen.getByRole("button", { name: `${category.name} symbols` }));
+    }
 
     const buttons = screen.getAllByRole("button", { name: /^insert /i });
     expect(buttons).toHaveLength(totalSymbols);

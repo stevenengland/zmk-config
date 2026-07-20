@@ -1,4 +1,4 @@
-import type { CSSProperties } from "react";
+import { useState, type CSSProperties } from "react";
 import symbols from "../data/symbols.json";
 import { FONT_FACE_CSS, SYMBOL_FONT_FAMILY } from "../model/renderStyle";
 
@@ -58,12 +58,36 @@ const glyphButton: CSSProperties = {
  * the active legend slot.
  */
 export function SymbolPicker({ onInsert }: SymbolPickerProps) {
+  const [openCategories, setOpenCategories] = useState<ReadonlySet<string>>(
+    () => new Set(symbols.categories[0] ? [symbols.categories[0].id] : []),
+  );
+
   return (
     <section aria-label="Symbol picker">
       <style>{FONT_FACE_CSS}</style>
       {symbols.categories.map((category) => (
-        <div key={category.id}>
-          <h3 style={heading}>{category.name}</h3>
+        <details
+          key={category.id}
+          open={openCategories.has(category.id)}
+          onToggle={(event) => {
+            const isOpen = event.currentTarget.open;
+            setOpenCategories((current) => {
+              if (current.has(category.id) === isOpen) return current;
+              const next = new Set(current);
+              if (isOpen) next.add(category.id);
+              else next.delete(category.id);
+              return next;
+            });
+          }}
+        >
+          <summary
+            role="button"
+            aria-label={`${category.name} symbols`}
+            aria-expanded={openCategories.has(category.id)}
+            style={{ ...heading, cursor: "pointer" }}
+          >
+            {category.name}
+          </summary>
           <div style={grid}>
             {category.symbols.map((glyph) => (
               <button
@@ -77,7 +101,7 @@ export function SymbolPicker({ onInsert }: SymbolPickerProps) {
               </button>
             ))}
           </div>
-        </div>
+        </details>
       ))}
     </section>
   );
