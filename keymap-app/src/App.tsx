@@ -54,6 +54,15 @@ export function App() {
     () => new Set(state.document.board?.homing ?? []),
     [state.document.board],
   );
+  const macroReferenceCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    for (const layer of state.document.layers) {
+      for (const legend of Object.values(layer.keys)) {
+        if (legend.macro) counts[legend.macro] = (counts[legend.macro] ?? 0) + 1;
+      }
+    }
+    return counts;
+  }, [state.document.layers]);
 
   const addLayer = () => {
     const count = state.document.layers.length;
@@ -230,6 +239,7 @@ export function App() {
         {macroLibraryOpen && (
           <MacroLibraryDialog
             macros={state.document.macros ?? {}}
+            referenceCounts={macroReferenceCounts}
             onAdd={(name, def) => dispatch({ type: "add-macro", name, def })}
             onUpdate={(name, def) => dispatch({ type: "update-macro", name, def })}
             onDelete={(name) => dispatch({ type: "delete-macro", name })}

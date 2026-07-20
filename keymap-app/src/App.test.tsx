@@ -342,6 +342,30 @@ describe("App", () => {
     expect(container.querySelector('[data-key-id="R-r2-c1"] rect[stroke-dasharray]')).not.toBeNull();
   });
 
+  it("reports the number of assigned board positions before macro deletion", () => {
+    // Given one key is assigned to a library macro
+    const { container } = render(<App />);
+    fireEvent.click(screen.getByRole("button", { name: /manage macros/i }));
+    let dialog = screen.getByRole("dialog", { name: /macro library/i });
+    fireEvent.change(within(dialog).getByLabelText(/new macro name/i), { target: { value: "copy" } });
+    fireEvent.change(within(dialog).getByLabelText(/new macro glyph/i), { target: { value: "⌃C" } });
+    fireEvent.click(within(dialog).getByRole("button", { name: /add macro/i }));
+    fireEvent.click(within(dialog).getByRole("button", { name: /^close$/i }));
+    fireEvent.click(container.querySelector('[data-key-id="R-r2-c1"]')!);
+    fireEvent.click(screen.getByRole("tab", { name: "Behaviors" }));
+    fireEvent.change(screen.getByLabelText(/^macro$/i), { target: { value: "copy" } });
+    fireEvent.click(screen.getByRole("button", { name: /manage macros/i }));
+    dialog = screen.getByRole("dialog", { name: /macro library/i });
+
+    // When deletion is requested
+    fireEvent.click(within(dialog).getByRole("button", { name: /delete copy/i }));
+
+    // Then the confirmation reports the assignment that will be cleared
+    expect(screen.getByRole("alertdialog", { name: /delete macro/i })).toHaveTextContent(
+      "1 board position will have this macro assignment cleared",
+    );
+  });
+
   it("adds a tap-dance row on a selected key and renders the dot-prefixed glyph on the board", () => {
     const { container } = render(<App />);
 

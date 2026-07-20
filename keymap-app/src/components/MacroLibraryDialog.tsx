@@ -1,6 +1,7 @@
-import { useEffect, useRef, type CSSProperties, type KeyboardEvent } from "react";
+import { useEffect, useRef, useState, type CSSProperties, type KeyboardEvent } from "react";
 import type { MacroDef, MacroRegistry } from "../model/schema";
 import { MacroManager } from "./MacroManager";
+import { ConfirmDialog } from "./ConfirmDialog";
 
 const backdrop: CSSProperties = {
   position: "fixed",
@@ -27,6 +28,7 @@ const surface: CSSProperties = {
 
 interface MacroLibraryDialogProps {
   macros: MacroRegistry;
+  referenceCounts?: Readonly<Record<string, number>>;
   onAdd: (name: string, def: MacroDef) => void;
   onUpdate: (name: string, def: MacroDef) => void;
   onDelete: (name: string) => void;
@@ -35,11 +37,13 @@ interface MacroLibraryDialogProps {
 
 export function MacroLibraryDialog({
   macros,
+  referenceCounts = {},
   onAdd,
   onUpdate,
   onDelete,
   onClose,
 }: MacroLibraryDialogProps) {
+  const [pendingDelete, setPendingDelete] = useState<string | null>(null);
   const dialogRef = useRef<HTMLElement | null>(null);
   const closeRef = useRef<HTMLButtonElement | null>(null);
 
@@ -72,7 +76,8 @@ export function MacroLibraryDialog({
   };
 
   return (
-    <div style={backdrop}>
+    <>
+      <div style={backdrop} aria-hidden={pendingDelete !== null}>
       <section
         ref={dialogRef}
         role="dialog"
@@ -87,8 +92,21 @@ export function MacroLibraryDialog({
             Close
           </button>
         </div>
-        <MacroManager macros={macros} onAdd={onAdd} onUpdate={onUpdate} onDelete={onDelete} />
+        <MacroManager macros={macros} onAdd={onAdd} onUpdate={onUpdate} onDelete={setPendingDelete} />
       </section>
-    </div>
+      </div>
+      {pendingDelete && (
+        <ConfirmDialog
+          title={`Delete macro "${pendingDelete}"?`}
+          message={`${referenceCounts[pendingDelete] ?? 0} board position${(referenceCounts[pendingDelete] ?? 0) === 1 ? "" : "s"} will have this macro assignment cleared.`}
+          confirmLabel="Delete macro"
+          onCancel={() => setPendingDelete(null)}
+          onConfirm={() => {
+            onDelete(pendingDelete);
+            setPendingDelete(null);
+          }}
+        />
+      )}
+    </>
   );
 }
