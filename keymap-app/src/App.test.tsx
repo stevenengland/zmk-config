@@ -58,6 +58,21 @@ describe("App", () => {
     expect(screen.getByText(/Unsaved changes/)).toBeInTheDocument();
   }, 10_000);
 
+  it("keeps navigation and editor presentation out of document dirty state", () => {
+    // Given a clean document at a phone width
+    Object.defineProperty(window, "innerWidth", { configurable: true, value: 390 });
+    const { container } = render(<App />);
+
+    // When selection, sheet, zoom, and view presentation state changes
+    fireEvent.click(container.querySelector('[data-key-id="L-r0-c0"]')!);
+    fireEvent.click(screen.getByRole("button", { name: /close key editor/i }));
+    fireEvent.click(screen.getByRole("button", { name: /zoom in/i }));
+    fireEvent.click(screen.getByRole("tab", { name: /all/i }));
+
+    // Then the canonical document remains clean
+    expect(screen.queryByText(/Unsaved changes/)).not.toBeInTheDocument();
+  }, 10_000);
+
   it("mounts the keyboard board", () => {
     const { container } = render(<App />);
     expect(container.querySelector('svg[aria-label="Sofle Choc keyboard"]')).not.toBeNull();
