@@ -5,7 +5,8 @@ import { LayerOverview } from "./components/LayerOverview";
 import { LayerTabs } from "./components/LayerTabs";
 import { ResponsiveAppShell } from "./components/ResponsiveAppShell";
 import { ZoomPanViewport } from "./components/ZoomPanViewport";
-import { StatusBar, type StatusMessage } from "./components/StatusBar";
+import { FeedbackProvider, useFeedback } from "./components/FeedbackProvider";
+import type { StatusMessage } from "./components/StatusBar";
 import { Toolbar } from "./components/Toolbar";
 import { DocumentContext } from "./state/documentContext";
 import { createInitialHistoryState, documentHistoryReducer } from "./state/documentReducer";
@@ -20,6 +21,18 @@ const LAYER_PALETTE = ["#00e5ff", "#d4bbff", "#fec931", "#ffb4ab"];
 // Elements with native undo/redo of their own (text inputs) keep Ctrl+Z.
 function isTextEditable(target: EventTarget | null): boolean {
   return target instanceof HTMLElement && (target.tagName === "INPUT" || target.tagName === "TEXTAREA");
+}
+
+function FeedbackStatusBridge({ message }: { message: StatusMessage | null }) {
+  const feedback = useFeedback();
+
+  useEffect(() => {
+    if (!message) feedback.clear();
+    else if (message.tone === "error") feedback.error(message.text);
+    else feedback.success(message.text);
+  }, [feedback, message]);
+
+  return null;
 }
 
 export function App() {
@@ -66,8 +79,9 @@ export function App() {
   }, []);
 
   return (
-    <DocumentContext.Provider value={store}>
-      <main
+    <FeedbackProvider sheetOpen={mobileEditorOpen && window.innerWidth < 900}>
+      <DocumentContext.Provider value={store}>
+        <main
         style={{
           display: "flex",
           flexDirection: "column",
@@ -211,8 +225,9 @@ export function App() {
             </ZoomPanViewport>
           )}
         </ResponsiveAppShell>
-        <StatusBar message={status} />
-      </main>
-    </DocumentContext.Provider>
+        </main>
+        <FeedbackStatusBridge message={status} />
+      </DocumentContext.Provider>
+    </FeedbackProvider>
   );
 }
