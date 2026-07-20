@@ -29,7 +29,35 @@ function renderPanel(keyId: string | null, legend: KeyLegend = {}, overrides = {
   );
 }
 
+function openTab(name: "Behaviors" | "Properties") {
+  fireEvent.click(screen.getByRole("tab", { name }));
+}
+
 describe("KeyEditorPanel", () => {
+  it("opens Legends for a selected position and separates task controls between tabs", () => {
+    // Given a selected board position with legend, behavior, and property data
+    renderPanel("L-r0-c0", { primary: "A", hold: { glyph: "B" }, color: "#fec931" });
+
+    // When the key editor opens
+    const legendsTab = screen.getByRole("tab", { name: "Legends" });
+
+    // Then Legends is active and only legend controls are exposed
+    expect(legendsTab).toHaveAttribute("aria-selected", "true");
+    expect(screen.getByLabelText(/primary legend/i)).toBeInTheDocument();
+    expect(screen.queryByLabelText(/hold glyph/i)).not.toBeInTheDocument();
+    expect(screen.queryByLabelText(/primary color/i)).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("tab", { name: "Behaviors" }));
+    expect(screen.getByLabelText(/hold glyph/i)).toBeInTheDocument();
+    expect(screen.queryByLabelText(/primary legend/i)).not.toBeInTheDocument();
+    expect(screen.queryByLabelText(/primary color/i)).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("tab", { name: "Properties" }));
+    expect(screen.getByLabelText(/primary color/i)).toBeInTheDocument();
+    expect(screen.queryByLabelText(/primary legend/i)).not.toBeInTheDocument();
+    expect(screen.queryByLabelText(/hold glyph/i)).not.toBeInTheDocument();
+  });
+
   it("prompts to select a key when nothing is selected", () => {
     renderPanel(null);
 
@@ -141,6 +169,7 @@ describe("KeyEditorPanel", () => {
 
   it("reflects the homing state in the checkbox", () => {
     renderPanel("L-r0-c0", {}, { homing: true });
+    openTab("Properties");
 
     expect(screen.getByLabelText(/homing key/i)).toBeChecked();
   });
@@ -148,6 +177,7 @@ describe("KeyEditorPanel", () => {
   it("toggles homing on checkbox click", () => {
     const onToggleHoming = vi.fn();
     renderPanel("L-r0-c0", {}, { onToggleHoming });
+    openTab("Properties");
 
     fireEvent.click(screen.getByLabelText(/homing key/i));
 
@@ -156,6 +186,7 @@ describe("KeyEditorPanel", () => {
 
   it("shows the On hold group with the shared binding editor bound to the key's hold glyph", () => {
     renderPanel("L-r2-c1", { primary: "a", hold: { glyph: "ä", shifted: "Ä" } });
+    openTab("Behaviors");
 
     expect(screen.getByText(/on hold/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/hold glyph/i)).toHaveValue("ä");
@@ -165,6 +196,7 @@ describe("KeyEditorPanel", () => {
   it("commits a hold glyph via onSetHold", () => {
     const onSetHold = vi.fn();
     renderPanel("L-r2-c1", { primary: "a" }, { onSetHold });
+    openTab("Behaviors");
 
     const input = screen.getByLabelText(/hold glyph/i);
     fireEvent.change(input, { target: { value: "ä" } });
@@ -175,6 +207,7 @@ describe("KeyEditorPanel", () => {
 
   it("forwards layer names to the binding editor's Layer-mode picker", () => {
     renderPanel("L-r4-c4", { hold: { layer: "Nav" } }, { layerNames: ["Base", "Nav"] });
+    openTab("Behaviors");
 
     expect((screen.getByLabelText(/binding mode/i) as HTMLSelectElement).value).toBe("layer");
     expect((screen.getByLabelText(/target layer/i) as HTMLSelectElement).value).toBe("Nav");
@@ -189,6 +222,7 @@ describe("KeyEditorPanel", () => {
         layerNames: ["Base", "Nav"],
       },
     );
+    openTab("Behaviors");
 
     // Macro is its own control now, not a mode of the "On hold" binding editor —
     // so a key can hold a layer and tap a macro at once.
@@ -199,6 +233,7 @@ describe("KeyEditorPanel", () => {
   it("commits a macro reference via onSetMacro when the Macro picker changes", () => {
     const onSetMacro = vi.fn();
     renderPanel("R-r2-c1", {}, { onSetMacro, macros: { copy: { glyph: "⌃C", label: "Copy", steps: "" } } });
+    openTab("Behaviors");
 
     fireEvent.change(screen.getByLabelText(/^macro$/i), { target: { value: "copy" } });
 
@@ -208,6 +243,7 @@ describe("KeyEditorPanel", () => {
   it("clears a key's macro reference when the Macro picker returns to none", () => {
     const onSetMacro = vi.fn();
     renderPanel("R-r2-c1", { macro: "copy" }, { onSetMacro, macros: { copy: { glyph: "⌃C", label: "Copy", steps: "" } } });
+    openTab("Behaviors");
 
     fireEvent.change(screen.getByLabelText(/^macro$/i), { target: { value: "" } });
 
@@ -249,6 +285,7 @@ describe("KeyEditorPanel", () => {
 
   it("lists the selected key's tap-dance rows", () => {
     renderPanel("L-r0-c0", { primary: "⇧", taps: [{ count: 2, glyph: "⇪" }] });
+    openTab("Behaviors");
 
     expect(screen.getByLabelText(/tap row 1 glyph/i)).toHaveValue("⇪");
   });
@@ -256,6 +293,7 @@ describe("KeyEditorPanel", () => {
   it("adds a tap-dance row via onAddTap", () => {
     const onAddTap = vi.fn();
     renderPanel("L-r0-c0", { primary: "⇧" }, { onAddTap });
+    openTab("Behaviors");
 
     fireEvent.click(screen.getByRole("button", { name: /add tap row/i }));
 
@@ -265,6 +303,7 @@ describe("KeyEditorPanel", () => {
   it("deletes a tap-dance row via onDeleteTap", () => {
     const onDeleteTap = vi.fn();
     renderPanel("L-r0-c0", { primary: "⇧", taps: [{ count: 2, glyph: "⇪" }] }, { onDeleteTap });
+    openTab("Behaviors");
 
     fireEvent.click(screen.getByLabelText(/delete tap row 1/i));
 
@@ -274,6 +313,7 @@ describe("KeyEditorPanel", () => {
   it("recolors the primary legend", () => {
     const onSetColor = vi.fn();
     renderPanel("L-r0-c0", { primary: "A" }, { onSetColor });
+    openTab("Properties");
 
     fireEvent.change(screen.getByLabelText(/primary color/i), {
       target: { value: "#fec931" },

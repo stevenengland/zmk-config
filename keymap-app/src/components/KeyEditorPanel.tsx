@@ -93,6 +93,13 @@ const field: CSSProperties = {
 };
 
 type Fields = Record<LegendSlot, string>;
+type EditorTab = "legends" | "behaviors" | "properties";
+
+const EDITOR_TABS: ReadonlyArray<{ id: EditorTab; label: string }> = [
+  { id: "legends", label: "Legends" },
+  { id: "behaviors", label: "Behaviors" },
+  { id: "properties", label: "Properties" },
+];
 
 function fieldsFromLegend(legend: KeyLegend): Fields {
   return {
@@ -129,6 +136,7 @@ export function KeyEditorPanel({
   onDeleteMacro,
 }: KeyEditorPanelProps) {
   const [fields, setFields] = useState<Fields>(() => fieldsFromLegend(legend));
+  const [activeTab, setActiveTab] = useState<EditorTab>("legends");
   // The slot a picked symbol lands in; follows field focus, primary by default.
   const [activeSlot, setActiveSlot] = useState<LegendSlot>("primary");
   const feedback = useFieldFeedback<LegendSlot>();
@@ -175,6 +183,10 @@ export function KeyEditorPanel({
     input.value = legendRef.current.primary ?? "";
     input.focus();
     input.select();
+  }, [keyId, activeIndex]);
+
+  useEffect(() => {
+    if (keyId !== null) setActiveTab("legends");
   }, [keyId, activeIndex]);
 
   const commit = (slot: LegendSlot, raw: string) => {
@@ -226,110 +238,140 @@ export function KeyEditorPanel({
             {describeElementId(keyId)} · {keyId}
           </p>
 
-          <label style={{ ...label, display: "flex", alignItems: "center", gap: 8 }}>
-            <input
-              type="checkbox"
-              aria-label="Homing key"
-              checked={homing}
-              onChange={onToggleHoming}
-            />
-            Homing key
-          </label>
+          <div role="tablist" aria-label="Key editor tasks" style={{ display: "flex", gap: 4, marginBottom: 16 }}>
+            {EDITOR_TABS.map((tab) => (
+              <button
+                key={tab.id}
+                id={`key-editor-${tab.id}-tab`}
+                type="button"
+                role="tab"
+                aria-selected={activeTab === tab.id}
+                aria-controls={`key-editor-${tab.id}-panel`}
+                tabIndex={activeTab === tab.id ? 0 : -1}
+                className="km-btn"
+                onClick={() => setActiveTab(tab.id)}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
 
-          {SLOTS.map(({ slot, label: text }) => (
-            <div key={slot}>
+          {activeTab === "legends" && (
+            <div role="tabpanel" id="key-editor-legends-panel" aria-labelledby="key-editor-legends-tab">
+              {SLOTS.map(({ slot, label: text }) => (
+                <div key={slot}>
+                  <label style={label}>
+                    {text}
+                    <input
+                      ref={slot === "primary" ? primaryInputRef : undefined}
+                      aria-label={`${text} legend`}
+                      {...feedback.fieldProps(slot, field)}
+                      value={fields[slot]}
+                      onFocus={() => setActiveSlot(slot)}
+                      onChange={(e) => setFields((prev) => ({ ...prev, [slot]: e.target.value }))}
+                      onBlur={(e) => commit(slot, e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") commit(slot, e.currentTarget.value);
+                      }}
+                    />
+                  </label>
+                  <FieldError feedback={feedback} name={slot} />
+                </div>
+              ))}
+
+              <SymbolPicker onInsert={(glyph) => commit(activeSlot, glyph)} />
+            </div>
+          )}
+
+          {activeTab === "behaviors" && (
+            <div role="tabpanel" id="key-editor-behaviors-panel" aria-labelledby="key-editor-behaviors-tab">
+              <span style={label}>On hold</span>
+              <BindingEditor
+                keyId={keyId}
+                activeIndex={activeIndex}
+                hold={legend.hold}
+                onSetHold={onSetHold}
+                layerNames={layerNames}
+              />
+
               <label style={label}>
-                {text}
+                Macro
+                <select
+                  aria-label="Macro"
+                  value={legend.macro ?? ""}
+                  onChange={(e) => onSetMacro(e.target.value || undefined)}
+                  style={field}
+                >
+                  <option value="">(none)</option>
+                  {Object.keys(macros).map((name) => (
+                    <option key={name} value={name}>
+                      {name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <TapDanceList
+                editorId={`${keyId}:${activeIndex}`}
+                taps={legend.taps ?? []}
+                onAdd={onAddTap}
+                onUpdate={onUpdateTap}
+                onDelete={onDeleteTap}
+              />
+            </div>
+          )}
+
+          {activeTab === "properties" && (
+            <div role="tabpanel" id="key-editor-properties-panel" aria-labelledby="key-editor-properties-tab">
+              <label style={{ ...label, display: "flex", alignItems: "center", gap: 8 }}>
                 <input
-                  ref={slot === "primary" ? primaryInputRef : undefined}
-                  aria-label={`${text} legend`}
-                  {...feedback.fieldProps(slot, field)}
-                  value={fields[slot]}
-                  onFocus={() => setActiveSlot(slot)}
-                  onChange={(e) => setFields((prev) => ({ ...prev, [slot]: e.target.value }))}
-                  onBlur={(e) => commit(slot, e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") commit(slot, e.currentTarget.value);
+                  type="checkbox"
+                  aria-label="Homing key"
+                  checked={homing}
+                  onChange={onToggleHoming}
+                />
+                Homing key
+              </label>
+
+              <label style={label}>
+                Primary color
+                <input
+                  aria-label="Primary color"
+                  type="color"
+                  value={legend.color ?? DEFAULT_PRIMARY_COLOR}
+                  onChange={(e) => onSetColor(e.target.value)}
+                  style={{
+                    width: 40,
+                    height: 32,
+                    padding: 0,
+                    border: `1px solid ${OUTLINE}`,
+                    borderRadius: 4,
+                    background: "transparent",
+                    cursor: "pointer",
                   }}
                 />
               </label>
-              <FieldError feedback={feedback} name={slot} />
+              <button
+                type="button"
+                className="km-btn"
+                onClick={() => onSetColor("")}
+                style={{
+                  appearance: "none",
+                  marginTop: 8,
+                  background: "#1a1d22",
+                  border: `1px solid ${OUTLINE_VARIANT}`,
+                  borderRadius: 4,
+                  color: legend.color ? ON_SURFACE : ON_SURFACE_VARIANT,
+                  height: 28,
+                  padding: "0 10px",
+                  cursor: "pointer",
+                  outlineColor: TEAL,
+                }}
+              >
+                Reset color
+              </button>
             </div>
-          ))}
-
-          <SymbolPicker onInsert={(glyph) => commit(activeSlot, glyph)} />
-
-          <span style={label}>On hold</span>
-          <BindingEditor
-            keyId={keyId}
-            activeIndex={activeIndex}
-            hold={legend.hold}
-            onSetHold={onSetHold}
-            layerNames={layerNames}
-          />
-
-          <label style={label}>
-            Macro
-            <select
-              aria-label="Macro"
-              value={legend.macro ?? ""}
-              onChange={(e) => onSetMacro(e.target.value || undefined)}
-              style={field}
-            >
-              <option value="">(none)</option>
-              {Object.keys(macros).map((name) => (
-                <option key={name} value={name}>
-                  {name}
-                </option>
-              ))}
-            </select>
-          </label>
-
-          <TapDanceList
-            editorId={`${keyId}:${activeIndex}`}
-            taps={legend.taps ?? []}
-            onAdd={onAddTap}
-            onUpdate={onUpdateTap}
-            onDelete={onDeleteTap}
-          />
-
-          <label style={label}>
-            Primary color
-            <input
-              aria-label="Primary color"
-              type="color"
-              value={legend.color ?? DEFAULT_PRIMARY_COLOR}
-              onChange={(e) => onSetColor(e.target.value)}
-              style={{
-                width: 40,
-                height: 32,
-                padding: 0,
-                border: `1px solid ${OUTLINE}`,
-                borderRadius: 4,
-                background: "transparent",
-                cursor: "pointer",
-              }}
-            />
-          </label>
-          <button
-            type="button"
-            className="km-btn"
-            onClick={() => onSetColor("")}
-            style={{
-              appearance: "none",
-              marginTop: 8,
-              background: "#1a1d22",
-              border: `1px solid ${OUTLINE_VARIANT}`,
-              borderRadius: 4,
-              color: legend.color ? ON_SURFACE : ON_SURFACE_VARIANT,
-              height: 28,
-              padding: "0 10px",
-              cursor: "pointer",
-              outlineColor: TEAL,
-            }}
-          >
-            Reset color
-          </button>
+          )}
         </>
       )}
 
