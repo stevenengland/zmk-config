@@ -1,10 +1,114 @@
-import { act, fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { vi } from "vitest";
 import { App } from "./App";
 import { KEY_STROKE, SYMBOL_FONT_FAMILY } from "./model/renderStyle";
 
+vi.mock("./io/persistence", () => ({
+  openDocument: vi.fn(),
+  saveDocument: vi.fn(),
+}));
+vi.mock("./io/export", () => ({
+  exportLayerSvg: vi.fn(),
+  exportAllLayersSvg: vi.fn(),
+  exportJson: vi.fn(),
+}));
+
+import { exportJson, exportLayerSvg } from "./io/export";
+import { openDocument, saveDocument } from "./io/persistence";
+import { SCHEMA_VERSION, type KeymapDocument } from "./model/schema";
+
+const OPENED_DOCUMENT: KeymapDocument = {
+  schemaVersion: SCHEMA_VERSION,
+  layers: [{ name: "Opened", color: "#fec931", keys: {} }],
+};
+
 describe("App", () => {
   afterEach(() => {
+    vi.clearAllMocks();
     Object.defineProperty(window, "innerWidth", { configurable: true, value: 1024 });
+  });
+
+  it("clears an untitled document's unsaved state after saving", async () => {
+    // Given a new document whose persistence boundary will save successfully
+    vi.mocked(saveDocument).mockResolvedValue(null);
+    render(<App />);
+
+    // When the document is edited and saved
+    fireEvent.click(screen.getByRole("button", { name: /add layer/i }));
+    expect(screen.getByText(/Unsaved changes/)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /^save$/i }));
+
+    // Then the dirty state clears and the save is visibly confirmed
+    await waitFor(() => expect(screen.queryByText(/Unsaved changes/)).not.toBeInTheDocument());
+    expect(screen.getByRole("status")).toHaveTextContent("Saved keymap");
+  }, 15_000);
+
+  it("restores an opened document's saved state through undo and redo", async () => {
+    // Given a named document opened from persistence
+    vi.mocked(openDocument).mockResolvedValue({
+      document: OPENED_DOCUMENT,
+      handle: null,
+      filename: "workshop.json",
+    });
+    render(<App />);
+    fireEvent.click(screen.getByRole("button", { name: /^open$/i }));
+    await screen.findByText("workshop.json");
+
+    // When an edit is undone exactly to the opened content
+    fireEvent.click(screen.getByRole("button", { name: /add layer/i }));
+    fireEvent.click(screen.getByRole("button", { name: /^undo$/i }));
+
+    // Then the saved state returns, while redo restores the edit and dirty state
+    expect(screen.queryByText(/Unsaved changes/)).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /^redo$/i }));
+    expect(screen.getByText(/Unsaved changes/)).toBeInTheDocument();
+  }, 20_000);
+
+  it("keeps navigation and editor presentation out of document dirty state", () => {
+    // Given a clean document at a phone width
+    Object.defineProperty(window, "innerWidth", { configurable: true, value: 390 });
+    const { container } = render(<App />);
+
+    // When selection, sheet, zoom, and view presentation state changes
+    fireEvent.click(container.querySelector('[data-key-id="L-r0-c0"]')!);
+    fireEvent.click(screen.getByRole("button", { name: /close key editor/i }));
+    fireEvent.click(screen.getByRole("button", { name: /zoom in/i }));
+    fireEvent.click(screen.getByRole("tab", { name: /all/i }));
+
+    // Then the canonical document remains clean
+    expect(screen.queryByText(/Unsaved changes/)).not.toBeInTheDocument();
+  }, 15_000);
+
+  it.each([
+    ["Export SVG", exportLayerSvg],
+    ["Export JSON", exportJson],
+  ])("keeps unsaved document state after using %s", (buttonName, exportOperation) => {
+    // Given a document with unsaved canonical content
+    render(<App />);
+    fireEvent.click(screen.getByRole("button", { name: /add layer/i }));
+
+    // When the document is exported
+    fireEvent.click(screen.getByRole("button", { name: buttonName }));
+
+    // Then export runs without changing the saved fingerprint
+    expect(exportOperation).toHaveBeenCalledOnce();
+    expect(screen.getByText(/Unsaved changes/)).toBeInTheDocument();
+  });
+
+  it.each([
+    ["clean", false, true],
+    ["dirty", true, false],
+  ])("allows unload for a %s document only", (_state, editDocument, unloadAllowed) => {
+    // Given a document in the requested canonical state
+    render(<App />);
+    if (editDocument) fireEvent.click(screen.getByRole("button", { name: /add layer/i }));
+    const event = new Event("beforeunload", { cancelable: true });
+
+    // When the browser asks whether it may close or reload
+    const result = window.dispatchEvent(event);
+
+    // Then only clean content unloads without a warning request
+    expect(result).toBe(unloadAllowed);
   });
 
   it("mounts the keyboard board", () => {
@@ -303,7 +407,7 @@ describe("App", () => {
     fireEvent.blur(input);
 
     expect(input).toHaveAccessibleDescription(/invalid codepoint/i);
-    expect(screen.getByRole("status")).toHaveTextContent("");
+    expect(screen.queryByRole("status")).not.toBeInTheDocument();
   });
 
   it("draws the corrected legend on the canvas once the invalid input is fixed", () => {

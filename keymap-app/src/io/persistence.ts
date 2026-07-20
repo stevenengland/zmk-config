@@ -33,6 +33,7 @@ export type SaveTarget = FsFileHandle | null;
 export interface OpenResult {
   document: KeymapDocument;
   handle: SaveTarget;
+  filename: string;
 }
 
 const PICKER_TYPES = [
@@ -79,11 +80,11 @@ export async function openDocument(): Promise<OpenResult | null> {
     const picker = (window as unknown as FsWindow).showOpenFilePicker!;
     const [handle] = await picker({ types: PICKER_TYPES, multiple: false });
     const file = await handle.getFile!();
-    return { document: await readDocument(file), handle };
+    return { document: await readDocument(file), handle, filename: file.name };
   }
   const file = await pickFileViaInput();
   if (!file) return null;
-  return { document: await readDocument(file), handle: null };
+  return { document: await readDocument(file), handle: null, filename: file.name };
 }
 
 /** Baseline save: stream the JSON out as a download. */
