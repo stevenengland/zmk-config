@@ -4,6 +4,7 @@ import type { KeyLegend, Layer, MacroRegistry } from "../model/schema";
 import { BACKGROUND, boardViewBox } from "../model/renderStyle";
 import { Keycap } from "./Keycap";
 import { KeyTooltip } from "./KeyTooltip";
+import { useBoardNavigation } from "./useBoardNavigation";
 
 function viewBox(): string {
   const box = boardViewBox(boardGeometry);
@@ -25,6 +26,8 @@ interface KeyboardCanvasProps {
   onJumpToLayer?: (layerName: string) => void;
   /** Document-level macro registry, used to resolve a key's macro reference to its display glyph. */
   macros?: MacroRegistry;
+  /** Shows first-session keyboard guidance when true; when false, keeps only the board summary. */
+  guidanceVisible?: boolean;
 }
 
 /** Inline-SVG render of the full Sofle Choc board with selectable, legended keys. */
@@ -37,12 +40,16 @@ export function KeyboardCanvas({
   layers,
   onJumpToLayer,
   macros,
+  guidanceVisible,
 }: KeyboardCanvasProps = {}) {
   // Hover tracking is delegated on the <svg> rather than wired per-Keycap, so
   // the tooltip's DOM-rect anchoring stays independent of the SVG render tree.
   const [hover, setHover] = useState<{ id: string; rect: DOMRect } | null>(null);
-
-  const hoveredLegend = hover ? legends[hover.id] : undefined;
+  const navigation = useBoardNavigation({
+    elements: boardGeometry,
+    selectedId: selectedKeyId,
+    onActivate: onSelectKey,
+  });
 
   return (
     <>
@@ -80,20 +87,37 @@ export function KeyboardCanvas({
             element={element}
             legend={legends[element.id]}
             selected={element.id === selectedKeyId}
-            onSelect={onSelectKey}
             layerColor={layerColor}
             homing={homingKeys?.has(element.id)}
             layers={layers}
             onJumpToLayer={onJumpToLayer}
             macros={macros}
-            hasTooltip={hover?.id === element.id && Boolean(hoveredLegend)}
+            hasTooltip={hover?.id === element.id}
+            {...navigation.positionProps(element.id)}
           />
         ))}
       </svg>
-      {hover && hoveredLegend ? (
+      {guidanceVisible !== undefined ? (
+        <div
+          aria-label="Board navigation"
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            gap: 16,
+            paddingTop: 10,
+            color: "#bac9cc",
+            fontFamily: "Inter, system-ui, sans-serif",
+            fontSize: 12,
+          }}
+        >
+          <strong style={{ color: "#e5e2e1" }}>58 keys · 2 encoders</strong>
+          {guidanceVisible ? <span>Use arrow keys to move; press Enter or Space to edit.</span> : null}
+        </div>
+      ) : null}
+      {hover ? (
         <KeyTooltip
           keyId={hover.id}
-          legend={hoveredLegend}
+          legend={legends[hover.id]}
           macros={macros ?? {}}
           layers={layers ?? []}
           anchorRect={hover.rect}

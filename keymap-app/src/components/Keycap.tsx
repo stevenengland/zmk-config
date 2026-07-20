@@ -1,4 +1,5 @@
-import type { BoardElement } from "../model/geometry";
+import type { KeyboardEvent } from "react";
+import { describeElementId, type BoardElement } from "../model/geometry";
 import {
   resolveHoldDisplay,
   resolveMacroDisplay,
@@ -57,6 +58,10 @@ interface KeycapProps {
   macros?: MacroRegistry;
   /** True while this key's hover/focus tooltip (KeyTooltip) is showing — links it via aria-describedby. */
   hasTooltip?: boolean;
+  tabIndex?: 0 | -1;
+  onFocus?: (id: string) => void;
+  onKeyDown?: (event: KeyboardEvent<SVGGElement>, id: string) => void;
+  elementRef?: (node: SVGGElement | null) => void;
 }
 
 /**
@@ -198,6 +203,10 @@ export function Keycap({
   onJumpToLayer,
   macros,
   hasTooltip,
+  tabIndex = 0,
+  onFocus,
+  onKeyDown,
+  elementRef,
 }: KeycapProps) {
   const { x, y, w, h, rotation } = element;
   const box = boxOf(element);
@@ -243,15 +252,18 @@ export function Keycap({
 
   return (
     <g
+      ref={elementRef}
       {...idAttr}
       transform={transform}
       role="button"
-      aria-label={element.id}
+      aria-label={describeElementId(element.id)}
       aria-pressed={selected ?? false}
       aria-describedby={hasTooltip ? `key-tooltip-${element.id}` : undefined}
-      tabIndex={isKey ? 0 : undefined}
+      tabIndex={tabIndex}
       style={{ cursor: "pointer" }}
       onClick={() => onSelect?.(element.id)}
+      onFocus={() => onFocus?.(element.id)}
+      onKeyDown={(event) => onKeyDown?.(event, element.id)}
     >
       {shape}
       {isKey && !selected ? (

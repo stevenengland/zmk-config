@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import { App } from "./App";
 import { KEY_STROKE, SYMBOL_FONT_FAMILY } from "./model/renderStyle";
 
@@ -10,6 +10,40 @@ describe("App", () => {
   it("mounts the keyboard board", () => {
     const { container } = render(<App />);
     expect(container.querySelector('svg[aria-label="Sofle Choc keyboard"]')).not.toBeNull();
+  });
+
+  it("guides the first board selection and keeps the board summary visible afterward", () => {
+    // Given a fresh app session
+    const { container } = render(<App />);
+
+    expect(screen.getByText("58 keys · 2 encoders")).toBeInTheDocument();
+    expect(screen.getByText(/use arrow keys to move/i)).toBeInTheDocument();
+
+    // When the first board position is selected
+    fireEvent.click(container.querySelector('[data-key-id="L-r0-c0"]')!);
+
+    // Then contextual guidance clears while the board summary remains
+    expect(screen.queryByText(/use arrow keys to move/i)).not.toBeInTheDocument();
+    expect(screen.getByText("58 keys · 2 encoders")).toBeInTheDocument();
+  });
+
+  it("arrow navigation followed by Enter opens the selected position editor", () => {
+    // Given the board at a phone width with focus on its single Tab stop
+    Object.defineProperty(window, "innerWidth", { configurable: true, value: 390 });
+    const { container } = render(<App />);
+    const entry = container.querySelector<SVGGElement>('[data-key-id="L-r0-c0"]')!;
+    act(() => entry.focus());
+
+    // When the user moves right and activates the focused position
+    fireEvent.keyDown(entry, { key: "ArrowRight" });
+    fireEvent.keyDown(document.activeElement!, { key: "Enter" });
+
+    // Then the selected position opens in the editor
+    expect(screen.getByRole("dialog", { name: /key editor/i })).toBeInTheDocument();
+    expect(container.querySelector('[data-key-id="L-r0-c1"]')).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
   });
 
   it("embeds the symbol font globally, independent of the picker's mount state", () => {
@@ -106,6 +140,21 @@ describe("App", () => {
     expect(screen.queryByRole("dialog", { name: /key editor/i })).not.toBeInTheDocument();
     expect(key).toHaveAttribute("aria-pressed", "true");
     expect(Array.from(container.querySelectorAll("text"), (node) => node.textContent)).toContain("⌘");
+  });
+
+  it("pointer selection anchors roving focus and editor dismissal restores the selected position", () => {
+    // Given an unselected board at a phone width
+    Object.defineProperty(window, "innerWidth", { configurable: true, value: 390 });
+    const { container } = render(<App />);
+    const selectedPosition = container.querySelector<SVGGElement>('[data-key-id="R-r2-c1"]')!;
+
+    // When the position is clicked and its editor is dismissed
+    fireEvent.click(selectedPosition);
+    expect(selectedPosition.getAttribute("tabindex")).toBe("0");
+    fireEvent.click(screen.getByRole("button", { name: /close key editor/i }));
+
+    // Then keyboard navigation resumes from the selected board position
+    expect(document.activeElement?.getAttribute("data-key-id")).toBe("R-r2-c1");
   });
 
   it("keeps global and layer controls reachable through named toolbars at narrow widths", () => {

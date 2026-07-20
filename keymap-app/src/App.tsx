@@ -25,6 +25,7 @@ export function App() {
   const [historyState, dispatch] = useReducer(documentHistoryReducer, undefined, createInitialHistoryState);
   const [status, setStatus] = useState<StatusMessage | null>(null);
   const [mobileEditorOpen, setMobileEditorOpen] = useState(false);
+  const [hasSelectedBoardPosition, setHasSelectedBoardPosition] = useState(false);
   const store = useMemo(() => ({ state: historyState, dispatch }), [historyState]);
 
   const state = historyState.present;
@@ -47,6 +48,7 @@ export function App() {
 
   const selectKey = (id: string) => {
     setStatus(null);
+    setHasSelectedBoardPosition(true);
     dispatch({ type: "select-key", keyId: id });
     setMobileEditorOpen(true);
   };
@@ -196,6 +198,7 @@ export function App() {
                       if (index >= 0) dispatch({ type: "select", index });
                     }}
                     macros={state.document.macros ?? {}}
+                    guidanceVisible={!hasSelectedBoardPosition}
                   />
                 </div>
               </div>
