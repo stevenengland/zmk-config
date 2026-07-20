@@ -95,6 +95,22 @@ describe("App", () => {
     expect(screen.getByText(/Unsaved changes/)).toBeInTheDocument();
   });
 
+  it.each([
+    ["clean", false, true],
+    ["dirty", true, false],
+  ])("allows unload for a %s document only", (_state, editDocument, unloadAllowed) => {
+    // Given a document in the requested canonical state
+    render(<App />);
+    if (editDocument) fireEvent.click(screen.getByRole("button", { name: /add layer/i }));
+    const event = new Event("beforeunload", { cancelable: true });
+
+    // When the browser asks whether it may close or reload
+    const result = window.dispatchEvent(event);
+
+    // Then only clean content unloads without a warning request
+    expect(result).toBe(unloadAllowed);
+  });
+
   it("mounts the keyboard board", () => {
     const { container } = render(<App />);
     expect(container.querySelector('svg[aria-label="Sofle Choc keyboard"]')).not.toBeNull();

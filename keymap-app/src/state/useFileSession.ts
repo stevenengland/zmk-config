@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { serialize, type KeymapDocument } from "../model/schema";
 
 const UNTITLED_FILE_NAME = "Untitled";
@@ -14,10 +14,21 @@ export function useFileSession(document: KeymapDocument): FileSession {
   const [filename, setFilename] = useState(UNTITLED_FILE_NAME);
   const [savedFingerprint, setSavedFingerprint] = useState(() => serialize(document));
   const currentFingerprint = useMemo(() => serialize(document), [document]);
+  const isDirty = currentFingerprint !== savedFingerprint;
+
+  useEffect(() => {
+    if (!isDirty) return;
+    const protectUnsavedDocument = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      event.returnValue = "";
+    };
+    window.addEventListener("beforeunload", protectUnsavedDocument);
+    return () => window.removeEventListener("beforeunload", protectUnsavedDocument);
+  }, [isDirty]);
 
   return {
     filename,
-    isDirty: currentFingerprint !== savedFingerprint,
+    isDirty,
     markOpened(openedDocument, openedFilename) {
       setFilename(openedFilename);
       setSavedFingerprint(serialize(openedDocument));
