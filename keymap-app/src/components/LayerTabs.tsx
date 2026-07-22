@@ -161,11 +161,11 @@ export function LayerTabs({
       <ActionMenu
         label="Layer actions"
         triggerStyle={controlButton}
-        actions={[{ label: "Edit layer", onSelect: requestEdit }]}
+        actions={[
+          { label: "Edit layer", onSelect: requestEdit },
+          { label: "Delete layer", onSelect: requestDelete, disabled: isLastLayer },
+        ]}
       />
-      <button type="button" className="km-btn" style={controlButton} onClick={requestDelete} disabled={isLastLayer}>
-        Delete layer
-      </button>
       </div>
       {editDraft && (
         <div style={dialogBackdrop}>
@@ -213,7 +213,7 @@ export function LayerTabs({
       {pendingDelete && (
         <ConfirmDialog
           title={`Delete layer "${pendingDelete.name}"?`}
-          message="All key assignments on this layer will be removed."
+          message="All key assignments and references to this layer will be removed."
           confirmLabel="Delete layer"
           onCancel={() => setPendingDelete(null)}
           onConfirm={() => {

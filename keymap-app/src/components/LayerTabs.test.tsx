@@ -157,7 +157,8 @@ describe("LayerTabs", () => {
     const onDelete = vi.fn();
     render(<LayerTabs {...handlers} onDelete={onDelete} layers={layers("Base", "Symbols")} activeIndex={1} />);
 
-    fireEvent.click(screen.getByRole("button", { name: /delete layer/i }));
+    fireEvent.click(screen.getByRole("button", { name: /layer actions/i }));
+    fireEvent.click(screen.getByRole("menuitem", { name: /delete layer/i }));
     const confirmation = screen.getByRole("alertdialog", { name: /delete layer/i });
     expect(confirmation).toHaveTextContent('Delete layer "Symbols"?');
     fireEvent.click(within(confirmation).getByRole("button", { name: /^delete layer$/i }));
@@ -165,11 +166,23 @@ describe("LayerTabs", () => {
     expect(onDelete).toHaveBeenCalledWith(1);
   });
 
+  it("names the layer and reference impact before deletion", () => {
+    render(<LayerTabs {...handlers} layers={layers("Base", "Symbols")} activeIndex={1} />);
+
+    fireEvent.click(screen.getByRole("button", { name: /layer actions/i }));
+    fireEvent.click(screen.getByRole("menuitem", { name: /delete layer/i }));
+
+    const confirmation = screen.getByRole("alertdialog", { name: /delete layer/i });
+    expect(confirmation).toHaveTextContent('Delete layer "Symbols"?');
+    expect(confirmation).toHaveTextContent(/references to this layer will be removed/i);
+  });
+
   it("keeps the layer when deletion is cancelled", () => {
     const onDelete = vi.fn();
     render(<LayerTabs {...handlers} onDelete={onDelete} layers={layers("Base", "Symbols")} activeIndex={1} />);
 
-    fireEvent.click(screen.getByRole("button", { name: /delete layer/i }));
+    fireEvent.click(screen.getByRole("button", { name: /layer actions/i }));
+    fireEvent.click(screen.getByRole("menuitem", { name: /delete layer/i }));
     fireEvent.click(screen.getByRole("button", { name: /^cancel$/i }));
 
     expect(onDelete).not.toHaveBeenCalled();
@@ -178,6 +191,7 @@ describe("LayerTabs", () => {
   it("disables delete on the last remaining layer", () => {
     render(<LayerTabs {...handlers} layers={layers("Base")} activeIndex={0} />);
 
-    expect(screen.getByRole("button", { name: /delete layer/i })).toBeDisabled();
+    fireEvent.click(screen.getByRole("button", { name: /layer actions/i }));
+    expect(screen.getByRole("menuitem", { name: /delete layer/i })).toBeDisabled();
   });
 });
