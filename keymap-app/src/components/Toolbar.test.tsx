@@ -142,3 +142,32 @@ it("exports the document as JSON and reports success", () => {
     expect.objectContaining({ tone: "info" }),
   );
 });
+
+it("desktop presents file identity and every global action", () => {
+  // Given a dirty document with a known file identity
+  render(
+    <Toolbar
+      document={DOC}
+      activeLayer={DOC.layers[0]}
+      filename="sofle.keymap.json"
+      isDirty
+      onLoad={vi.fn()}
+      onSaved={vi.fn()}
+      onStatus={vi.fn()}
+      onUndo={vi.fn()}
+      onRedo={vi.fn()}
+      canUndo
+      canRedo
+      onManageMacros={vi.fn()}
+    />,
+  );
+
+  // When the desktop toolbar is presented
+  const toolbar = screen.getByRole("toolbar", { name: "Global controls" });
+
+  // Then file state and prioritized global actions are available
+  expect(toolbar).toHaveTextContent("sofle.keymap.json · Unsaved changes");
+  for (const name of ["Open", "Save", "Macro library", "Export SVG", "Export All SVG", "Export JSON", "Undo", "Redo"]) {
+    expect(screen.getByRole("button", { name })).toBeVisible();
+  }
+});

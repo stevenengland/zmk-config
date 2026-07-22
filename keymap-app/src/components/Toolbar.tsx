@@ -187,7 +187,7 @@ export function Toolbar({
 
       <div className="km-toolbar__cluster" style={cluster}>
         <button type="button" className="km-btn" style={actionButton} onClick={onManageMacros}>
-          Manage Macros
+          Macro library
         </button>
       </div>
 
