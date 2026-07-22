@@ -160,12 +160,12 @@ describe("App", () => {
     );
   });
 
-  it("boots with one default layer shown as the active tab, after the All entry", () => {
+  it("boots with one default layer shown as the active tab, after Overview", () => {
     render(<App />);
 
     const tabs = screen.getAllByRole("tab");
     expect(tabs).toHaveLength(2);
-    expect(tabs[0]).toHaveTextContent("All");
+    expect(tabs[0]).toHaveTextContent("Overview");
     expect(tabs[1]).toHaveAttribute("aria-selected", "true");
   });
 
@@ -179,11 +179,11 @@ describe("App", () => {
     expect(tabs[2]).toHaveAttribute("aria-selected", "true");
   });
 
-  it("enters overview mode with one block per layer when All is clicked, and returns to edit on a layer tab", () => {
+  it("enters overview mode with one block per layer when Overview is clicked, and returns to edit on a layer tab", () => {
     const { container } = render(<App />);
     fireEvent.click(screen.getByRole("button", { name: /add layer/i }));
 
-    fireEvent.click(screen.getByRole("tab", { name: /all/i }));
+    fireEvent.click(screen.getByRole("tab", { name: /overview/i }));
 
     expect(screen.getAllByRole("listitem")).toHaveLength(2);
     expect(container.querySelectorAll('svg[aria-label="Sofle Choc keyboard"]')).toHaveLength(2);
@@ -202,7 +202,7 @@ describe("App", () => {
     expect(screen.getByRole("button", { name: /^fit$/i })).toBeInTheDocument();
 
     // When the user switches to Overview
-    fireEvent.click(screen.getByRole("tab", { name: /all/i }));
+    fireEvent.click(screen.getByRole("tab", { name: /overview/i }));
 
     // Then the shared controls and selection remain available
     expect(screen.getByRole("button", { name: /^fit$/i })).toBeInTheDocument();

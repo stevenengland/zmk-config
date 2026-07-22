@@ -3,6 +3,7 @@ import type { Layer } from "../model/schema";
 import type { ViewMode } from "../state/documentReducer";
 import { ActionMenu } from "./ActionMenu";
 import { ConfirmDialog } from "./ConfirmDialog";
+import "./LayerTabs.css";
 
 // Colors drawn from the "Engineering Chic" colorset (docs/design/stitch.md).
 const TEAL = "#00e5ff"; // primary-container — active accent
@@ -155,7 +156,7 @@ export function LayerTabs({
         ))}
       </div>
 
-      <button type="button" className="km-btn" style={controlButton} onClick={onAdd}>
+      <button type="button" className="km-btn km-layer-add" style={controlButton} onClick={onAdd}>
         Add layer
       </button>
       <ActionMenu
