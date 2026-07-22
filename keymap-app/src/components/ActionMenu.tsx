@@ -15,6 +15,7 @@ interface ActionMenuProps {
 export function ActionMenu({ label, actions, triggerStyle }: ActionMenuProps) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
 
   const closeAndRestoreFocus = () => {
@@ -24,6 +25,7 @@ export function ActionMenu({ label, actions, triggerStyle }: ActionMenuProps) {
 
   useEffect(() => {
     if (!open) return;
+    menuRef.current?.querySelector<HTMLButtonElement>("button:not(:disabled)")?.focus();
     const closeOnOutsideClick = (event: MouseEvent) => {
       if (!(event.target instanceof Node) || rootRef.current?.contains(event.target)) return;
       setOpen(false);
@@ -48,6 +50,7 @@ export function ActionMenu({ label, actions, triggerStyle }: ActionMenuProps) {
       </button>
       {open ? (
         <div
+          ref={menuRef}
           className="km-action-menu__popup"
           role="menu"
           aria-label={label}
