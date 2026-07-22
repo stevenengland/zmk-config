@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { vi } from "vitest";
 import { SCHEMA_VERSION, type KeymapDocument } from "../model/schema";
 import { Toolbar } from "./Toolbar";
@@ -52,7 +52,10 @@ function renderToolbar(overrides: Partial<{ canUndo: boolean; canRedo: boolean }
   return { onLoad, onStatus, onUndo, onRedo };
 }
 
-afterEach(() => vi.clearAllMocks());
+afterEach(() => {
+  vi.clearAllMocks();
+  Object.defineProperty(window, "innerWidth", { configurable: true, value: 1024 });
+});
 
 it("loads the opened document and reports success", async () => {
   vi.mocked(openDocument).mockResolvedValue({ document: LOADED, handle: null, filename: "loaded.json" });
@@ -113,7 +116,8 @@ it("enables undo/redo per their flags and routes clicks to the handlers", () => 
 it("exports the active layer as SVG and reports success", () => {
   const { onStatus } = renderToolbar();
 
-  fireEvent.click(screen.getByRole("button", { name: /^export svg$/i }));
+  fireEvent.click(screen.getByRole("button", { name: "Export" }));
+  fireEvent.click(screen.getByRole("menuitem", { name: "Export SVG" }));
 
   expect(exportLayerSvg).toHaveBeenCalledWith(DOC.layers[0], [], DOC.layers, {});
   expect(onStatus).toHaveBeenCalledWith(
@@ -124,7 +128,8 @@ it("exports the active layer as SVG and reports success", () => {
 it("exports every layer as SVG and reports success", () => {
   const { onStatus } = renderToolbar();
 
-  fireEvent.click(screen.getByRole("button", { name: /export all/i }));
+  fireEvent.click(screen.getByRole("button", { name: "Export" }));
+  fireEvent.click(screen.getByRole("menuitem", { name: "Export All SVG" }));
 
   expect(exportAllLayersSvg).toHaveBeenCalledWith(DOC.layers, [], {});
   expect(onStatus).toHaveBeenCalledWith(
@@ -135,10 +140,104 @@ it("exports every layer as SVG and reports success", () => {
 it("exports the document as JSON and reports success", () => {
   const { onStatus } = renderToolbar();
 
-  fireEvent.click(screen.getByRole("button", { name: /export json/i }));
+  fireEvent.click(screen.getByRole("button", { name: "Export" }));
+  fireEvent.click(screen.getByRole("menuitem", { name: "Export JSON" }));
 
   expect(exportJson).toHaveBeenCalledWith(DOC);
   expect(onStatus).toHaveBeenCalledWith(
     expect.objectContaining({ tone: "info" }),
   );
+});
+
+it("desktop presents file identity and every global action", () => {
+  // Given a dirty document with a known file identity
+  render(
+    <Toolbar
+      document={DOC}
+      activeLayer={DOC.layers[0]}
+      filename="sofle.keymap.json"
+      isDirty
+      onLoad={vi.fn()}
+      onSaved={vi.fn()}
+      onStatus={vi.fn()}
+      onUndo={vi.fn()}
+      onRedo={vi.fn()}
+      canUndo
+      canRedo
+      onManageMacros={vi.fn()}
+    />,
+  );
+
+  // When the desktop toolbar is presented
+  const toolbar = screen.getByRole("toolbar", { name: "Global controls" });
+
+  // Then file state and prioritized global actions are available
+  expect(toolbar).toHaveTextContent("sofle.keymap.json · Unsaved changes");
+  for (const name of ["Open", "Save", "Macro library", "Export", "Undo", "Redo"]) {
+    expect(screen.getByRole("button", { name })).toBeVisible();
+  }
+});
+
+it("compact width keeps Save visible and moves lower-priority actions into More", () => {
+  // Given the toolbar is rendered below the compact breakpoint
+  Object.defineProperty(window, "innerWidth", { configurable: true, value: 390 });
+  renderToolbar({ canUndo: true, canRedo: true });
+
+  // When the user opens the compact overflow menu
+  const toolbar = screen.getByRole("toolbar", { name: "Global controls" });
+  fireEvent.click(within(toolbar).getByRole("button", { name: "More" }));
+
+  // Then Save stays direct and every lower-priority action is available in one menu
+  expect(within(toolbar).getByRole("button", { name: "Save" })).toBeVisible();
+  const menu = screen.getByRole("menu", { name: "More" });
+  for (const name of ["Open", "Macro library", "Export SVG", "Export All SVG", "Export JSON", "Undo", "Redo"]) {
+    expect(within(menu).getByRole("menuitem", { name })).toBeVisible();
+  }
+});
+
+it("desktop groups every export format as a distinct menu action", () => {
+  // Given the desktop global toolbar
+  renderToolbar();
+
+  // When the user opens Export
+  fireEvent.click(screen.getByRole("button", { name: "Export" }));
+
+  // Then each existing export operation remains a separate choice
+  const menu = screen.getByRole("menu", { name: "Export" });
+  for (const name of ["Export SVG", "Export All SVG", "Export JSON"]) {
+    expect(within(menu).getByRole("menuitem", { name })).toBeVisible();
+  }
+});
+
+it("desktop file and history actions expose their keyboard shortcuts", () => {
+  // Given the desktop global toolbar
+  renderToolbar({ canUndo: true, canRedo: true });
+
+  // When the user inspects the file and history controls
+  const shortcuts = [
+    ["Open", "Ctrl+O"],
+    ["Save", "Ctrl+S"],
+    ["Undo", "Ctrl+Z"],
+    ["Redo", "Ctrl+Shift+Z"],
+  ];
+
+  // Then each control exposes its shortcut as a tooltip
+  for (const [name, shortcut] of shortcuts) {
+    expect(screen.getByRole("button", { name })).toHaveAttribute("title", `${name} (${shortcut})`);
+  }
+});
+
+it("compact menu shows file and history keyboard shortcuts", () => {
+  // Given the toolbar is rendered below the compact breakpoint
+  Object.defineProperty(window, "innerWidth", { configurable: true, value: 390 });
+  renderToolbar({ canUndo: true, canRedo: true });
+
+  // When the user opens More
+  fireEvent.click(screen.getByRole("button", { name: "More" }));
+  const menu = screen.getByRole("menu", { name: "More" });
+
+  // Then file and history menu text includes the matching shortcuts
+  for (const [name, shortcut] of [["Open", "Ctrl+O"], ["Undo", "Ctrl+Z"], ["Redo", "Ctrl+Shift+Z"]]) {
+    expect(within(menu).getByRole("menuitem", { name })).toHaveTextContent(shortcut);
+  }
 });

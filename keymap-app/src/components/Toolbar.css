@@ -1,0 +1,24 @@
+.km-toolbar {
+  flex-wrap: nowrap;
+  overflow: visible;
+}
+
+.km-toolbar [aria-label="File status"] {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 639px) {
+  .km-toolbar__wordmark,
+  .km-toolbar__divider {
+    display: none !important;
+  }
+
+  .km-toolbar .km-btn {
+    padding-inline: 8px !important;
+    white-space: nowrap;
+  }
+}

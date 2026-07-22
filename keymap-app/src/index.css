@@ -67,7 +67,6 @@ body {
   color: #e5e2e1;
 }
 
-.km-toolbar,
 .km-layer-controls {
   width: 100%;
   max-width: 100%;
@@ -75,25 +74,17 @@ body {
   box-sizing: border-box;
 }
 
-.km-toolbar__cluster,
 .km-layer-controls > * {
   flex-shrink: 0;
 }
 
 @media (max-width: 639px) {
-  .km-toolbar,
   .km-layer-controls {
     overflow-x: auto;
     overscroll-behavior-x: contain;
     scrollbar-width: thin;
   }
 
-  .km-toolbar__wordmark,
-  .km-toolbar__divider {
-    display: none !important;
-  }
-
-  .km-toolbar .km-btn,
   .km-layer-controls .km-btn,
   .km-layer-controls .km-tab {
     padding-inline: 8px !important;

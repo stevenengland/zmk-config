@@ -1,14 +1,17 @@
-import { useState, type CSSProperties } from "react";
+import { useEffect, useState, type CSSProperties } from "react";
 import type { KeymapDocument, Layer } from "../model/schema";
 import { openDocument, saveDocument, type SaveTarget } from "../io/persistence";
 import { exportAllLayersSvg, exportJson, exportLayerSvg } from "../io/export";
+import { ActionMenu } from "./ActionMenu";
 import type { StatusMessage } from "./StatusBar";
+import "./Toolbar.css";
 
 // Colors drawn from the "Engineering Chic" colorset (docs/design/stitch.md).
 const SURFACE = "#131313";
 const ON_SURFACE = "#e5e2e1";
 const ON_SURFACE_VARIANT = "#bac9cc";
 const OUTLINE_VARIANT = "#3b494c";
+const COMPACT_BREAKPOINT = 640;
 
 interface ToolbarProps {
   document: KeymapDocument;
@@ -80,6 +83,10 @@ function describe(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
 
+function isCompactViewport(): boolean {
+  return typeof window !== "undefined" && window.innerWidth < COMPACT_BREAKPOINT;
+}
+
 /**
  * Global Open/Save actions. Persistence mode (baseline download vs. in-place
  * write-back) is chosen inside the io layer; the toolbar just holds the
@@ -100,6 +107,13 @@ export function Toolbar({
   onManageMacros,
 }: ToolbarProps) {
   const [handle, setHandle] = useState<SaveTarget>(null);
+  const [compact, setCompact] = useState(isCompactViewport);
+
+  useEffect(() => {
+    const updateLayout = () => setCompact(isCompactViewport());
+    window.addEventListener("resize", updateLayout);
+    return () => window.removeEventListener("resize", updateLayout);
+  }, []);
 
   const handleOpen = async () => {
     try {
@@ -152,6 +166,19 @@ export function Toolbar({
     }
   };
 
+  const exportActions = [
+    { label: "Export SVG", onSelect: handleExportLayer },
+    { label: "Export All SVG", onSelect: handleExportAll },
+    { label: "Export JSON", onSelect: handleExportJson },
+  ];
+  const compactActions = [
+    { label: "Open", hint: "Ctrl+O", onSelect: handleOpen },
+    { label: "Macro library", onSelect: onManageMacros },
+    ...exportActions,
+    { label: "Undo", hint: "Ctrl+Z", onSelect: onUndo, disabled: !canUndo },
+    { label: "Redo", hint: "Ctrl+Shift+Z", onSelect: onRedo, disabled: !canRedo },
+  ];
+
   return (
     <div className="km-toolbar" role="toolbar" aria-label="Global controls" style={bar}>
       <div className="km-toolbar__wordmark" style={wordmark}>
@@ -175,46 +202,46 @@ export function Toolbar({
       </div>
 
       <div className="km-toolbar__cluster km-toolbar__cluster--primary" style={cluster}>
-        <button type="button" className="km-btn km-btn--primary" style={actionButton} onClick={handleOpen}>
-          Open
-        </button>
-        <button type="button" className="km-btn km-btn--primary" style={actionButton} onClick={handleSave}>
+        {!compact ? (
+          <button type="button" className="km-btn km-btn--primary" style={actionButton} title="Open (Ctrl+O)" onClick={handleOpen}>
+            Open
+          </button>
+        ) : null}
+        <button type="button" className="km-btn km-btn--primary" style={actionButton} title="Save (Ctrl+S)" onClick={handleSave}>
           Save
         </button>
       </div>
 
-      <div className="km-toolbar__divider" aria-hidden style={divider} />
+      {compact ? (
+        <ActionMenu label="More" actions={compactActions} triggerStyle={actionButton} />
+      ) : (
+        <>
+          <div className="km-toolbar__divider" aria-hidden style={divider} />
 
-      <div className="km-toolbar__cluster" style={cluster}>
-        <button type="button" className="km-btn" style={actionButton} onClick={onManageMacros}>
-          Manage Macros
-        </button>
-      </div>
+          <div className="km-toolbar__cluster" style={cluster}>
+            <button type="button" className="km-btn" style={actionButton} onClick={onManageMacros}>
+              Macro library
+            </button>
+          </div>
 
-      <div className="km-toolbar__divider" aria-hidden style={divider} />
+          <div className="km-toolbar__divider" aria-hidden style={divider} />
 
-      <div className="km-toolbar__cluster" style={cluster}>
-        <button type="button" className="km-btn" style={actionButton} onClick={handleExportLayer}>
-          Export SVG
-        </button>
-        <button type="button" className="km-btn" style={actionButton} onClick={handleExportAll}>
-          Export All SVG
-        </button>
-        <button type="button" className="km-btn" style={actionButton} onClick={handleExportJson}>
-          Export JSON
-        </button>
-      </div>
+          <div className="km-toolbar__cluster" style={cluster}>
+            <ActionMenu label="Export" actions={exportActions} triggerStyle={actionButton} />
+          </div>
 
-      <div className="km-toolbar__divider" aria-hidden style={divider} />
+          <div className="km-toolbar__divider" aria-hidden style={divider} />
 
-      <div className="km-toolbar__cluster" style={cluster}>
-        <button type="button" className="km-btn" style={actionButton} onClick={onUndo} disabled={!canUndo}>
-          Undo
-        </button>
-        <button type="button" className="km-btn" style={actionButton} onClick={onRedo} disabled={!canRedo}>
-          Redo
-        </button>
-      </div>
+          <div className="km-toolbar__cluster" style={cluster}>
+            <button type="button" className="km-btn" style={actionButton} title="Undo (Ctrl+Z)" onClick={onUndo} disabled={!canUndo}>
+              Undo
+            </button>
+            <button type="button" className="km-btn" style={actionButton} title="Redo (Ctrl+Shift+Z)" onClick={onRedo} disabled={!canRedo}>
+              Redo
+            </button>
+          </div>
+        </>
+      )}
     </div>
   );
 }

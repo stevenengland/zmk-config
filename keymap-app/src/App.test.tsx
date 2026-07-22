@@ -88,7 +88,8 @@ describe("App", () => {
     fireEvent.click(screen.getByRole("button", { name: /add layer/i }));
 
     // When the document is exported
-    fireEvent.click(screen.getByRole("button", { name: buttonName }));
+    fireEvent.click(screen.getByRole("button", { name: /^export$/i }));
+    fireEvent.click(screen.getByRole("menuitem", { name: buttonName }));
 
     // Then export runs without changing the saved fingerprint
     expect(exportOperation).toHaveBeenCalledOnce();
@@ -281,7 +282,7 @@ describe("App", () => {
     render(<App />);
 
     // When document-wide macro management is requested
-    fireEvent.click(screen.getByRole("button", { name: /manage macros/i }));
+    fireEvent.click(screen.getByRole("button", { name: /macro library/i }));
 
     // Then the Macro library opens and receives focus
     const dialog = screen.getByRole("dialog", { name: /macro library/i });
@@ -289,10 +290,10 @@ describe("App", () => {
     expect(dialog).toContainElement(document.activeElement as HTMLElement);
   });
 
-  it("restores focus to Manage Macros when the Macro library closes", () => {
+  it("restores focus to Macro library when the dialog closes", () => {
     // Given the Macro library was opened from its toolbar trigger
     render(<App />);
-    const trigger = screen.getByRole("button", { name: /manage macros/i });
+    const trigger = screen.getByRole("button", { name: /macro library/i });
     act(() => trigger.focus());
     fireEvent.click(trigger);
 
@@ -311,7 +312,7 @@ describe("App", () => {
     const editor = screen.getByRole("region", { name: /docked key editor/i });
 
     // When a macro is created in the document-wide library
-    fireEvent.click(screen.getByRole("button", { name: /manage macros/i }));
+    fireEvent.click(screen.getByRole("button", { name: /macro library/i }));
     const dialog = screen.getByRole("dialog", { name: /macro library/i });
     fireEvent.change(within(dialog).getByLabelText(/new macro name/i), { target: { value: "copy" } });
     fireEvent.change(within(dialog).getByLabelText(/new macro glyph/i), { target: { value: "⌃C" } });
@@ -326,7 +327,7 @@ describe("App", () => {
   it("creates a macro in the Macros manager, assigns it to a key, and renders the glyph in a dashed chip on the board", () => {
     const { container } = render(<App />);
 
-    fireEvent.click(screen.getByRole("button", { name: /manage macros/i }));
+    fireEvent.click(screen.getByRole("button", { name: /macro library/i }));
     const dialog = screen.getByRole("dialog", { name: /macro library/i });
     fireEvent.change(within(dialog).getByLabelText(/new macro name/i), { target: { value: "copy" } });
     fireEvent.change(within(dialog).getByLabelText(/new macro glyph/i), { target: { value: "U+2303" } });
@@ -345,7 +346,7 @@ describe("App", () => {
   it("reports the number of assigned board positions before macro deletion", () => {
     // Given one key is assigned to a library macro
     const { container } = render(<App />);
-    fireEvent.click(screen.getByRole("button", { name: /manage macros/i }));
+    fireEvent.click(screen.getByRole("button", { name: /macro library/i }));
     let dialog = screen.getByRole("dialog", { name: /macro library/i });
     fireEvent.change(within(dialog).getByLabelText(/new macro name/i), { target: { value: "copy" } });
     fireEvent.change(within(dialog).getByLabelText(/new macro glyph/i), { target: { value: "⌃C" } });
@@ -354,7 +355,7 @@ describe("App", () => {
     fireEvent.click(container.querySelector('[data-key-id="R-r2-c1"]')!);
     fireEvent.click(screen.getByRole("tab", { name: "Behaviors" }));
     fireEvent.change(screen.getByLabelText(/^macro$/i), { target: { value: "copy" } });
-    fireEvent.click(screen.getByRole("button", { name: /manage macros/i }));
+    fireEvent.click(screen.getByRole("button", { name: /macro library/i }));
     dialog = screen.getByRole("dialog", { name: /macro library/i });
 
     // When deletion is requested
