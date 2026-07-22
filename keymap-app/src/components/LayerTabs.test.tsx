@@ -28,20 +28,20 @@ describe("LayerTabs", () => {
     render(<LayerTabs {...handlers} layers={layers("Base", "Symbols")} activeIndex={1} />);
 
     const tabs = screen.getAllByRole("tab");
-    // "All" is the first tab; the two layer tabs follow.
+    // "Overview" is the first tab; the two layer tabs follow.
     expect(tabs).toHaveLength(3);
     expect(tabs[2]).toHaveAttribute("aria-selected", "true");
     expect(tabs[1]).toHaveAttribute("aria-selected", "false");
   });
 
-  it("renders the All entry as the first item in the strip", () => {
+  it("renders the Overview entry as the first item in the strip", () => {
     render(<LayerTabs {...handlers} layers={layers("Base", "Symbols")} activeIndex={0} />);
 
     const tabs = screen.getAllByRole("tab");
-    expect(tabs[0]).toHaveTextContent("All");
+    expect(tabs[0]).toHaveTextContent("Overview");
   });
 
-  it("enters overview mode when All is clicked", () => {
+  it("enters overview mode when Overview is clicked", () => {
     const onSelectOverview = vi.fn();
     render(
       <LayerTabs
@@ -52,12 +52,12 @@ describe("LayerTabs", () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole("tab", { name: /all/i }));
+    fireEvent.click(screen.getByRole("tab", { name: /overview/i }));
 
     expect(onSelectOverview).toHaveBeenCalled();
   });
 
-  it("marks All selected in overview mode and no layer tab selected", () => {
+  it("marks Overview selected in overview mode and no layer tab selected", () => {
     render(
       <LayerTabs {...handlers} viewMode="overview" layers={layers("Base", "Symbols")} activeIndex={0} />,
     );
@@ -75,6 +75,23 @@ describe("LayerTabs", () => {
     fireEvent.click(screen.getByRole("tab", { name: /Symbols/ }));
 
     expect(onSelect).toHaveBeenCalledWith(1);
+  });
+
+  it("keeps the active layer tab visible when selection changes", () => {
+    const scrollIntoView = vi.fn();
+    Object.defineProperty(HTMLElement.prototype, "scrollIntoView", {
+      configurable: true,
+      value: scrollIntoView,
+    });
+    const { rerender } = render(
+      <LayerTabs {...handlers} layers={layers("Base", "Symbols", "Navigation")} activeIndex={0} />,
+    );
+    scrollIntoView.mockClear();
+
+    rerender(<LayerTabs {...handlers} layers={layers("Base", "Symbols", "Navigation")} activeIndex={2} />);
+
+    expect(scrollIntoView).toHaveBeenCalledWith({ block: "nearest", inline: "nearest" });
+    delete (HTMLElement.prototype as unknown as Record<string, unknown>).scrollIntoView;
   });
 
   it("adds a layer via the add control", () => {

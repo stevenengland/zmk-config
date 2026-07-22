@@ -1,4 +1,4 @@
-import { useState, type CSSProperties } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 import type { Layer } from "../model/schema";
 import type { ViewMode } from "../state/documentReducer";
 import { ConfirmDialog } from "./ConfirmDialog";
@@ -76,6 +76,11 @@ export function LayerTabs({
   const active = layers[activeIndex];
   const isLastLayer = layers.length <= 1;
   const [pendingDelete, setPendingDelete] = useState<{ index: number; name: string } | null>(null);
+  const selectedTabRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    selectedTabRef.current?.scrollIntoView?.({ block: "nearest", inline: "nearest" });
+  }, [activeIndex, viewMode]);
 
   const requestDelete = () => {
     setPendingDelete({ index: activeIndex, name: active.name });
@@ -86,6 +91,7 @@ export function LayerTabs({
       <div className="km-layer-controls" role="toolbar" aria-label="Layer controls" style={strip}>
       <div className="km-layer-tabs" role="tablist" style={{ display: "flex", flex: 1, overflowX: "auto" }}>
         <button
+          ref={viewMode === "overview" ? selectedTabRef : undefined}
           role="tab"
           type="button"
           className="km-tab"
@@ -93,11 +99,12 @@ export function LayerTabs({
           style={tabStyle(viewMode === "overview")}
           onClick={onSelectOverview}
         >
-          All
+          Overview
         </button>
         {layers.map((layer, index) => (
           <button
             key={index}
+            ref={viewMode === "edit" && index === activeIndex ? selectedTabRef : undefined}
             role="tab"
             type="button"
             className="km-tab"
