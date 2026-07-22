@@ -102,7 +102,7 @@ export function LayerTabs({
   const [editDraft, setEditDraft] = useState<{ index: number; name: string; color: string } | null>(null);
   const selectedTabRef = useRef<HTMLButtonElement>(null);
   const editNameRef = useRef<HTMLInputElement>(null);
-  const editReturnFocusRef = useRef<HTMLElement>(null);
+  const editReturnFocusRef = useRef<HTMLElement | null>(null);
   const editIndex = editDraft?.index;
 
   useEffect(() => {
@@ -133,61 +133,61 @@ export function LayerTabs({
   return (
     <>
       <div className="km-layer-controls" role="toolbar" aria-label="Layer controls" style={strip}>
-      <div className="km-layer-tabs" role="tablist" style={{ display: "flex", flex: 1, overflowX: "auto" }}>
-        <button
-          ref={viewMode === "overview" ? selectedTabRef : undefined}
-          role="tab"
-          type="button"
-          className="km-tab"
-          aria-selected={viewMode === "overview"}
-          style={tabStyle(viewMode === "overview")}
-          onClick={onSelectOverview}
-        >
-          Overview
-        </button>
-        {layers.map((layer, index) => (
+        <div className="km-layer-tabs" role="tablist" style={{ display: "flex", flex: 1, overflowX: "auto" }}>
           <button
-            key={index}
-            ref={viewMode === "edit" && index === activeIndex ? selectedTabRef : undefined}
+            ref={viewMode === "overview" ? selectedTabRef : undefined}
             role="tab"
             type="button"
             className="km-tab"
-            aria-selected={viewMode === "edit" && index === activeIndex}
-            style={tabStyle(viewMode === "edit" && index === activeIndex)}
-            onClick={() => onSelect(index)}
+            aria-selected={viewMode === "overview"}
+            style={tabStyle(viewMode === "overview")}
+            onClick={onSelectOverview}
           >
-            <span
-              aria-hidden
-              style={{
-                display: "inline-block",
-                width: 8,
-                height: 8,
-                borderRadius: "50%",
-                background: layer.color,
-                marginRight: 6,
-              }}
-            />
-            {layer.name}
+            Overview
           </button>
-        ))}
-      </div>
+          {layers.map((layer, index) => (
+            <button
+              key={index}
+              ref={viewMode === "edit" && index === activeIndex ? selectedTabRef : undefined}
+              role="tab"
+              type="button"
+              className="km-tab"
+              aria-selected={viewMode === "edit" && index === activeIndex}
+              style={tabStyle(viewMode === "edit" && index === activeIndex)}
+              onClick={() => onSelect(index)}
+            >
+              <span
+                aria-hidden
+                style={{
+                  display: "inline-block",
+                  width: 8,
+                  height: 8,
+                  borderRadius: "50%",
+                  background: layer.color,
+                  marginRight: 6,
+                }}
+              />
+              {layer.name}
+            </button>
+          ))}
+        </div>
 
-      <button type="button" className="km-btn km-layer-add" style={controlButton} onClick={onAdd}>
-        Add layer
-      </button>
-      <ActionMenu
-        label="Layer actions"
-        triggerStyle={controlButton}
-        actions={[
-          { label: "Edit layer", onSelect: requestEdit },
-          {
-            label: "Delete layer",
-            hint: isLastLayer ? "One layer is required" : undefined,
-            onSelect: requestDelete,
-            disabled: isLastLayer,
-          },
-        ]}
-      />
+        <button type="button" className="km-btn km-layer-add" style={controlButton} onClick={onAdd}>
+          Add layer
+        </button>
+        <ActionMenu
+          label="Layer actions"
+          triggerStyle={controlButton}
+          actions={[
+            { label: "Edit layer", onSelect: requestEdit },
+            {
+              label: "Delete layer",
+              hint: isLastLayer ? "One layer is required" : undefined,
+              onSelect: requestDelete,
+              disabled: isLastLayer,
+            },
+          ]}
+        />
       </div>
       {editDraft && (
         <div style={dialogBackdrop}>

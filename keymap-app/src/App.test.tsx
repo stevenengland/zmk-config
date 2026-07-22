@@ -73,7 +73,7 @@ describe("App", () => {
     fireEvent.click(container.querySelector('[data-key-id="L-r0-c0"]')!);
     fireEvent.click(screen.getByRole("button", { name: /close key editor/i }));
     fireEvent.click(screen.getByRole("button", { name: /zoom in/i }));
-    fireEvent.click(screen.getByRole("tab", { name: /all/i }));
+    fireEvent.click(screen.getByRole("tab", { name: /overview/i }));
 
     // Then the canonical document remains clean
     expect(screen.queryByText(/Unsaved changes/)).not.toBeInTheDocument();
@@ -401,7 +401,7 @@ describe("App", () => {
   it("clicking a key in the overview selects it, switches the active layer to its owner, keeps overview docked, and focuses the field", () => {
     render(<App />);
     fireEvent.click(screen.getByRole("button", { name: /add layer/i }));
-    fireEvent.click(screen.getByRole("tab", { name: /all/i }));
+    fireEvent.click(screen.getByRole("tab", { name: /overview/i }));
 
     const before = screen.getAllByRole("listitem");
     const beforeColors = before.map((item) => item.style.borderColor);
@@ -426,7 +426,7 @@ describe("App", () => {
   it("re-focuses the primary field when the same key position is picked on a different layer", () => {
     render(<App />);
     fireEvent.click(screen.getByRole("button", { name: /add layer/i }));
-    fireEvent.click(screen.getByRole("tab", { name: /all/i }));
+    fireEvent.click(screen.getByRole("tab", { name: /overview/i }));
 
     const blocks = screen.getAllByRole("listitem");
     // First pick: position L-r0-c0 on the first layer's block focuses the field.
@@ -456,7 +456,7 @@ describe("App", () => {
 
     fireEvent.click(screen.getByLabelText(/homing key/i));
 
-    fireEvent.click(screen.getByRole("tab", { name: /all/i }));
+    fireEvent.click(screen.getByRole("tab", { name: /overview/i }));
     const items = screen.getAllByRole("listitem");
     items.forEach((item) => {
       const keyGroup = item.querySelector('[data-key-id="L-r0-c0"]')!;
