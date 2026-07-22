@@ -103,22 +103,54 @@ describe("LayerTabs", () => {
     expect(onAdd).toHaveBeenCalled();
   });
 
-  it("renames the active layer when its name field changes", () => {
+  it("keeps the active layer unchanged when editing is cancelled", () => {
     const onRename = vi.fn();
-    render(<LayerTabs {...handlers} onRename={onRename} layers={layers("Base")} activeIndex={0} />);
+    const onRecolor = vi.fn();
+    render(
+      <LayerTabs
+        {...handlers}
+        onRename={onRename}
+        onRecolor={onRecolor}
+        layers={layers("Base")}
+        activeIndex={0}
+      />,
+    );
 
-    fireEvent.change(screen.getByLabelText(/layer name/i), { target: { value: "Nav" } });
+    fireEvent.click(screen.getByRole("button", { name: /layer actions/i }));
+    fireEvent.click(screen.getByRole("menuitem", { name: /edit layer/i }));
+    const dialog = screen.getByRole("dialog", { name: /edit layer/i });
+    fireEvent.change(within(dialog).getByLabelText(/layer name/i), { target: { value: "Nav" } });
+    fireEvent.change(within(dialog).getByLabelText(/layer color/i), { target: { value: "#ff0000" } });
+    fireEvent.click(within(dialog).getByRole("button", { name: /cancel/i }));
 
-    expect(onRename).toHaveBeenCalledWith(0, "Nav");
+    expect(screen.queryByRole("dialog", { name: /edit layer/i })).not.toBeInTheDocument();
+    expect(onRename).not.toHaveBeenCalled();
+    expect(onRecolor).not.toHaveBeenCalled();
   });
 
-  it("recolors the active layer when its color field changes", () => {
+  it("commits the active layer name and color together", () => {
+    const onRename = vi.fn();
     const onRecolor = vi.fn();
-    render(<LayerTabs {...handlers} onRecolor={onRecolor} layers={layers("Base")} activeIndex={0} />);
+    render(
+      <LayerTabs
+        {...handlers}
+        onRename={onRename}
+        onRecolor={onRecolor}
+        layers={layers("Base")}
+        activeIndex={0}
+      />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: /layer actions/i }));
+    fireEvent.click(screen.getByRole("menuitem", { name: /edit layer/i }));
+    const dialog = screen.getByRole("dialog", { name: /edit layer/i });
+    fireEvent.change(within(dialog).getByLabelText(/layer name/i), { target: { value: "Nav" } });
+    fireEvent.change(within(dialog).getByLabelText(/layer color/i), { target: { value: "#ff0000" } });
 
-    fireEvent.change(screen.getByLabelText(/layer color/i), { target: { value: "#ff0000" } });
+    fireEvent.click(within(dialog).getByRole("button", { name: /save changes/i }));
 
+    expect(onRename).toHaveBeenCalledWith(0, "Nav");
     expect(onRecolor).toHaveBeenCalledWith(0, "#ff0000");
+    expect(screen.queryByRole("dialog", { name: /edit layer/i })).not.toBeInTheDocument();
   });
 
   it("deletes the active layer only after confirmation", () => {
