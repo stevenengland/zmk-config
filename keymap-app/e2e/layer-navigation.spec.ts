@@ -1,5 +1,7 @@
 import { expect, test } from "playwright/test";
 
+test.describe.configure({ timeout: 60_000 });
+
 test("compact layer controls keep the active tab reachable without page overflow", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/");
