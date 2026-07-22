@@ -208,3 +208,36 @@ it("desktop groups every export format as a distinct menu action", () => {
     expect(within(menu).getByRole("menuitem", { name })).toBeVisible();
   }
 });
+
+it("desktop file and history actions expose their keyboard shortcuts", () => {
+  // Given the desktop global toolbar
+  renderToolbar({ canUndo: true, canRedo: true });
+
+  // When the user inspects the file and history controls
+  const shortcuts = [
+    ["Open", "Ctrl+O"],
+    ["Save", "Ctrl+S"],
+    ["Undo", "Ctrl+Z"],
+    ["Redo", "Ctrl+Shift+Z"],
+  ];
+
+  // Then each control exposes its shortcut as a tooltip
+  for (const [name, shortcut] of shortcuts) {
+    expect(screen.getByRole("button", { name })).toHaveAttribute("title", `${name} (${shortcut})`);
+  }
+});
+
+it("compact menu shows file and history keyboard shortcuts", () => {
+  // Given the toolbar is rendered below the compact breakpoint
+  Object.defineProperty(window, "innerWidth", { configurable: true, value: 390 });
+  renderToolbar({ canUndo: true, canRedo: true });
+
+  // When the user opens More
+  fireEvent.click(screen.getByRole("button", { name: "More" }));
+  const menu = screen.getByRole("menu", { name: "More" });
+
+  // Then file and history menu text includes the matching shortcuts
+  for (const [name, shortcut] of [["Open", "Ctrl+O"], ["Undo", "Ctrl+Z"], ["Redo", "Ctrl+Shift+Z"]]) {
+    expect(within(menu).getByRole("menuitem", { name })).toHaveTextContent(shortcut);
+  }
+});

@@ -5,6 +5,7 @@ interface ActionMenuProps {
   label: string;
   actions: Array<{
     label: string;
+    hint?: string;
     onSelect: () => void | Promise<void>;
     disabled?: boolean;
   }>;
@@ -68,7 +69,8 @@ export function ActionMenu({ label, actions, triggerStyle }: ActionMenuProps) {
                 closeAndRestoreFocus();
               }}
             >
-              {action.label}
+              <span>{action.label}</span>
+              {action.hint ? <span className="km-action-menu__hint" aria-hidden>{action.hint}</span> : null}
             </button>
           ))}
         </div>

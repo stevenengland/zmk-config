@@ -172,11 +172,11 @@ export function Toolbar({
     { label: "Export JSON", onSelect: handleExportJson },
   ];
   const compactActions = [
-    { label: "Open", onSelect: handleOpen },
+    { label: "Open", hint: "Ctrl+O", onSelect: handleOpen },
     { label: "Macro library", onSelect: onManageMacros },
     ...exportActions,
-    { label: "Undo", onSelect: onUndo, disabled: !canUndo },
-    { label: "Redo", onSelect: onRedo, disabled: !canRedo },
+    { label: "Undo", hint: "Ctrl+Z", onSelect: onUndo, disabled: !canUndo },
+    { label: "Redo", hint: "Ctrl+Shift+Z", onSelect: onRedo, disabled: !canRedo },
   ];
 
   return (
@@ -203,11 +203,11 @@ export function Toolbar({
 
       <div className="km-toolbar__cluster km-toolbar__cluster--primary" style={cluster}>
         {!compact ? (
-          <button type="button" className="km-btn km-btn--primary" style={actionButton} onClick={handleOpen}>
+          <button type="button" className="km-btn km-btn--primary" style={actionButton} title="Open (Ctrl+O)" onClick={handleOpen}>
             Open
           </button>
         ) : null}
-        <button type="button" className="km-btn km-btn--primary" style={actionButton} onClick={handleSave}>
+        <button type="button" className="km-btn km-btn--primary" style={actionButton} title="Save (Ctrl+S)" onClick={handleSave}>
           Save
         </button>
       </div>
@@ -233,10 +233,10 @@ export function Toolbar({
           <div className="km-toolbar__divider" aria-hidden style={divider} />
 
           <div className="km-toolbar__cluster" style={cluster}>
-            <button type="button" className="km-btn" style={actionButton} onClick={onUndo} disabled={!canUndo}>
+            <button type="button" className="km-btn" style={actionButton} title="Undo (Ctrl+Z)" onClick={onUndo} disabled={!canUndo}>
               Undo
             </button>
-            <button type="button" className="km-btn" style={actionButton} onClick={onRedo} disabled={!canRedo}>
+            <button type="button" className="km-btn" style={actionButton} title="Redo (Ctrl+Shift+Z)" onClick={onRedo} disabled={!canRedo}>
               Redo
             </button>
           </div>

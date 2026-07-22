@@ -18,6 +18,10 @@
 }
 
 .km-action-menu__item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
   appearance: none;
   border: 0;
   border-radius: 4px;
@@ -28,6 +32,12 @@
   text-align: left;
   white-space: nowrap;
   cursor: pointer;
+}
+
+.km-action-menu__hint {
+  color: #bac9cc;
+  font-family: "JetBrains Mono", monospace;
+  font-size: 11px;
 }
 
 .km-action-menu__item:hover:not(:disabled),
