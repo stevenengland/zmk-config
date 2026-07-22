@@ -194,4 +194,12 @@ describe("LayerTabs", () => {
     fireEvent.click(screen.getByRole("button", { name: /layer actions/i }));
     expect(screen.getByRole("menuitem", { name: /delete layer/i })).toBeDisabled();
   });
+
+  it("explains why the last remaining layer cannot be deleted", () => {
+    render(<LayerTabs {...handlers} layers={layers("Base")} activeIndex={0} />);
+
+    fireEvent.click(screen.getByRole("button", { name: /layer actions/i }));
+
+    expect(screen.getByRole("menu", { name: /layer actions/i })).toHaveTextContent(/one layer is required/i);
+  });
 });

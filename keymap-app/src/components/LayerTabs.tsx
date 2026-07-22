@@ -163,7 +163,12 @@ export function LayerTabs({
         triggerStyle={controlButton}
         actions={[
           { label: "Edit layer", onSelect: requestEdit },
-          { label: "Delete layer", onSelect: requestDelete, disabled: isLastLayer },
+          {
+            label: "Delete layer",
+            hint: isLastLayer ? "One layer is required" : undefined,
+            onSelect: requestDelete,
+            disabled: isLastLayer,
+          },
         ]}
       />
       </div>
