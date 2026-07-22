@@ -1,0 +1,42 @@
+.km-action-menu {
+  position: relative;
+  flex: 0 0 auto;
+}
+
+.km-action-menu__popup {
+  position: absolute;
+  z-index: 30;
+  top: calc(100% + 6px);
+  right: 0;
+  display: grid;
+  min-width: 180px;
+  padding: 6px;
+  border: 1px solid var(--km-outline-variant);
+  border-radius: 6px;
+  background: #1a1d22;
+  box-shadow: 0 10px 28px rgb(0 0 0 / 35%);
+}
+
+.km-action-menu__item {
+  appearance: none;
+  border: 0;
+  border-radius: 4px;
+  padding: 8px 10px;
+  background: transparent;
+  color: #e5e2e1;
+  font: inherit;
+  text-align: left;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.km-action-menu__item:hover:not(:disabled),
+.km-action-menu__item:focus-visible {
+  background: #24282f;
+  outline: none;
+}
+
+.km-action-menu__item:disabled {
+  opacity: 0.4;
+  cursor: default;
+}

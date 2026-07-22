@@ -2,6 +2,7 @@ import { useEffect, useState, type CSSProperties } from "react";
 import type { KeymapDocument, Layer } from "../model/schema";
 import { openDocument, saveDocument, type SaveTarget } from "../io/persistence";
 import { exportAllLayersSvg, exportJson, exportLayerSvg } from "../io/export";
+import { ActionMenu } from "./ActionMenu";
 import type { StatusMessage } from "./StatusBar";
 import "./Toolbar.css";
 
@@ -11,12 +12,6 @@ const ON_SURFACE = "#e5e2e1";
 const ON_SURFACE_VARIANT = "#bac9cc";
 const OUTLINE_VARIANT = "#3b494c";
 const COMPACT_BREAKPOINT = 640;
-
-interface MenuAction {
-  label: string;
-  onSelect: () => void | Promise<void>;
-  disabled?: boolean;
-}
 
 interface ToolbarProps {
   document: KeymapDocument;
@@ -90,41 +85,6 @@ function describe(error: unknown): string {
 
 function isCompactViewport(): boolean {
   return typeof window !== "undefined" && window.innerWidth < COMPACT_BREAKPOINT;
-}
-
-function OverflowMenu({ label, actions }: { label: string; actions: MenuAction[] }) {
-  const [open, setOpen] = useState(false);
-
-  return (
-    <div className="km-action-menu">
-      <button
-        type="button"
-        className="km-btn"
-        style={actionButton}
-        aria-haspopup="menu"
-        aria-expanded={open}
-        onClick={() => setOpen((current) => !current)}
-      >
-        {label}
-      </button>
-      {open ? (
-        <div className="km-action-menu__popup" role="menu" aria-label={label}>
-          {actions.map((action) => (
-            <button
-              key={action.label}
-              type="button"
-              className="km-action-menu__item"
-              role="menuitem"
-              disabled={action.disabled}
-              onClick={() => void action.onSelect()}
-            >
-              {action.label}
-            </button>
-          ))}
-        </div>
-      ) : null}
-    </div>
-  );
 }
 
 /**
@@ -206,12 +166,15 @@ export function Toolbar({
     }
   };
 
-  const compactActions: MenuAction[] = [
-    { label: "Open", onSelect: handleOpen },
-    { label: "Macro library", onSelect: onManageMacros },
+  const exportActions = [
     { label: "Export SVG", onSelect: handleExportLayer },
     { label: "Export All SVG", onSelect: handleExportAll },
     { label: "Export JSON", onSelect: handleExportJson },
+  ];
+  const compactActions = [
+    { label: "Open", onSelect: handleOpen },
+    { label: "Macro library", onSelect: onManageMacros },
+    ...exportActions,
     { label: "Undo", onSelect: onUndo, disabled: !canUndo },
     { label: "Redo", onSelect: onRedo, disabled: !canRedo },
   ];
@@ -250,7 +213,7 @@ export function Toolbar({
       </div>
 
       {compact ? (
-        <OverflowMenu label="More" actions={compactActions} />
+        <ActionMenu label="More" actions={compactActions} triggerStyle={actionButton} />
       ) : (
         <>
           <div className="km-toolbar__divider" aria-hidden style={divider} />
@@ -264,15 +227,7 @@ export function Toolbar({
           <div className="km-toolbar__divider" aria-hidden style={divider} />
 
           <div className="km-toolbar__cluster" style={cluster}>
-            <button type="button" className="km-btn" style={actionButton} onClick={handleExportLayer}>
-              Export SVG
-            </button>
-            <button type="button" className="km-btn" style={actionButton} onClick={handleExportAll}>
-              Export All SVG
-            </button>
-            <button type="button" className="km-btn" style={actionButton} onClick={handleExportJson}>
-              Export JSON
-            </button>
+            <ActionMenu label="Export" actions={exportActions} triggerStyle={actionButton} />
           </div>
 
           <div className="km-toolbar__divider" aria-hidden style={divider} />

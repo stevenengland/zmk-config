@@ -116,7 +116,8 @@ it("enables undo/redo per their flags and routes clicks to the handlers", () => 
 it("exports the active layer as SVG and reports success", () => {
   const { onStatus } = renderToolbar();
 
-  fireEvent.click(screen.getByRole("button", { name: /^export svg$/i }));
+  fireEvent.click(screen.getByRole("button", { name: "Export" }));
+  fireEvent.click(screen.getByRole("menuitem", { name: "Export SVG" }));
 
   expect(exportLayerSvg).toHaveBeenCalledWith(DOC.layers[0], [], DOC.layers, {});
   expect(onStatus).toHaveBeenCalledWith(
@@ -127,7 +128,8 @@ it("exports the active layer as SVG and reports success", () => {
 it("exports every layer as SVG and reports success", () => {
   const { onStatus } = renderToolbar();
 
-  fireEvent.click(screen.getByRole("button", { name: /export all/i }));
+  fireEvent.click(screen.getByRole("button", { name: "Export" }));
+  fireEvent.click(screen.getByRole("menuitem", { name: "Export All SVG" }));
 
   expect(exportAllLayersSvg).toHaveBeenCalledWith(DOC.layers, [], {});
   expect(onStatus).toHaveBeenCalledWith(
@@ -138,7 +140,8 @@ it("exports every layer as SVG and reports success", () => {
 it("exports the document as JSON and reports success", () => {
   const { onStatus } = renderToolbar();
 
-  fireEvent.click(screen.getByRole("button", { name: /export json/i }));
+  fireEvent.click(screen.getByRole("button", { name: "Export" }));
+  fireEvent.click(screen.getByRole("menuitem", { name: "Export JSON" }));
 
   expect(exportJson).toHaveBeenCalledWith(DOC);
   expect(onStatus).toHaveBeenCalledWith(
@@ -170,7 +173,7 @@ it("desktop presents file identity and every global action", () => {
 
   // Then file state and prioritized global actions are available
   expect(toolbar).toHaveTextContent("sofle.keymap.json · Unsaved changes");
-  for (const name of ["Open", "Save", "Macro library", "Export SVG", "Export All SVG", "Export JSON", "Undo", "Redo"]) {
+  for (const name of ["Open", "Save", "Macro library", "Export", "Undo", "Redo"]) {
     expect(screen.getByRole("button", { name })).toBeVisible();
   }
 });
@@ -188,6 +191,20 @@ it("compact width keeps Save visible and moves lower-priority actions into More"
   expect(within(toolbar).getByRole("button", { name: "Save" })).toBeVisible();
   const menu = screen.getByRole("menu", { name: "More" });
   for (const name of ["Open", "Macro library", "Export SVG", "Export All SVG", "Export JSON", "Undo", "Redo"]) {
+    expect(within(menu).getByRole("menuitem", { name })).toBeVisible();
+  }
+});
+
+it("desktop groups every export format as a distinct menu action", () => {
+  // Given the desktop global toolbar
+  renderToolbar();
+
+  // When the user opens Export
+  fireEvent.click(screen.getByRole("button", { name: "Export" }));
+
+  // Then each existing export operation remains a separate choice
+  const menu = screen.getByRole("menu", { name: "Export" });
+  for (const name of ["Export SVG", "Export All SVG", "Export JSON"]) {
     expect(within(menu).getByRole("menuitem", { name })).toBeVisible();
   }
 });
