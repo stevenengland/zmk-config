@@ -101,10 +101,21 @@ export function LayerTabs({
   const [pendingDelete, setPendingDelete] = useState<{ index: number; name: string } | null>(null);
   const [editDraft, setEditDraft] = useState<{ index: number; name: string; color: string } | null>(null);
   const selectedTabRef = useRef<HTMLButtonElement>(null);
+  const editNameRef = useRef<HTMLInputElement>(null);
+  const editReturnFocusRef = useRef<HTMLElement>(null);
+  const editIndex = editDraft?.index;
 
   useEffect(() => {
     selectedTabRef.current?.scrollIntoView?.({ block: "nearest", inline: "nearest" });
   }, [activeIndex, viewMode]);
+
+  useEffect(() => {
+    if (editIndex === undefined) return;
+    editReturnFocusRef.current = document.activeElement instanceof HTMLElement
+      ? document.activeElement
+      : null;
+    editNameRef.current?.focus();
+  }, [editIndex]);
 
   const requestDelete = () => {
     setPendingDelete({ index: activeIndex, name: active.name });
@@ -112,6 +123,11 @@ export function LayerTabs({
 
   const requestEdit = () => {
     setEditDraft({ index: activeIndex, name: active.name, color: active.color });
+  };
+
+  const closeEdit = () => {
+    setEditDraft(null);
+    editReturnFocusRef.current?.focus();
   };
 
   return (
@@ -180,17 +196,39 @@ export function LayerTabs({
             aria-modal="true"
             aria-labelledby="edit-layer-title"
             style={dialogSurface}
+            onKeyDown={(event) => {
+              if (event.key === "Escape") {
+                event.preventDefault();
+                closeEdit();
+                return;
+              }
+              if (event.key !== "Tab") return;
+              const controls = Array.from(
+                event.currentTarget.querySelectorAll<HTMLElement>("input, button:not([disabled])"),
+              );
+              const first = controls[0];
+              const last = controls.at(-1);
+              if (!first || !last) return;
+              if (event.shiftKey && document.activeElement === first) {
+                event.preventDefault();
+                last.focus();
+              } else if (!event.shiftKey && document.activeElement === last) {
+                event.preventDefault();
+                first.focus();
+              }
+            }}
             onSubmit={(event) => {
               event.preventDefault();
               onRename(editDraft.index, editDraft.name);
               onRecolor(editDraft.index, editDraft.color);
-              setEditDraft(null);
+              closeEdit();
             }}
           >
             <h2 id="edit-layer-title" style={{ margin: 0, fontSize: 20 }}>Edit layer</h2>
             <label>
               Layer name
               <input
+                ref={editNameRef}
                 aria-label="Layer name"
                 value={editDraft.name}
                 onChange={(event) => setEditDraft({ ...editDraft, name: event.target.value })}
@@ -206,7 +244,7 @@ export function LayerTabs({
               />
             </label>
             <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
-              <button type="button" className="km-btn" onClick={() => setEditDraft(null)}>
+              <button type="button" className="km-btn" onClick={closeEdit}>
                 Cancel
               </button>
               <button type="submit" className="km-btn km-btn--primary">

@@ -153,6 +153,35 @@ describe("LayerTabs", () => {
     expect(screen.queryByRole("dialog", { name: /edit layer/i })).not.toBeInTheDocument();
   });
 
+  it("traps keyboard focus inside the edit dialog", () => {
+    render(<LayerTabs {...handlers} layers={layers("Base")} activeIndex={0} />);
+    fireEvent.click(screen.getByRole("button", { name: /layer actions/i }));
+    fireEvent.click(screen.getByRole("menuitem", { name: /edit layer/i }));
+    const dialog = screen.getByRole("dialog", { name: /edit layer/i });
+    const nameField = within(dialog).getByLabelText(/layer name/i);
+    const save = within(dialog).getByRole("button", { name: /save changes/i });
+
+    expect(nameField).toHaveFocus();
+    save.focus();
+    fireEvent.keyDown(dialog, { key: "Tab" });
+
+    expect(nameField).toHaveFocus();
+  });
+
+  it("dismisses layer editing with Escape and restores action-trigger focus", () => {
+    render(<LayerTabs {...handlers} layers={layers("Base")} activeIndex={0} />);
+    const trigger = screen.getByRole("button", { name: /layer actions/i });
+    trigger.focus();
+    fireEvent.click(trigger);
+    fireEvent.click(screen.getByRole("menuitem", { name: /edit layer/i }));
+    const dialog = screen.getByRole("dialog", { name: /edit layer/i });
+
+    fireEvent.keyDown(dialog, { key: "Escape" });
+
+    expect(screen.queryByRole("dialog", { name: /edit layer/i })).not.toBeInTheDocument();
+    expect(trigger).toHaveFocus();
+  });
+
   it("deletes the active layer only after confirmation", () => {
     const onDelete = vi.fn();
     render(<LayerTabs {...handlers} onDelete={onDelete} layers={layers("Base", "Symbols")} activeIndex={1} />);
