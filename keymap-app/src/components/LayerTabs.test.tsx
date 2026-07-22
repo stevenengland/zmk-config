@@ -28,20 +28,20 @@ describe("LayerTabs", () => {
     render(<LayerTabs {...handlers} layers={layers("Base", "Symbols")} activeIndex={1} />);
 
     const tabs = screen.getAllByRole("tab");
-    // "All" is the first tab; the two layer tabs follow.
+    // "Overview" is the first tab; the two layer tabs follow.
     expect(tabs).toHaveLength(3);
     expect(tabs[2]).toHaveAttribute("aria-selected", "true");
     expect(tabs[1]).toHaveAttribute("aria-selected", "false");
   });
 
-  it("renders the All entry as the first item in the strip", () => {
+  it("renders the Overview entry as the first item in the strip", () => {
     render(<LayerTabs {...handlers} layers={layers("Base", "Symbols")} activeIndex={0} />);
 
     const tabs = screen.getAllByRole("tab");
-    expect(tabs[0]).toHaveTextContent("All");
+    expect(tabs[0]).toHaveTextContent("Overview");
   });
 
-  it("enters overview mode when All is clicked", () => {
+  it("enters overview mode when Overview is clicked", () => {
     const onSelectOverview = vi.fn();
     render(
       <LayerTabs
@@ -52,12 +52,12 @@ describe("LayerTabs", () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole("tab", { name: /all/i }));
+    fireEvent.click(screen.getByRole("tab", { name: /overview/i }));
 
     expect(onSelectOverview).toHaveBeenCalled();
   });
 
-  it("marks All selected in overview mode and no layer tab selected", () => {
+  it("marks Overview selected in overview mode and no layer tab selected", () => {
     render(
       <LayerTabs {...handlers} viewMode="overview" layers={layers("Base", "Symbols")} activeIndex={0} />,
     );
@@ -77,6 +77,23 @@ describe("LayerTabs", () => {
     expect(onSelect).toHaveBeenCalledWith(1);
   });
 
+  it("keeps the active layer tab visible when selection changes", () => {
+    const scrollIntoView = vi.fn();
+    Object.defineProperty(HTMLElement.prototype, "scrollIntoView", {
+      configurable: true,
+      value: scrollIntoView,
+    });
+    const { rerender } = render(
+      <LayerTabs {...handlers} layers={layers("Base", "Symbols", "Navigation")} activeIndex={0} />,
+    );
+    scrollIntoView.mockClear();
+
+    rerender(<LayerTabs {...handlers} layers={layers("Base", "Symbols", "Navigation")} activeIndex={2} />);
+
+    expect(scrollIntoView).toHaveBeenCalledWith({ block: "nearest", inline: "nearest" });
+    delete (HTMLElement.prototype as unknown as Record<string, unknown>).scrollIntoView;
+  });
+
   it("adds a layer via the add control", () => {
     const onAdd = vi.fn();
     render(<LayerTabs {...handlers} onAdd={onAdd} layers={layers("Base")} activeIndex={0} />);
@@ -86,29 +103,91 @@ describe("LayerTabs", () => {
     expect(onAdd).toHaveBeenCalled();
   });
 
-  it("renames the active layer when its name field changes", () => {
+  it("keeps the active layer unchanged when editing is cancelled", () => {
     const onRename = vi.fn();
-    render(<LayerTabs {...handlers} onRename={onRename} layers={layers("Base")} activeIndex={0} />);
+    const onRecolor = vi.fn();
+    render(
+      <LayerTabs
+        {...handlers}
+        onRename={onRename}
+        onRecolor={onRecolor}
+        layers={layers("Base")}
+        activeIndex={0}
+      />,
+    );
 
-    fireEvent.change(screen.getByLabelText(/layer name/i), { target: { value: "Nav" } });
+    fireEvent.click(screen.getByRole("button", { name: /layer actions/i }));
+    fireEvent.click(screen.getByRole("menuitem", { name: /edit layer/i }));
+    const dialog = screen.getByRole("dialog", { name: /edit layer/i });
+    fireEvent.change(within(dialog).getByLabelText(/layer name/i), { target: { value: "Nav" } });
+    fireEvent.change(within(dialog).getByLabelText(/layer color/i), { target: { value: "#ff0000" } });
+    fireEvent.click(within(dialog).getByRole("button", { name: /cancel/i }));
 
-    expect(onRename).toHaveBeenCalledWith(0, "Nav");
+    expect(screen.queryByRole("dialog", { name: /edit layer/i })).not.toBeInTheDocument();
+    expect(onRename).not.toHaveBeenCalled();
+    expect(onRecolor).not.toHaveBeenCalled();
   });
 
-  it("recolors the active layer when its color field changes", () => {
+  it("commits the active layer name and color together", () => {
+    const onRename = vi.fn();
     const onRecolor = vi.fn();
-    render(<LayerTabs {...handlers} onRecolor={onRecolor} layers={layers("Base")} activeIndex={0} />);
+    render(
+      <LayerTabs
+        {...handlers}
+        onRename={onRename}
+        onRecolor={onRecolor}
+        layers={layers("Base")}
+        activeIndex={0}
+      />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: /layer actions/i }));
+    fireEvent.click(screen.getByRole("menuitem", { name: /edit layer/i }));
+    const dialog = screen.getByRole("dialog", { name: /edit layer/i });
+    fireEvent.change(within(dialog).getByLabelText(/layer name/i), { target: { value: "Nav" } });
+    fireEvent.change(within(dialog).getByLabelText(/layer color/i), { target: { value: "#ff0000" } });
 
-    fireEvent.change(screen.getByLabelText(/layer color/i), { target: { value: "#ff0000" } });
+    fireEvent.click(within(dialog).getByRole("button", { name: /save changes/i }));
 
+    expect(onRename).toHaveBeenCalledWith(0, "Nav");
     expect(onRecolor).toHaveBeenCalledWith(0, "#ff0000");
+    expect(screen.queryByRole("dialog", { name: /edit layer/i })).not.toBeInTheDocument();
+  });
+
+  it("traps keyboard focus inside the edit dialog", () => {
+    render(<LayerTabs {...handlers} layers={layers("Base")} activeIndex={0} />);
+    fireEvent.click(screen.getByRole("button", { name: /layer actions/i }));
+    fireEvent.click(screen.getByRole("menuitem", { name: /edit layer/i }));
+    const dialog = screen.getByRole("dialog", { name: /edit layer/i });
+    const nameField = within(dialog).getByLabelText(/layer name/i);
+    const save = within(dialog).getByRole("button", { name: /save changes/i });
+
+    expect(nameField).toHaveFocus();
+    save.focus();
+    fireEvent.keyDown(dialog, { key: "Tab" });
+
+    expect(nameField).toHaveFocus();
+  });
+
+  it("dismisses layer editing with Escape and restores action-trigger focus", () => {
+    render(<LayerTabs {...handlers} layers={layers("Base")} activeIndex={0} />);
+    const trigger = screen.getByRole("button", { name: /layer actions/i });
+    trigger.focus();
+    fireEvent.click(trigger);
+    fireEvent.click(screen.getByRole("menuitem", { name: /edit layer/i }));
+    const dialog = screen.getByRole("dialog", { name: /edit layer/i });
+
+    fireEvent.keyDown(dialog, { key: "Escape" });
+
+    expect(screen.queryByRole("dialog", { name: /edit layer/i })).not.toBeInTheDocument();
+    expect(trigger).toHaveFocus();
   });
 
   it("deletes the active layer only after confirmation", () => {
     const onDelete = vi.fn();
     render(<LayerTabs {...handlers} onDelete={onDelete} layers={layers("Base", "Symbols")} activeIndex={1} />);
 
-    fireEvent.click(screen.getByRole("button", { name: /delete layer/i }));
+    fireEvent.click(screen.getByRole("button", { name: /layer actions/i }));
+    fireEvent.click(screen.getByRole("menuitem", { name: /delete layer/i }));
     const confirmation = screen.getByRole("alertdialog", { name: /delete layer/i });
     expect(confirmation).toHaveTextContent('Delete layer "Symbols"?');
     fireEvent.click(within(confirmation).getByRole("button", { name: /^delete layer$/i }));
@@ -116,11 +195,23 @@ describe("LayerTabs", () => {
     expect(onDelete).toHaveBeenCalledWith(1);
   });
 
+  it("names the layer and reference impact before deletion", () => {
+    render(<LayerTabs {...handlers} layers={layers("Base", "Symbols")} activeIndex={1} />);
+
+    fireEvent.click(screen.getByRole("button", { name: /layer actions/i }));
+    fireEvent.click(screen.getByRole("menuitem", { name: /delete layer/i }));
+
+    const confirmation = screen.getByRole("alertdialog", { name: /delete layer/i });
+    expect(confirmation).toHaveTextContent('Delete layer "Symbols"?');
+    expect(confirmation).toHaveTextContent(/references to this layer will be removed/i);
+  });
+
   it("keeps the layer when deletion is cancelled", () => {
     const onDelete = vi.fn();
     render(<LayerTabs {...handlers} onDelete={onDelete} layers={layers("Base", "Symbols")} activeIndex={1} />);
 
-    fireEvent.click(screen.getByRole("button", { name: /delete layer/i }));
+    fireEvent.click(screen.getByRole("button", { name: /layer actions/i }));
+    fireEvent.click(screen.getByRole("menuitem", { name: /delete layer/i }));
     fireEvent.click(screen.getByRole("button", { name: /^cancel$/i }));
 
     expect(onDelete).not.toHaveBeenCalled();
@@ -129,6 +220,15 @@ describe("LayerTabs", () => {
   it("disables delete on the last remaining layer", () => {
     render(<LayerTabs {...handlers} layers={layers("Base")} activeIndex={0} />);
 
-    expect(screen.getByRole("button", { name: /delete layer/i })).toBeDisabled();
+    fireEvent.click(screen.getByRole("button", { name: /layer actions/i }));
+    expect(screen.getByRole("menuitem", { name: /delete layer/i })).toBeDisabled();
+  });
+
+  it("explains why the last remaining layer cannot be deleted", () => {
+    render(<LayerTabs {...handlers} layers={layers("Base")} activeIndex={0} />);
+
+    fireEvent.click(screen.getByRole("button", { name: /layer actions/i }));
+
+    expect(screen.getByRole("menu", { name: /layer actions/i })).toHaveTextContent(/one layer is required/i);
   });
 });

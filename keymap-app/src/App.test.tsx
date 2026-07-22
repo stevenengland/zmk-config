@@ -73,7 +73,7 @@ describe("App", () => {
     fireEvent.click(container.querySelector('[data-key-id="L-r0-c0"]')!);
     fireEvent.click(screen.getByRole("button", { name: /close key editor/i }));
     fireEvent.click(screen.getByRole("button", { name: /zoom in/i }));
-    fireEvent.click(screen.getByRole("tab", { name: /all/i }));
+    fireEvent.click(screen.getByRole("tab", { name: /overview/i }));
 
     // Then the canonical document remains clean
     expect(screen.queryByText(/Unsaved changes/)).not.toBeInTheDocument();
@@ -160,12 +160,12 @@ describe("App", () => {
     );
   });
 
-  it("boots with one default layer shown as the active tab, after the All entry", () => {
+  it("boots with one default layer shown as the active tab, after Overview", () => {
     render(<App />);
 
     const tabs = screen.getAllByRole("tab");
     expect(tabs).toHaveLength(2);
-    expect(tabs[0]).toHaveTextContent("All");
+    expect(tabs[0]).toHaveTextContent("Overview");
     expect(tabs[1]).toHaveAttribute("aria-selected", "true");
   });
 
@@ -179,11 +179,11 @@ describe("App", () => {
     expect(tabs[2]).toHaveAttribute("aria-selected", "true");
   });
 
-  it("enters overview mode with one block per layer when All is clicked, and returns to edit on a layer tab", () => {
+  it("enters overview mode with one block per layer when Overview is clicked, and returns to edit on a layer tab", () => {
     const { container } = render(<App />);
     fireEvent.click(screen.getByRole("button", { name: /add layer/i }));
 
-    fireEvent.click(screen.getByRole("tab", { name: /all/i }));
+    fireEvent.click(screen.getByRole("tab", { name: /overview/i }));
 
     expect(screen.getAllByRole("listitem")).toHaveLength(2);
     expect(container.querySelectorAll('svg[aria-label="Sofle Choc keyboard"]')).toHaveLength(2);
@@ -202,7 +202,7 @@ describe("App", () => {
     expect(screen.getByRole("button", { name: /^fit$/i })).toBeInTheDocument();
 
     // When the user switches to Overview
-    fireEvent.click(screen.getByRole("tab", { name: /all/i }));
+    fireEvent.click(screen.getByRole("tab", { name: /overview/i }));
 
     // Then the shared controls and selection remain available
     expect(screen.getByRole("button", { name: /^fit$/i })).toBeInTheDocument();
@@ -401,7 +401,7 @@ describe("App", () => {
   it("clicking a key in the overview selects it, switches the active layer to its owner, keeps overview docked, and focuses the field", () => {
     render(<App />);
     fireEvent.click(screen.getByRole("button", { name: /add layer/i }));
-    fireEvent.click(screen.getByRole("tab", { name: /all/i }));
+    fireEvent.click(screen.getByRole("tab", { name: /overview/i }));
 
     const before = screen.getAllByRole("listitem");
     const beforeColors = before.map((item) => item.style.borderColor);
@@ -426,7 +426,7 @@ describe("App", () => {
   it("re-focuses the primary field when the same key position is picked on a different layer", () => {
     render(<App />);
     fireEvent.click(screen.getByRole("button", { name: /add layer/i }));
-    fireEvent.click(screen.getByRole("tab", { name: /all/i }));
+    fireEvent.click(screen.getByRole("tab", { name: /overview/i }));
 
     const blocks = screen.getAllByRole("listitem");
     // First pick: position L-r0-c0 on the first layer's block focuses the field.
@@ -456,7 +456,7 @@ describe("App", () => {
 
     fireEvent.click(screen.getByLabelText(/homing key/i));
 
-    fireEvent.click(screen.getByRole("tab", { name: /all/i }));
+    fireEvent.click(screen.getByRole("tab", { name: /overview/i }));
     const items = screen.getAllByRole("listitem");
     items.forEach((item) => {
       const keyGroup = item.querySelector('[data-key-id="L-r0-c0"]')!;

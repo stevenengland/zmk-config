@@ -66,33 +66,3 @@ body {
 .km-tab:hover {
   color: #e5e2e1;
 }
-
-.km-layer-controls {
-  width: 100%;
-  max-width: 100%;
-  min-width: 0;
-  box-sizing: border-box;
-}
-
-.km-layer-controls > * {
-  flex-shrink: 0;
-}
-
-@media (max-width: 639px) {
-  .km-layer-controls {
-    overflow-x: auto;
-    overscroll-behavior-x: contain;
-    scrollbar-width: thin;
-  }
-
-  .km-layer-controls .km-btn,
-  .km-layer-controls .km-tab {
-    padding-inline: 8px !important;
-    white-space: nowrap;
-  }
-
-  .km-layer-tabs {
-    flex: 0 0 auto !important;
-    min-width: max-content;
-  }
-}

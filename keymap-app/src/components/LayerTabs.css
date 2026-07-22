@@ -1,0 +1,56 @@
+.km-layer-controls {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.km-layer-tabs {
+  min-width: 0;
+  overscroll-behavior-x: contain;
+  scrollbar-width: thin;
+}
+
+.km-layer-tabs > * {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
+.km-layer-add,
+.km-layer-controls > .km-action-menu {
+  flex: 0 0 auto;
+}
+
+@media (max-width: 639px) {
+  .km-layer-controls {
+    gap: 4px !important;
+  }
+
+  .km-layer-controls .km-tab {
+    padding-inline: 8px !important;
+  }
+
+  .km-layer-add,
+  .km-layer-controls .km-action-menu > .km-btn {
+    width: 40px;
+    padding-inline: 0 !important;
+    font-size: 0;
+  }
+
+  .km-layer-add::after {
+    content: "+";
+    font-size: 18px;
+  }
+
+  .km-layer-controls .km-action-menu > .km-btn::after {
+    content: "•••";
+    font-size: 12px;
+    letter-spacing: 1px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .km-layer-tabs {
+    scroll-behavior: auto;
+  }
+}
