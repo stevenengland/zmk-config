@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { vi } from "vitest";
 import { SCHEMA_VERSION, type KeymapDocument } from "../model/schema";
 import { Toolbar } from "./Toolbar";
@@ -52,7 +52,10 @@ function renderToolbar(overrides: Partial<{ canUndo: boolean; canRedo: boolean }
   return { onLoad, onStatus, onUndo, onRedo };
 }
 
-afterEach(() => vi.clearAllMocks());
+afterEach(() => {
+  vi.clearAllMocks();
+  Object.defineProperty(window, "innerWidth", { configurable: true, value: 1024 });
+});
 
 it("loads the opened document and reports success", async () => {
   vi.mocked(openDocument).mockResolvedValue({ document: LOADED, handle: null, filename: "loaded.json" });
@@ -169,5 +172,22 @@ it("desktop presents file identity and every global action", () => {
   expect(toolbar).toHaveTextContent("sofle.keymap.json · Unsaved changes");
   for (const name of ["Open", "Save", "Macro library", "Export SVG", "Export All SVG", "Export JSON", "Undo", "Redo"]) {
     expect(screen.getByRole("button", { name })).toBeVisible();
+  }
+});
+
+it("compact width keeps Save visible and moves lower-priority actions into More", () => {
+  // Given the toolbar is rendered below the compact breakpoint
+  Object.defineProperty(window, "innerWidth", { configurable: true, value: 390 });
+  renderToolbar({ canUndo: true, canRedo: true });
+
+  // When the user opens the compact overflow menu
+  const toolbar = screen.getByRole("toolbar", { name: "Global controls" });
+  fireEvent.click(within(toolbar).getByRole("button", { name: "More" }));
+
+  // Then Save stays direct and every lower-priority action is available in one menu
+  expect(within(toolbar).getByRole("button", { name: "Save" })).toBeVisible();
+  const menu = screen.getByRole("menu", { name: "More" });
+  for (const name of ["Open", "Macro library", "Export SVG", "Export All SVG", "Export JSON", "Undo", "Redo"]) {
+    expect(within(menu).getByRole("menuitem", { name })).toBeVisible();
   }
 });
